@@ -280,17 +280,41 @@ backend:
           comment: "Error parsing logic is working correctly. Backend properly extracts Vietnamese error message 'Đầu vào không hợp lệ' from the complex nested error response and returns it in a structured format with error code 'EXTERNAL_API_ERROR'."
 
 frontend:
-  - task: "Frontend Bill Check Integration"
-    implemented: "NA"
+  - task: "Add New Bill Modal UI"
+    implemented: true
     working: "NA"
-    file: "NA"
+    file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
-          agent: "testing"
-          comment: "Frontend testing was not performed as per system limitations. The issue reported by user about frontend showing error while backend works is likely related to frontend error handling or display logic, not backend functionality."
+          agent: "main"
+          comment: "Add New Bill modal has been implemented with all required form fields: Mã điện, Nhà Cung Cấp, Tên Khách Hàng, Địa Chỉ, Nợ Cước, Chu Kỳ Thanh Toán, Trạng Thái. Modal opens from inventory page 'Thêm Bill Mới' button. Needs comprehensive testing."
+
+  - task: "Add New Bill Form Submission"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Form submission logic implemented with validation, API call to /api/bills/create endpoint, loading states, and success/error handling. Needs testing with real data."
+
+  - task: "Add New Bill Backend API"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Backend API endpoint /api/bills/create implemented with duplicate checking, bill creation, and automatic inventory addition for AVAILABLE status bills. Needs testing."
 
 metadata:
   created_by: "testing_agent"
