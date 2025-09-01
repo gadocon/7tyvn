@@ -1433,6 +1433,40 @@ const Inventory = () => {
         onClose={() => setShowExportModal(false)}
         onExport={handleExportData}
       />
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
+              <h2 className="text-xl font-semibold text-gray-900">Xác Nhận Xóa</h2>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Bạn có chắc muốn xóa <strong>{selectedItems.length}</strong> item(s) đã chọn? 
+              Hành động này không thể hoàn tác.
+            </p>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+              <Button
+                onClick={confirmBulkDelete}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Xóa
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
