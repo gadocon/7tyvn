@@ -2171,12 +2171,9 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
                       {transaction.id.slice(-8)}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
-                      {(() => {
-                        // Extract bill code from notes (format: "Bán bill TEST001 - 1/9/2025")
-                        const notes = transaction.notes || "";
-                        const billCodeMatch = notes.match(/Bán bill ([A-Z0-9]+)/);
-                        return billCodeMatch ? billCodeMatch[1] : "-";
-                      })()}
+                      {transaction.bill_codes && transaction.bill_codes.length > 0 
+                        ? transaction.bill_codes.join(", ") 
+                        : "-"}
                     </TableCell>
                     <TableCell className="text-xs">
                       {formatDateTimeVN(transaction.created_at)}
