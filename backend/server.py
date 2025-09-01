@@ -329,15 +329,65 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
             ) as response:
                 response_text = await response.text()
                 
-                # Parse response - n8n returns array format
+                # Parse response - handle different response formats
                 try:
                     response_data = json_lib.loads(response_text)
+                    
+                    # Handle array format (old format)
                     if isinstance(response_data, list) and len(response_data) > 0:
                         first_item = response_data[0]
                         
-                        # Check if successful response (has bill data)
-                        if "error" not in first_item and "customer_code" in str(first_item):
+                        # Check for success in new API format
+                        if (first_item.get("status") == 200 and 
+                            "data" in first_item and 
+                            "bills" in first_item["data"] and 
+                            len(first_item["data"]["bills"]) > 0):
+                            
+                            bill_info = first_item["data"]["bills"][0]
+                            
+                            # Map external API fields to internal fields
+                            full_name = bill_info.get("customerName")
+                            address = bill_info.get("address")
+                            amount = bill_info.get("moneyAmount")
+                            billing_cycle = bill_info.get("month")
+                            
                             # Successful bill found
+                            bill_data = {
+                                "id": str(uuid.uuid4()),
+                                "gateway": Gateway.FPT,
+                                "customer_code": customer_code,
+                                "provider_region": provider_region,
+                                "provider_name": external_provider,
+                                "full_name": full_name,
+                                "address": address,
+                                "amount": amount,
+                                "billing_cycle": billing_cycle,
+                                "status": BillStatus.AVAILABLE,
+                                "meta": first_item,
+                                "created_at": datetime.now(timezone.utc).isoformat(),
+                                "updated_at": datetime.now(timezone.utc).isoformat()
+                            }
+                            
+                            # Save to database
+                            await db.bills.update_one(
+                                {"customer_code": customer_code, "gateway": Gateway.FPT},
+                                {"$set": bill_data},
+                                upsert=True
+                            )
+                            
+                            return CheckBillResult(
+                                customer_code=customer_code,
+                                full_name=full_name,
+                                address=address,
+                                amount=amount,
+                                billing_cycle=billing_cycle,
+                                status="OK",
+                                bill_id=bill_data["id"]
+                            )
+                        
+                        # Check for old format success (has bill data)
+                        elif "error" not in first_item and ("customer_code" in str(first_item) or "full_name" in first_item):
+                            # Successful bill found (old format)
                             bill_data = {
                                 "id": str(uuid.uuid4()),
                                 "gateway": Gateway.FPT,
