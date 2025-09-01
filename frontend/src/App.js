@@ -2533,7 +2533,7 @@ const ExportModal = ({ show, onClose, onExport }) => {
                 <SelectValue placeholder="Tất cả nhà cung cấp" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tất cả nhà cung cấp</SelectItem>
+                <SelectItem value="ALL">Tất cả nhà cung cấp</SelectItem>
                 <SelectItem value="MIEN_BAC">Miền Bắc</SelectItem>
                 <SelectItem value="MIEN_NAM">Miền Nam</SelectItem>
                 <SelectItem value="HCMC">TP. Hồ Chí Minh</SelectItem>
