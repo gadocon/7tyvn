@@ -883,7 +883,9 @@ const Inventory = () => {
       fetchInventoryData();
     } catch (error) {
       console.error("Error deleting bill:", error);
-      toast.error("Có lỗi xảy ra khi xóa bill");
+      // Show specific error message from backend
+      const errorMessage = error.response?.data?.detail || "Có lỗi xảy ra khi xóa bill";
+      toast.error(errorMessage);
     }
   };
 
