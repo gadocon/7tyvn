@@ -29,7 +29,11 @@ import {
   Home,
   AlertTriangle,
   Upload,
-  Download
+  Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Trash2
 } from "lucide-react";
 import axios from "axios";
 
