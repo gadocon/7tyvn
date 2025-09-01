@@ -1578,10 +1578,229 @@ const Sales = () => (
   </div>
 );
 
-// Main App Component
-function App() {
 // Sell Bill Modal Component
 const SellBillModal = ({ show, billItem, onClose, onComplete }) => {
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [profitPct, setProfitPct] = useState(10);
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
+  
+  // Calculated values
+  const billAmount = billItem?.amount || 0;
+  const profitValue = Math.round(billAmount * profitPct / 100);
+  const paybackAmount = billAmount - profitValue;
+
+  useEffect(() => {
+    if (show) {
+      fetchCustomers();
+      // Reset form
+      setSelectedCustomerId("");
+      setProfitPct(10);
+      setPaymentMethod("CASH");
+      setNotes("");
+    }
+  }, [show]);
+
+  const fetchCustomers = async () => {
+    try {
+      const response = await axios.get(`${API}/customers?is_active=true`);
+      setCustomers(response.data);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      toast.error("Không thể tải danh sách khách hàng");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedCustomerId) {
+      toast.error("Vui lòng chọn khách hàng");
+      return;
+    }
+
+    if (profitPct < 0 || profitPct > 100) {
+      toast.error("% Lợi nhuận phải từ 0 đến 100");
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const saleData = {
+        customer_id: selectedCustomerId,
+        bill_ids: [billItem.bill_id],
+        profit_pct: profitPct,
+        method: paymentMethod,
+        notes: notes || `Bán bill ${billItem.customer_code} - ${new Date().toLocaleDateString('vi-VN')}`
+      };
+
+      await axios.post(`${API}/sales`, saleData);
+      
+      toast.success("Đã tạo giao dịch bán bill thành công!");
+      onComplete();
+      
+    } catch (error) {
+      console.error("Error creating sale:", error);
+      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi tạo giao dịch");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  if (!show || !billItem) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-semibold">Bán Bill</h3>
+          <Button variant="outline" onClick={onClose}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Bill Info */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <h4 className="font-medium text-gray-900 mb-3">Thông Tin Bill</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div><strong>Mã điện:</strong> {billItem.customer_code}</div>
+            <div><strong>Tên KH:</strong> {billItem.full_name || "-"}</div>
+            <div><strong>Số tiền:</strong> {formatCurrency(billAmount)}</div>
+            <div><strong>Kỳ thanh toán:</strong> {billItem.billing_cycle || "-"}</div>
+            <div className="col-span-2"><strong>Địa chỉ:</strong> {billItem.address || "-"}</div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Customer Selection */}
+          <div>
+            <Label htmlFor="customer">Chọn Khách Hàng *</Label>
+            <select
+              id="customer"
+              value={selectedCustomerId}
+              onChange={(e) => setSelectedCustomerId(e.target.value)}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm mt-1"
+              required
+            >
+              <option value="">-- Chọn khách hàng --</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name} - {customer.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}
+                  {customer.phone && ` - ${customer.phone}`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Profit Percentage */}
+          <div>
+            <Label htmlFor="profitPct">% Lợi Nhuận *</Label>
+            <Input
+              id="profitPct"
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={profitPct}
+              onChange={(e) => setProfitPct(parseFloat(e.target.value) || 0)}
+              className="mt-1"
+              required
+            />
+            <p className="text-sm text-gray-500 mt-1">Nhập % lợi nhuận từ 0 đến 100</p>
+          </div>
+
+          {/* Payment Method */}
+          <div>
+            <Label htmlFor="paymentMethod">Phương Thức Thanh Toán</Label>
+            <select
+              id="paymentMethod"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm mt-1"
+            >
+              <option value="CASH">Tiền mặt</option>
+              <option value="BANK_TRANSFER">Chuyển khoản</option>
+              <option value="OTHER">Khác</option>
+            </select>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <Label htmlFor="notes">Ghi Chú</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Nhập ghi chú cho giao dịch..."
+              rows={3}
+              className="mt-1"
+            />
+          </div>
+
+          {/* Calculation Summary */}
+          <div className="p-4 bg-blue-50 rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-3">Tính Toán Giao Dịch</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex justify-between">
+                <span>Tổng giá bill:</span>
+                <span className="font-semibold">{formatCurrency(billAmount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>% Lợi nhuận:</span>
+                <span className="font-semibold">{profitPct}%</span>
+              </div>
+              <div className="flex justify-between text-green-600">
+                <span>Lợi nhuận:</span>
+                <span className="font-semibold">{formatCurrency(profitValue)}</span>
+              </div>
+              <div className="flex justify-between text-blue-600">
+                <span>Số tiền trả khách:</span>
+                <span className="font-semibold">{formatCurrency(paybackAmount)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Buttons */}
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+              Hủy
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Tạo Giao Dịch Bán
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Main App Component  
+function App() {
   const [customers, setCustomers] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [profitPct, setProfitPct] = useState(10);
