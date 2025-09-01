@@ -1033,11 +1033,12 @@ async def get_inventory_stats():
             total_value += value
         
         return InventoryStats(
-            total_bills=total_bills,
+            total_bills=inventory_bills,
             available_bills=available_bills,
             pending_bills=pending_bills,
             sold_bills=sold_bills,
-            total_value=total_value
+            total_value=total_value,
+            total_bills_in_system=total_bills_in_system
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
