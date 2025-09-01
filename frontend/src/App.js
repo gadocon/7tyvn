@@ -1476,10 +1476,10 @@ const Inventory = () => {
                               Xóa
                             </Button>
                           )}
-                          {/* Show info for SOLD bills instead of delete button */}
-                          {item.status === "SOLD" && (
+                          {/* Show info for SOLD/CROSSED bills instead of delete button */}
+                          {(item.status === "SOLD" || item.status === "CROSSED") && (
                             <span className="text-sm text-gray-500 italic">
-                              Không thể xóa bill đã bán
+                              {item.status === "SOLD" ? "Không thể xóa bill đã bán" : "Không thể xóa bill đã gạch"}
                             </span>
                           )}
                         </div>
