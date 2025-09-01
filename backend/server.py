@@ -146,6 +146,7 @@ class CheckBillResult(BaseModel):
     billing_cycle: Optional[str] = None
     status: str
     errors: Optional[Dict[str, str]] = None
+    bill_id: Optional[str] = None  # Add bill_id for inventory
 
 class CheckBillResponse(BaseModel):
     items: List[CheckBillResult]
