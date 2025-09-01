@@ -297,7 +297,7 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
     provider_mapping = {
         ProviderRegion.MIEN_BAC: "mien_bac",
         ProviderRegion.MIEN_NAM: "mien_nam", 
-        ProviderRegion.HCMC: "hcmc"
+        ProviderRegion.HCMC: "evnhcmc"
     }
     
     external_provider = provider_mapping.get(provider_region, "mien_nam")
