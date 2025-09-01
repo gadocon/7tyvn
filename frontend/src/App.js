@@ -1345,12 +1345,6 @@ const Inventory = () => {
                       <TableCell>{item.amount ? formatCurrency(item.amount) : "-"}</TableCell>
                       <TableCell>{item.billing_cycle || "-"}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {item.provider_region === "MIEN_BAC" ? "Miền Bắc" : 
-                           item.provider_region === "MIEN_NAM" ? "Miền Nam" : "TP.HCM"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
                         {item.status === "AVAILABLE" ? (
                           <Badge className="bg-green-100 text-green-800">
                             <CheckCircle className="h-3 w-3 mr-1" />
@@ -1366,17 +1360,29 @@ const Inventory = () => {
                             <XCircle className="h-3 w-3 mr-1" />
                             Đã Bán
                           </Badge>
+                        ) : item.status === "CROSSED" ? (
+                          <Badge className="bg-orange-100 text-orange-800">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Đã Gạch
+                          </Badge>
                         ) : (
                           <Badge className="bg-gray-100 text-gray-800">
                             {item.status}
                           </Badge>
                         )}
                       </TableCell>
+                      <TableCell className="text-xs">
+                        {item.created_at ? (() => {
+                          const date = new Date(item.created_at);
+                          const hours = date.getHours().toString().padStart(2, '0');
+                          const minutes = date.getMinutes().toString().padStart(2, '0');
+                          const day = date.getDate().toString().padStart(2, '0');
+                          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                          return `${hours}:${minutes} ${day}/${month}`;
+                        })() : "-"}
+                      </TableCell>
                       <TableCell className="max-w-xs truncate">
-                        {activeTab === "available" 
-                          ? (item.note || "-")
-                          : new Date(item.created_at).toLocaleDateString('vi-VN')
-                        }
+                        {item.note || "-"}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
