@@ -1055,6 +1055,63 @@ async def add_to_inventory(request: AddToInventoryRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/bills/create", response_model=Bill)
+async def create_bill_manual(bill_data: BillCreate):
+    """Create new bill manually and add to inventory"""
+    try:
+        # Check if bill with same customer_code already exists
+        existing_bill = await db.bills.find_one({
+            "customer_code": bill_data.customer_code,
+            "provider_region": bill_data.provider_region
+        })
+        
+        if existing_bill:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Bill với mã điện {bill_data.customer_code} đã tồn tại"
+            )
+        
+        # Create new bill
+        bill = Bill(
+            gateway=Gateway.FPT,  # Default to FPT
+            customer_code=bill_data.customer_code,
+            provider_region=bill_data.provider_region,
+            provider_name=bill_data.provider_region.value.lower(),
+            full_name=bill_data.full_name,
+            address=bill_data.address,
+            amount=bill_data.amount,
+            billing_cycle=bill_data.billing_cycle,
+            status=bill_data.status
+        )
+        
+        # Convert to dict for MongoDB
+        bill_dict = bill.dict()
+        bill_dict["created_at"] = bill.created_at.isoformat()
+        bill_dict["updated_at"] = bill.updated_at.isoformat()
+        
+        # Save to database
+        await db.bills.insert_one(bill_dict)
+        
+        # If status is AVAILABLE, automatically add to inventory
+        if bill_data.status == BillStatus.AVAILABLE:
+            inventory_item = {
+                "id": str(uuid.uuid4()),
+                "bill_id": bill.id,
+                "note": "Được thêm thủ công",
+                "batch_id": None,
+                "added_by": "manual",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.inventory_items.insert_one(inventory_item)
+        
+        return bill
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Sales/Transaction APIs
 @api_router.post("/sales", response_model=Sale)
 async def create_sale(sale_data: SaleCreate):
