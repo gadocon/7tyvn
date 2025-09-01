@@ -1295,8 +1295,11 @@ const Inventory = () => {
                       <TableCell>
                         <button
                           onClick={() => {
-                            console.log('Button clicked for:', item.id, !selectedItems.includes(item.id));
-                            handleSelectItem(item.id, !selectedItems.includes(item.id));
+                            console.log('=== BUTTON CLICKED ===', item.id);
+                            const isCurrentlySelected = selectedItems.includes(item.id);
+                            console.log('Current selected items:', selectedItems);
+                            console.log('Is currently selected:', isCurrentlySelected);
+                            handleSelectItem(item.id, !isCurrentlySelected);
                           }}
                           className="w-4 h-4 border border-gray-300 rounded cursor-pointer flex items-center justify-center hover:bg-blue-50"
                         >
