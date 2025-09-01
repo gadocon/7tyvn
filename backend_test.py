@@ -193,6 +193,165 @@ class FPTBillManagerAPITester:
         
         return success
 
+    def test_specific_bill_pb09020058383(self):
+        """Test specific bill code PB09020058383 with provider miền nam"""
+        print(f"\n🔍 Testing Specific Bill Code: PB09020058383")
+        
+        # Prepare the exact request payload
+        request_payload = {
+            "gateway": "FPT",
+            "provider_region": "MIEN_NAM",
+            "codes": ["PB09020058383"]
+        }
+        
+        print(f"📤 Request Payload:")
+        print(f"   {json.dumps(request_payload, indent=2, ensure_ascii=False)}")
+        
+        url = f"{self.api_url}/bill/check"
+        headers = {'Content-Type': 'application/json'}
+        
+        print(f"🌐 Making request to: {url}")
+        print(f"📋 Headers: {headers}")
+        
+        try:
+            # Make the actual request
+            response = requests.post(url, json=request_payload, headers=headers, timeout=30)
+            
+            print(f"\n📥 Response Details:")
+            print(f"   Status Code: {response.status_code}")
+            print(f"   Headers: {dict(response.headers)}")
+            
+            # Get response text first
+            response_text = response.text
+            print(f"   Raw Response: {response_text}")
+            
+            # Try to parse JSON
+            try:
+                response_data = response.json()
+                print(f"   Parsed JSON Response:")
+                print(f"   {json.dumps(response_data, indent=2, ensure_ascii=False)}")
+                
+                # Analyze the response structure
+                if isinstance(response_data, dict):
+                    if 'items' in response_data:
+                        items = response_data['items']
+                        print(f"\n📊 Analysis:")
+                        print(f"   Number of items: {len(items)}")
+                        
+                        for i, item in enumerate(items):
+                            print(f"   Item {i+1}:")
+                            print(f"     Customer Code: {item.get('customer_code', 'N/A')}")
+                            print(f"     Status: {item.get('status', 'N/A')}")
+                            print(f"     Full Name: {item.get('full_name', 'N/A')}")
+                            print(f"     Address: {item.get('address', 'N/A')}")
+                            print(f"     Amount: {item.get('amount', 'N/A')}")
+                            print(f"     Billing Cycle: {item.get('billing_cycle', 'N/A')}")
+                            
+                            if item.get('errors'):
+                                print(f"     Errors: {item['errors']}")
+                    
+                    if 'summary' in response_data:
+                        summary = response_data['summary']
+                        print(f"   Summary: OK={summary.get('ok', 0)}, Error={summary.get('error', 0)}")
+                
+                # Check if this is a successful response
+                if response.status_code == 200:
+                    print(f"✅ Backend API call successful")
+                    self.tests_passed += 1
+                    return True, response_data
+                else:
+                    print(f"❌ Backend API call failed with status {response.status_code}")
+                    return False, response_data
+                    
+            except json.JSONDecodeError as e:
+                print(f"❌ Failed to parse JSON response: {e}")
+                print(f"   Raw response: {response_text}")
+                return False, {}
+                
+        except requests.exceptions.Timeout:
+            print(f"❌ Request timed out after 30 seconds")
+            return False, {}
+        except requests.exceptions.ConnectionError as e:
+            print(f"❌ Connection error: {e}")
+            return False, {}
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            return False, {}
+        finally:
+            self.tests_run += 1
+
+    def test_external_api_call_simulation(self):
+        """Test to understand the external API call flow"""
+        print(f"\n🔗 Testing External API Call Flow")
+        
+        # This simulates what happens inside the external_check_bill function
+        import aiohttp
+        import asyncio
+        
+        async def simulate_external_call():
+            customer_code = "PB09020058383"
+            provider_region = "mien_nam"
+            
+            # Prepare payload exactly as in the backend code
+            payload = {
+                "bills": [
+                    {
+                        "customer_id": customer_code,
+                        "electric_provider": provider_region,
+                        "provider_name": provider_region,
+                        "contractNumber": customer_code,
+                        "sku": "ELECTRIC_BILL"
+                    }
+                ],
+                "timestamp": int(datetime.now().timestamp() * 1000),
+                "request_id": f"fpt_bill_manager_test123",
+                "webhookUrl": "https://n8n.phamthanh.net/webhook/checkbill",
+                "executionMode": "production"
+            }
+            
+            print(f"📤 External API Payload:")
+            print(f"   {json.dumps(payload, indent=2, ensure_ascii=False)}")
+            
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        "https://n8n.phamthanh.net/webhook/checkbill",
+                        json=payload,
+                        headers={"Content-Type": "application/json"},
+                        timeout=30
+                    ) as response:
+                        response_text = await response.text()
+                        
+                        print(f"\n📥 External API Response:")
+                        print(f"   Status: {response.status}")
+                        print(f"   Headers: {dict(response.headers)}")
+                        print(f"   Raw Response: {response_text}")
+                        
+                        try:
+                            response_data = json.loads(response_text)
+                            print(f"   Parsed Response:")
+                            print(f"   {json.dumps(response_data, indent=2, ensure_ascii=False)}")
+                            return True, response_data
+                        except json.JSONDecodeError:
+                            print(f"   Could not parse as JSON")
+                            return False, response_text
+                            
+            except Exception as e:
+                print(f"❌ External API call failed: {e}")
+                return False, {}
+        
+        # Run the async function
+        try:
+            success, result = asyncio.run(simulate_external_call())
+            self.tests_run += 1
+            if success:
+                self.tests_passed += 1
+            return success
+        except Exception as e:
+            print(f"❌ Failed to run external API simulation: {e}")
+            self.tests_run += 1
+            return False
+
     def test_error_handling(self):
         """Test API error handling"""
         print(f"\n🧪 Testing Error Handling...")
