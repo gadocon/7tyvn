@@ -826,14 +826,14 @@ const Inventory = () => {
       setInventoryStats(statsResponse.data);
 
       if (activeTab === "available") {
-        // Fetch inventory items (available only)
+        // Fetch AVAILABLE bills (changed from inventory items to all available bills)
         const params = new URLSearchParams();
         params.append("status", "AVAILABLE");
         if (searchTerm) {
           params.append("search", searchTerm);
         }
-        const itemsResponse = await axios.get(`${API}/inventory?${params.toString()}`);
-        setInventoryItems(itemsResponse.data);
+        const billsResponse = await axios.get(`${API}/bills?${params.toString()}&limit=100`);
+        setInventoryItems(billsResponse.data);
         setAllBills([]);
       } else {
         // Fetch all bills for "Tất cả bills" tab
