@@ -913,24 +913,67 @@ async def delete_bill(bill_id: str):
 
 @api_router.delete("/customers/{customer_id}")
 async def delete_customer(customer_id: str):
-    """Delete customer (only if no transactions)"""
+    """Delete customer with CASCADE delete (transactions + bills)"""
     try:
         # Check if customer exists
         customer = await db.customers.find_one({"id": customer_id})
         if not customer:
             raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
         
-        # Check if customer has transactions
-        has_sales = await db.sales.find_one({"customer_id": customer_id})
-        if has_sales:
-            raise HTTPException(status_code=400, detail="Không thể xóa khách hàng đã có giao dịch")
+        # Get all sales for this customer to find related bills
+        sales = await db.sales.find({"customer_id": customer_id}).to_list(None)
         
-        # Delete customer
-        result = await db.customers.delete_one({"id": customer_id})
-        if result.deleted_count == 0:
+        deleted_stats = {
+            "customer": 0,
+            "transactions": 0, 
+            "bills": 0,
+            "inventory_items": 0
+        }
+        
+        # Delete related data in order
+        if sales:
+            # Get all bill IDs from sales
+            bill_ids = []
+            for sale in sales:
+                if sale.get("bill_ids"):
+                    bill_ids.extend(sale["bill_ids"])
+            
+            # Remove duplicate bill IDs
+            unique_bill_ids = list(set(bill_ids))
+            
+            # Delete inventory items for these bills
+            inventory_delete_result = await db.inventory_items.delete_many({"bill_id": {"$in": unique_bill_ids}})
+            deleted_stats["inventory_items"] = inventory_delete_result.deleted_count
+            
+            # Delete the bills themselves
+            bills_delete_result = await db.bills.delete_many({"id": {"$in": unique_bill_ids}})
+            deleted_stats["bills"] = bills_delete_result.deleted_count
+            
+            # Delete all sales/transactions for this customer
+            sales_delete_result = await db.sales.delete_many({"customer_id": customer_id})
+            deleted_stats["transactions"] = sales_delete_result.deleted_count
+        
+        # Finally delete the customer
+        customer_delete_result = await db.customers.delete_one({"id": customer_id})
+        deleted_stats["customer"] = customer_delete_result.deleted_count
+        
+        if customer_delete_result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Không thể xóa khách hàng")
         
-        return {"success": True, "message": "Đã xóa khách hàng thành công"}
+        # Create detailed message
+        message_parts = [f"Đã xóa khách hàng '{customer.get('name', 'N/A')}' thành công"]
+        if deleted_stats["transactions"] > 0:
+            message_parts.append(f"{deleted_stats['transactions']} giao dịch")
+        if deleted_stats["bills"] > 0:
+            message_parts.append(f"{deleted_stats['bills']} bills")  
+        if deleted_stats["inventory_items"] > 0:
+            message_parts.append(f"{deleted_stats['inventory_items']} items khỏi kho")
+            
+        return {
+            "success": True, 
+            "message": " và ".join(message_parts),
+            "deleted_stats": deleted_stats
+        }
         
     except Exception as e:
         if isinstance(e, HTTPException):
