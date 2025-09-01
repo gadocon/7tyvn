@@ -2086,12 +2086,13 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ngày</TableHead>
+                  <TableHead>Mã GD</TableHead>
+                  <TableHead>Mã Bill/Thẻ</TableHead>
+                  <TableHead>Ngày Giờ</TableHead>
                   <TableHead>Loại</TableHead>
                   <TableHead>Tổng Tiền</TableHead>
                   <TableHead>Lợi Nhuận</TableHead>
                   <TableHead>Trả Khách</TableHead>
-                  <TableHead>PT Thanh Toán</TableHead>
                   <TableHead>Trạng Thái</TableHead>
                 </TableRow>
               </TableHeader>
