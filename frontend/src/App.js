@@ -1576,6 +1576,52 @@ const Inventory = () => {
           </div>
         </div>
       )}
+
+      {/* Transfer Bill Confirmation Modal */}
+      {showTransferModal && billToTransfer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="h-6 w-6 text-orange-600 mr-3" />
+              <h2 className="text-xl font-semibold text-gray-900">Bill Đã Gạch</h2>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-800 mb-3">
+                Bill <strong>{billToTransfer.customer_code}</strong> - Khách hàng không nợ cước.
+              </p>
+              <p className="text-gray-600">
+                Bạn có muốn chuyển đơn này cho khách hàng?
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowTransferModal(false);
+                  setBillToTransfer(null);
+                }}
+                className="flex-1"
+              >
+                Không
+              </Button>
+              <Button
+                onClick={() => {
+                  // Open sell bill modal
+                  setSelectedBillForSale(billToTransfer);
+                  setShowSellModal(true);
+                  setShowTransferModal(false);
+                  setBillToTransfer(null);
+                }}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              >
+                Chuyển
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
