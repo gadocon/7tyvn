@@ -116,18 +116,48 @@ backend:
         - working: true
           agent: "main"
           comment: "Backend endpoint /api/bill/check/single correctly processes bill code PB09020058383 with MIEN_NAM provider. Returns proper JSON response with status ERROR and message 'Mã không tồn tại' due to external API rate limiting (reCAPTCHA required)."
+        - working: true
+          agent: "testing"
+          comment: "CORRECTED PROVIDER MAPPING VERIFIED: /api/bill/check/single endpoint working correctly with updated provider mapping. MIEN_NAM maps to 'mien_nam' and HCMC maps to 'evnhcmc'. External API now returns proper responses with corrected parameters."
   
   - task: "External API Integration"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "medium"
     needs_retesting: false
     status_history:
         - working: false
           agent: "testing"
           comment: "External API (https://n8n.phamthanh.net/webhook/checkbill) is returning rate limiting error requiring reCAPTCHA. This is not a backend issue but an external service limitation."
+        - working: true
+          agent: "testing"
+          comment: "EXTERNAL API INTEGRATION WORKING: With corrected provider mapping, external API now accepts requests properly. For PB09020058383 with MIEN_NAM, external API returns successful response with bill data (customerName: 'Phùng Thị Sen', amount: 782471, address: '334/BĐ Ấp 6,...'). The corrected 'mien_nam' parameter is accepted by external service."
+
+  - task: "Provider Mapping Correction"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "PROVIDER MAPPING CORRECTED AND VERIFIED: Lines 297-301 in server.py show correct mapping - MIEN_BAC:'mien_bac', MIEN_NAM:'mien_nam', HCMC:'evnhcmc'. Debug endpoint /api/bill/debug-payload confirms correct payload generation. HCMC now correctly maps to 'evnhcmc' instead of previous 'hcmc'."
+
+  - task: "Debug Payload Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "DEBUG ENDPOINT WORKING PERFECTLY: /api/bill/debug-payload endpoint correctly shows payload being sent to external API. Verified MIEN_NAM->mien_nam and HCMC->evnhcmc mappings. Payload structure matches external API requirements with correct electric_provider values."
 
 frontend:
   - task: "Bill Check Page UI"
