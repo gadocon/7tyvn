@@ -348,10 +348,10 @@ agent_communication:
     - agent: "testing"
       message: "✅ ADD NEW BILL FUNCTIONALITY FULLY TESTED AND WORKING: Comprehensive testing completed successfully. All core functionality working: 1) Modal UI with all required fields ✅ 2) Form validation and error handling ✅ 3) Successful bill creation and API integration ✅ 4) Duplicate bill prevention ✅ 5) Automatic inventory addition ✅ 6) Stats cards update ✅ 7) UI states (loading, cancel, close) ✅. Minor issue: Modal doesn't auto-close after success, but core functionality is perfect. Ready for production use."
 
-user_problem_statement: "Test the complete Import/Export functionality that has just been implemented for the Inventory page."
+user_problem_statement: "Test the complete Import/Export functionality across all pages that has just been implemented - all 4 phases including Inventory, Customer Export, Sales Export, and Backend API Integration."
 
 frontend:
-  - task: "Import/Export Buttons UI"
+  - task: "Inventory Import/Export Buttons UI"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
@@ -366,7 +366,7 @@ frontend:
           agent: "testing"
           comment: "✅ IMPORT/EXPORT BUTTONS WORKING PERFECTLY: Both Import Excel and Export Excel buttons are visible in the inventory page header and functional. Buttons successfully open their respective modals when clicked. UI is responsive and properly styled."
 
-  - task: "Export Modal UI and Functionality"
+  - task: "Inventory Export Modal UI and Functionality"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
@@ -384,7 +384,7 @@ frontend:
           agent: "testing"
           comment: "✅ EXPORT MODAL FULLY FUNCTIONAL: Export modal opens successfully with all filter options working: Trạng Thái (Status filter with options: Tất cả trạng thái, Có Sẵn, Chờ Xử Lý, Đã Bán), Nhà Cung Cấp (Provider filter with options: Tất cả nhà cung cấp, Miền Bắc, Miền Nam, TP.HCM), Date range filters (start_date, end_date). File download functionality working - successfully downloads 'kho_bill_export.xlsx' file. Modal UI is responsive with proper close buttons."
 
-  - task: "Import Modal UI and Template Download"
+  - task: "Inventory Import Modal UI and Template Download"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
@@ -399,7 +399,7 @@ frontend:
           agent: "testing"
           comment: "✅ IMPORT MODAL AND TEMPLATE DOWNLOAD WORKING PERFECTLY: Import modal opens successfully showing clear 3-step process. Step 1 (Tải Template Excel) is fully functional - 'Tải Template' button successfully downloads 'template_import_bills.xlsx' file with success toast notification 'Đã tải template thành công!'. Modal UI is well-structured with proper instructions and styling."
 
-  - task: "Import File Upload and Preview"
+  - task: "Inventory Import File Upload and Preview"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
@@ -414,7 +414,7 @@ frontend:
           agent: "testing"
           comment: "✅ IMPORT FILE UPLOAD UI WORKING: Step 2 (Chọn File Excel) is properly implemented with visible file input field accepting .xlsx/.xls files. 'Preview Dữ Liệu' button is visible and functional. UI elements are properly positioned and accessible. Note: Full file upload and preview testing requires actual Excel file upload which was not performed due to test limitations."
 
-  - task: "Import Data Confirmation"
+  - task: "Inventory Import Data Confirmation"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
@@ -428,6 +428,36 @@ frontend:
         - working: true
           agent: "testing"
           comment: "✅ IMPORT CONFIRMATION UI IMPLEMENTED: Step 3 confirmation process is properly coded with preview table display, error handling, and import confirmation functionality. Backend integration is ready for data import and inventory updates. UI components are properly structured for the complete import workflow."
+
+  - task: "Customer Export Functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Customer Export functionality implemented with Export Excel button in header and CustomerExportModal. Need comprehensive testing of UI and file download."
+        - working: true
+          agent: "testing"
+          comment: "✅ CUSTOMER EXPORT FULLY FUNCTIONAL: Export Excel button visible in Customers page header. Modal opens successfully with detailed export information including: Danh sách tất cả khách hàng, Thông tin chi tiết (tên, SĐT, email, địa chỉ), Thống kê giao dịch và lợi nhuận, Lịch sử giao dịch (sheet riêng). File download (khach_hang_export.xlsx) initiated successfully. Modal UI professional with proper styling and Vietnamese language consistency."
+
+  - task: "Sales Export Functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Sales Export functionality implemented with Export Excel button in header and SalesExportModal. Need comprehensive testing of UI and file download."
+        - working: true
+          agent: "testing"
+          comment: "✅ SALES EXPORT FULLY FUNCTIONAL: Export Excel button visible in Sales page header. Sales page shows professional layout with central export card functionality. SalesExportModal opens correctly with detailed export information. File download (lich_su_ban_bill.xlsx) functionality working. Modal shows: Xuất toàn bộ lịch sử giao dịch bán bill ra file Excel, File sẽ bao gồm: Mã điện, tên khách hàng, số tiền, lợi nhuận, ngày bán. UI consistent with other export modals."
 
 backend:
   - task: "Template Download API"
