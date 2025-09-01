@@ -460,7 +460,7 @@ frontend:
           comment: "✅ SALES EXPORT FULLY FUNCTIONAL: Export Excel button visible in Sales page header. Sales page shows professional layout with central export card functionality. SalesExportModal opens correctly with detailed export information. File download (lich_su_ban_bill.xlsx) functionality working. Modal shows: Xuất toàn bộ lịch sử giao dịch bán bill ra file Excel, File sẽ bao gồm: Mã điện, tên khách hàng, số tiền, lợi nhuận, ngày bán. UI consistent with other export modals."
 
 backend:
-  - task: "Template Download API"
+  - task: "Inventory Template Download API"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -475,7 +475,7 @@ backend:
           agent: "testing"
           comment: "✅ TEMPLATE DOWNLOAD API WORKING PERFECTLY: /api/inventory/template endpoint is fully functional. Successfully generates and downloads Excel template file 'template_import_bills.xlsx' with proper headers, sample data, and instructions. File contains correct column structure: Mã điện, Nhà cung cấp, Tên khách hàng, Địa chỉ, Nợ cước, Chu kỳ thanh toán, Trạng thái. API returns proper Excel content-type and file attachment headers."
 
-  - task: "Import Preview API"
+  - task: "Inventory Import Preview API"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -490,7 +490,7 @@ backend:
           agent: "testing"
           comment: "✅ IMPORT PREVIEW API IMPLEMENTED AND ACCESSIBLE: /api/inventory/import/preview endpoint is properly implemented with Excel file parsing using openpyxl, data validation, error handling, and preview response generation. API accepts multipart/form-data file uploads and returns structured preview data with validation errors. Ready for file upload testing."
 
-  - task: "Import Confirm API"
+  - task: "Inventory Import Confirm API"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -505,7 +505,7 @@ backend:
           agent: "testing"
           comment: "✅ IMPORT CONFIRM API IMPLEMENTED: /api/inventory/import/confirm endpoint is properly implemented with data persistence to MongoDB, duplicate bill checking, automatic inventory addition, and comprehensive error handling. API processes validated data and returns import results with success/error counts."
 
-  - task: "Export Data API"
+  - task: "Inventory Export Data API"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -519,6 +519,36 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ EXPORT DATA API WORKING PERFECTLY: /api/inventory/export endpoint is fully functional. Successfully generates and downloads Excel export file 'kho_bill_export.xlsx' with proper filtering support for status, provider_region, and date ranges. API uses MongoDB aggregation pipeline for efficient data retrieval and openpyxl for Excel generation. File download works correctly with proper content-type headers."
+
+  - task: "Customer Export API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Backend API /api/customers/export implemented to export customer data with transaction history to Excel. Need to test API functionality and file generation."
+        - working: true
+          agent: "testing"
+          comment: "✅ CUSTOMER EXPORT API WORKING PERFECTLY: /api/customers/export endpoint is fully functional. API returns HTTP 200 status with proper Excel content-type headers (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). Successfully generates Excel file with customer data and transaction sheets. File download works correctly with filename 'khach_hang_export.xlsx'."
+
+  - task: "Sales Export API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Backend API /api/sales/export implemented to export sales transaction history to Excel. Need to test API functionality and file generation."
+        - working: true
+          agent: "testing"
+          comment: "✅ SALES EXPORT API WORKING PERFECTLY: /api/sales/export endpoint is fully functional. API returns HTTP 200 status with proper Excel content-type headers (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). Successfully generates Excel file with complete sales transaction history. File download works correctly with filename 'lich_su_ban_bill.xlsx'."
 
 metadata:
   created_by: "testing_agent"
