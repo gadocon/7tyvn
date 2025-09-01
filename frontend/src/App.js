@@ -1279,6 +1279,29 @@ const Customers = () => {
     }
   };
 
+  const handleExportCustomers = async () => {
+    try {
+      const response = await axios.get(`${API}/customers/export`, {
+        responseType: 'blob'
+      });
+      
+      // Create blob link to download file
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'khach_hang_export.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success("Đã xuất dữ liệu khách hàng thành công!");
+      setShowExportModal(false);
+    } catch (error) {
+      console.error("Error exporting customers:", error);
+      toast.error("Có lỗi xảy ra khi xuất dữ liệu");
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
