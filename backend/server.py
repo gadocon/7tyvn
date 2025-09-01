@@ -954,8 +954,8 @@ async def update_bill(bill_id: str, bill_data: BillCreate):
             "amount": bill_data.amount,
             "billing_cycle": bill_data.billing_cycle,
             "status": bill_data.status,
-            "updated_at": datetime.now(timezone.utc),
-            "last_checked": datetime.now(timezone.utc)
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "last_checked": datetime.now(timezone.utc).isoformat()
         }
         
         # Update bill in database
