@@ -1171,6 +1171,24 @@ const Inventory = () => {
         onClose={() => setShowAddBillModal(false)}
         onSubmit={handleAddBill}
       />
+
+      {/* Import Modal */}
+      <ImportModal
+        show={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={() => {
+          setShowImportModal(false);
+          fetchInventoryData();
+        }}
+        onDownloadTemplate={handleDownloadTemplate}
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        show={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExportData}
+      />
     </div>
   );
 };
