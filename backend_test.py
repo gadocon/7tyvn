@@ -1490,16 +1490,21 @@ def main():
     
     tester = FPTBillManagerAPITester()
     
-    # Run all tests - focusing on CRITICAL DATA INTEGRITY first (as per review request)
+    # Run all tests - focusing on INVENTORY PAGE IMPROVEMENTS (as per review request)
     tests = [
-        tester.test_critical_data_integrity_bill_deletion,  # CRITICAL: Data integrity fix testing
-        tester.test_customer_detail_with_bill_codes,        # Bill codes functionality
-        tester.test_multiple_customers_bill_codes,          # Test consistency across customers
-        tester.test_debug_payload_mien_nam,                 # Test MIEN_NAM -> mien_nam mapping
-        tester.test_debug_payload_hcmc,                     # Test HCMC -> evnhcmc mapping (corrected)
-        tester.test_single_bill_check_mien_nam,             # Test actual bill check with MIEN_NAM
-        tester.test_single_bill_check_hcmc,                 # Test actual bill check with HCMC
-        tester.test_external_api_call_simulation,           # Test external API call
+        tester.test_inventory_page_improvements_comprehensive,  # NEW: Comprehensive inventory improvements test
+        tester.test_crossed_status_creation,                   # NEW: Test 1 - CROSSED status creation
+        tester.test_crossed_bill_deletion_protection,          # NEW: Test 2 - CROSSED deletion protection
+        tester.test_bills_api_status_filter,                   # NEW: Test 3 - Bills API status filtering
+        tester.test_bill_update_recheck_logic,                 # NEW: Test 4 - Bill update for recheck
+        tester.test_critical_data_integrity_bill_deletion,     # CRITICAL: Data integrity fix testing
+        tester.test_customer_detail_with_bill_codes,           # Bill codes functionality
+        tester.test_multiple_customers_bill_codes,             # Test consistency across customers
+        tester.test_debug_payload_mien_nam,                    # Test MIEN_NAM -> mien_nam mapping
+        tester.test_debug_payload_hcmc,                        # Test HCMC -> evnhcmc mapping (corrected)
+        tester.test_single_bill_check_mien_nam,                # Test actual bill check with MIEN_NAM
+        tester.test_single_bill_check_hcmc,                    # Test actual bill check with HCMC
+        tester.test_external_api_call_simulation,              # Test external API call
         tester.test_dashboard_stats,
         tester.test_check_bills_valid,
         tester.test_check_bills_invalid,
