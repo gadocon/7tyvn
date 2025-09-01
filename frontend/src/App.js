@@ -289,6 +289,10 @@ const CheckBill = () => {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedBills, setSelectedBills] = useState([]);
+  const [checkAllSelected, setCheckAllSelected] = useState(false);
+  const [processingStep, setProcessingStep] = useState("");
+  const [processedCount, setProcessedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const handleCheckBills = async () => {
     if (!codes.trim()) {
@@ -297,11 +301,17 @@ const CheckBill = () => {
     }
 
     setLoading(true);
+    setProcessingStep("Đang chuẩn bị...");
+    setProcessedCount(0);
+    
     try {
       const codeList = codes
         .split('\n')
         .map(code => code.trim())
         .filter(code => code.length > 0);
+
+      setTotalCount(codeList.length);
+      setProcessingStep(`Đang kiểm tra ${codeList.length} mã điện qua cổng FPT...`);
 
       const response = await axios.post(`${API}/bill/check`, {
         gateway: "FPT",
@@ -309,18 +319,26 @@ const CheckBill = () => {
         codes: codeList
       });
 
-      setResults(response.data);
-      setSelectedBills([]);
-      
-      if (response.data.summary.ok > 0) {
-        toast.success(`Tìm thấy ${response.data.summary.ok} bill hợp lệ`);
-      }
-      if (response.data.summary.error > 0) {
-        toast.warning(`${response.data.summary.error} mã không tìm thấy`);
-      }
+      setProcessingStep("Đang xử lý kết quả...");
+      setProcessedCount(codeList.length);
+
+      setTimeout(() => {
+        setResults(response.data);
+        setSelectedBills([]);
+        setCheckAllSelected(false);
+        setProcessingStep("");
+        
+        if (response.data.summary.ok > 0) {
+          toast.success(`Tìm thấy ${response.data.summary.ok} bill hợp lệ`);
+        }
+        if (response.data.summary.error > 0) {
+          toast.warning(`${response.data.summary.error} mã không tìm thấy`);
+        }
+      }, 800);
     } catch (error) {
       console.error("Error checking bills:", error);
       toast.error("Có lỗi xảy ra khi kiểm tra bill");
+      setProcessingStep("");
     } finally {
       setLoading(false);
     }
@@ -333,6 +351,56 @@ const CheckBill = () => {
       setSelectedBills([...selectedBills, bill]);
     } else {
       setSelectedBills(selectedBills.filter(b => b.customer_code !== bill.customer_code));
+      setCheckAllSelected(false);
+    }
+  };
+
+  const handleCheckAll = (checked) => {
+    setCheckAllSelected(checked);
+    if (checked) {
+      const validBills = results?.items?.filter(bill => bill.status === "OK") || [];
+      setSelectedBills(validBills);
+    } else {
+      setSelectedBills([]);
+    }
+  };
+
+  const handleAddToInventory = async () => {
+    if (selectedBills.length === 0) {
+      toast.error("Chưa chọn bill nào để thêm vào kho");
+      return;
+    }
+
+    try {
+      // For now, we'll use customer_code as bill_id since we don't have actual bill IDs from check
+      // In real implementation, the check API should return bill IDs
+      const billIds = selectedBills.map(bill => bill.customer_code); // This is temporary
+      
+      const response = await axios.post(`${API}/inventory/add`, {
+        bill_ids: billIds,
+        note: `Thêm từ kiểm tra mã điện - ${new Date().toLocaleDateString('vi-VN')}`,
+        batch_name: `Check_${Date.now()}`
+      });
+
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setSelectedBills([]);
+        setCheckAllSelected(false);
+        
+        // Update results to remove added bills
+        const remainingResults = {
+          ...results,
+          items: results.items.map(item => 
+            selectedBills.some(b => b.customer_code === item.customer_code)
+              ? { ...item, status: "ADDED_TO_INVENTORY" }
+              : item
+          )
+        };
+        setResults(remainingResults);
+      }
+    } catch (error) {
+      console.error("Error adding to inventory:", error);
+      toast.error("Có lỗi xảy ra khi thêm vào kho");
     }
   };
 
@@ -408,7 +476,7 @@ const CheckBill = () => {
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Đang kiểm tra...
+                    {processingStep || "Đang kiểm tra..."}
                   </>
                 ) : (
                   <>
@@ -417,6 +485,31 @@ const CheckBill = () => {
                   </>
                 )}
               </Button>
+
+              {/* Processing Animation */}
+              {loading && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900">{processingStep}</p>
+                      {totalCount > 0 && (
+                        <div className="mt-2">
+                          <div className="bg-blue-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${(processedCount / totalCount) * 100}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-blue-700 mt-1">
+                            {processedCount}/{totalCount} mã đã xử lý
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -433,7 +526,7 @@ const CheckBill = () => {
               </p>
             </div>
             {selectedBills.length > 0 && (
-              <Button>
+              <Button onClick={handleAddToInventory} className="bg-green-600 hover:bg-green-700">
                 <Plus className="h-4 w-4 mr-2" />
                 Thêm Vào Kho ({selectedBills.length})
               </Button>
@@ -443,7 +536,17 @@ const CheckBill = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-12">
+                    {results.items.some(bill => bill.status === "OK") && (
+                      <input
+                        type="checkbox"
+                        checked={checkAllSelected}
+                        onChange={(e) => handleCheckAll(e.target.checked)}
+                        className="rounded border-gray-300"
+                        title="Chọn tất cả"
+                      />
+                    )}
+                  </TableHead>
                   <TableHead>Mã Điện</TableHead>
                   <TableHead>Tên Khách Hàng</TableHead>
                   <TableHead>Địa Chỉ</TableHead>
@@ -477,6 +580,11 @@ const CheckBill = () => {
                         <Badge className="bg-green-100 text-green-800">
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Hợp lệ
+                        </Badge>
+                      ) : bill.status === "ADDED_TO_INVENTORY" ? (
+                        <Badge className="bg-blue-100 text-blue-800">
+                          <Package className="h-3 w-3 mr-1" />
+                          Đã thêm vào kho
                         </Badge>
                       ) : (
                         <Badge variant="destructive">
