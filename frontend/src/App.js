@@ -1837,6 +1837,63 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
   );
 };
 
+// Customer Export Modal Component
+const CustomerExportModal = ({ show, onClose, onExport }) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Export Khách Hàng</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="border rounded-lg p-4 bg-green-50">
+            <h3 className="font-medium text-green-900 mb-2">Dữ Liệu Export</h3>
+            <ul className="text-green-700 text-sm space-y-1">
+              <li>• Danh sách tất cả khách hàng</li>
+              <li>• Thông tin chi tiết (tên, SĐT, email, địa chỉ)</li>
+              <li>• Thống kê giao dịch và lợi nhuận</li>
+              <li>• Lịch sử giao dịch (sheet riêng)</li>
+            </ul>
+          </div>
+
+          <div className="border rounded-lg p-4 bg-blue-50">
+            <h3 className="font-medium text-blue-900 mb-2">File Excel</h3>
+            <p className="text-blue-700 text-sm">
+              File sẽ có 2 sheets: "Khách Hàng" và "Giao Dịch" với đầy đủ thông tin và định dạng chuyên nghiệp.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={onExport}
+            className="flex-1 bg-green-600 hover:bg-green-700"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Sales = () => (
   <div className="p-6">
     <div className="text-center py-12">
