@@ -901,11 +901,17 @@ async def delete_bill(bill_id: str):
         if not bill:
             raise HTTPException(status_code=404, detail="Không tìm thấy bill")
         
-        # CRITICAL: Check if bill is already sold - prevent deletion
+        # CRITICAL: Check if bill is already sold or crossed - prevent deletion
         if bill.get("status") == BillStatus.SOLD:
             raise HTTPException(
                 status_code=400, 
                 detail="Không thể xóa bill đã bán. Bill này đã được tham chiếu trong giao dịch khách hàng."
+            )
+        
+        if bill.get("status") == BillStatus.CROSSED:
+            raise HTTPException(
+                status_code=400,
+                detail="Không thể xóa bill đã gạch. Bill này đã được xác nhận không có nợ cước."
             )
         
         # Check if bill is referenced in any sales (double-check safety)
