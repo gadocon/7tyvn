@@ -1322,10 +1322,19 @@ const Customers = () => {
           <h1 className="text-3xl font-bold text-gray-900">Quản Lý Khách Hàng</h1>
           <p className="text-gray-600 mt-1">Danh sách khách hàng và thông tin giao dịch</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Thêm Khách Hàng
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setShowExportModal(true)}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+          <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm Khách Hàng
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
