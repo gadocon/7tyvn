@@ -880,8 +880,8 @@ const Inventory = () => {
   const handleExportData = async (filters) => {
     try {
       const params = new URLSearchParams();
-      if (filters.status) params.append('status', filters.status);
-      if (filters.provider_region) params.append('provider_region', filters.provider_region);
+      if (filters.status && filters.status !== "ALL") params.append('status', filters.status);
+      if (filters.provider_region && filters.provider_region !== "ALL") params.append('provider_region', filters.provider_region);
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
       
