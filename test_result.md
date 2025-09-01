@@ -741,17 +741,20 @@ backend:
           agent: "testing"
           comment: "✅ BILLS API STATUS FILTERING FULLY FUNCTIONAL: Tab logic fix successfully implemented. GET /api/bills?status=AVAILABLE&limit=100 returns ALL available bills (not limited by inventory) as required. GET /api/bills?status=CROSSED returns bills with CROSSED status correctly. Status filtering works perfectly for both AVAILABLE and CROSSED statuses. API properly handles limit parameter and returns only bills matching the specified status filter. The fix ensures 'available' tab shows all available bills instead of just inventory items."
 
-  - task: "Bill Update for Recheck Logic"
-    implemented: false
-    working: "NA"
+  - task: "Bill Update for Recheck Logic - PUT Endpoint"
+    implemented: true
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
-    priority: "medium"
+    priority: "high"
     needs_retesting: false
     status_history:
         - working: "NA"
           agent: "testing"
           comment: "⚠️ BILL UPDATE ENDPOINT NOT IMPLEMENTED: PUT /api/bills/{bill_id} endpoint returns HTTP 405 Method Not Allowed. The recheck logic for updating bill status from AVAILABLE to CROSSED, updating full_name to 'khách hàng ko nợ cước', and updating last_checked timestamp requires implementation of the PUT endpoint. However, CROSSED status creation works perfectly (verified in other tests), so the core functionality is available through bill creation. The update functionality would be needed for the 'Check lại' feature to modify existing bills."
+        - working: true
+          agent: "testing"
+          comment: "🎉 PUT ENDPOINT FULLY IMPLEMENTED AND TESTED: Comprehensive testing of PUT /api/bills/{bill_id} endpoint confirms complete functionality. TEST 1 (Successful Update): ✅ Bill fields update correctly with auto-set timestamps (updated_at, last_checked). TEST 2 (CROSSED Status Update): ✅ Status changes to CROSSED and bills are automatically removed from inventory. TEST 3 (Recheck Scenario): ✅ 'Check lại' workflow verified - AVAILABLE→CROSSED with full_name='khách hàng ko nợ cước' works perfectly. TEST 4 (Error Handling): ✅ Returns 404 for non-existent bills and 422 for invalid data. Expected response format matches specification: {'success': true, 'message': 'Đã cập nhật bill thành công', 'bill': {...}}. The PUT endpoint is production-ready and critical for 'Check lại' functionality."
 
 metadata:
   created_by: "testing_agent"
