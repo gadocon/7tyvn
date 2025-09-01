@@ -457,6 +457,198 @@ async def get_customers(limit: int = 50):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Inventory/Kho Bill APIs
+@api_router.get("/inventory/stats", response_model=InventoryStats)
+async def get_inventory_stats():
+    """Get inventory statistics"""
+    try:
+        # Count bills by status
+        total_bills = await db.inventory_items.count_documents({})
+        
+        # Count bills in inventory by their bill status
+        pipeline = [
+            {
+                "$lookup": {
+                    "from": "bills",
+                    "localField": "bill_id", 
+                    "foreignField": "id",
+                    "as": "bill_info"
+                }
+            },
+            {
+                "$unwind": "$bill_info"
+            },
+            {
+                "$group": {
+                    "_id": "$bill_info.status",
+                    "count": {"$sum": 1},
+                    "total_value": {"$sum": {"$ifNull": ["$bill_info.amount", 0]}}
+                }
+            }
+        ]
+        
+        status_counts = await db.inventory_items.aggregate(pipeline).to_list(10)
+        
+        available_bills = 0
+        pending_bills = 0
+        sold_bills = 0
+        total_value = 0
+        
+        for item in status_counts:
+            status = item["_id"]
+            count = item["count"]
+            value = item["total_value"]
+            
+            if status == BillStatus.AVAILABLE:
+                available_bills = count
+            elif status == BillStatus.PENDING:
+                pending_bills = count
+            elif status == BillStatus.SOLD:
+                sold_bills = count
+            
+            total_value += value
+        
+        return InventoryStats(
+            total_bills=total_bills,
+            available_bills=available_bills,
+            pending_bills=pending_bills,
+            sold_bills=sold_bills,
+            total_value=total_value
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/inventory", response_model=List[InventoryResponse])
+async def get_inventory_items(
+    status: Optional[BillStatus] = None,
+    search: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20
+):
+    """Get inventory items with filtering and pagination"""
+    try:
+        # Build aggregation pipeline
+        pipeline = [
+            {
+                "$lookup": {
+                    "from": "bills",
+                    "localField": "bill_id",
+                    "foreignField": "id", 
+                    "as": "bill_info"
+                }
+            },
+            {
+                "$unwind": "$bill_info"
+            }
+        ]
+        
+        # Add filters
+        match_conditions = {}
+        
+        if status:
+            match_conditions["bill_info.status"] = status
+            
+        if search:
+            match_conditions["$or"] = [
+                {"bill_info.customer_code": {"$regex": search, "$options": "i"}},
+                {"bill_info.full_name": {"$regex": search, "$options": "i"}},
+                {"bill_info.address": {"$regex": search, "$options": "i"}}
+            ]
+        
+        if match_conditions:
+            pipeline.append({"$match": match_conditions})
+        
+        # Add sorting and pagination
+        pipeline.extend([
+            {"$sort": {"created_at": -1}},
+            {"$skip": (page - 1) * page_size},
+            {"$limit": page_size}
+        ])
+        
+        inventory_items = await db.inventory_items.aggregate(pipeline).to_list(page_size)
+        
+        # Convert to response model
+        results = []
+        for item in inventory_items:
+            bill_info = item["bill_info"]
+            results.append(InventoryResponse(
+                id=item["id"],
+                bill_id=item["bill_id"],
+                customer_code=bill_info["customer_code"],
+                full_name=bill_info.get("full_name"),
+                address=bill_info.get("address"),
+                amount=bill_info.get("amount"),
+                billing_cycle=bill_info.get("billing_cycle"),
+                provider_region=bill_info["provider_region"],
+                status=bill_info["status"],
+                note=item.get("note"),
+                batch_id=item.get("batch_id"),
+                created_at=datetime.fromisoformat(item["created_at"].replace('Z', '+00:00')) if isinstance(item["created_at"], str) else item["created_at"]
+            ))
+        
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/inventory/add")
+async def add_to_inventory(request: AddToInventoryRequest):
+    """Add bills to inventory"""
+    try:
+        # Generate batch ID if batch name provided
+        batch_id = None
+        if request.batch_name:
+            batch_id = f"batch_{str(uuid.uuid4())[:8]}_{request.batch_name.replace(' ', '_')}"
+        
+        added_items = []
+        successful_adds = 0
+        
+        for bill_id in request.bill_ids:
+            # Check if bill exists and is available
+            bill = await db.bills.find_one({"id": bill_id, "status": BillStatus.AVAILABLE})
+            if not bill:
+                continue
+                
+            # Check if already in inventory
+            existing = await db.inventory_items.find_one({"bill_id": bill_id})
+            if existing:
+                continue
+            
+            # Create inventory item
+            inventory_item = {
+                "id": str(uuid.uuid4()),
+                "bill_id": bill_id,
+                "note": request.note,
+                "batch_id": batch_id,
+                "added_by": "system",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.inventory_items.insert_one(inventory_item)
+            added_items.append(inventory_item)
+            successful_adds += 1
+        
+        return {
+            "success": True,
+            "added_count": successful_adds,
+            "batch_id": batch_id,
+            "message": f"Đã thêm {successful_adds} bill vào kho thành công"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/inventory/{inventory_id}")
+async def remove_from_inventory(inventory_id: str):
+    """Remove item from inventory"""
+    try:
+        result = await db.inventory_items.delete_one({"id": inventory_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy item trong kho")
+            
+        return {"success": True, "message": "Đã xóa khỏi kho thành công"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/webhook/checkbill")
 async def webhook_checkbill(
     payload: WebhookPayload,
