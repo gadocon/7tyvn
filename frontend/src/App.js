@@ -1387,6 +1387,19 @@ const Inventory = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          {/* Check lại button - only for AVAILABLE bills */}
+                          {item.status === "AVAILABLE" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRecheckBill(item)}
+                              className="text-blue-600 hover:text-blue-700"
+                              title="Check lại mã điện"
+                            >
+                              <RefreshCw className="h-3 w-3" />
+                            </Button>
+                          )}
+                          
                           {item.status === "AVAILABLE" && activeTab === "available" && (
                             <Button
                               size="sm"
