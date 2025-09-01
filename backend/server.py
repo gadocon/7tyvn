@@ -175,69 +175,127 @@ def parse_from_mongo(item):
                     pass
     return item
 
-# Mock bill checking function
-async def mock_check_bill(customer_code: str, provider_region: ProviderRegion) -> CheckBillResult:
-    """Mock function to simulate bill checking"""
-    # Mock data for demonstration
-    mock_data = {
-        "PA22040522471": {
-            "full_name": "Nguyễn Văn A",
-            "address": "123 Đường ABC, Quận 1, TP.HCM",
-            "amount": 1250000,
-            "billing_cycle": "08/2025"
-        },
-        "PA22040506503": {
-            "full_name": "Trần Thị B", 
-            "address": "456 Đường XYZ, Quận 2, TP.HCM",
-            "amount": 890000,
-            "billing_cycle": "08/2025"
-        },
-        "PA22060724572": {
-            "full_name": "Lê Văn C",
-            "address": "789 Đường DEF, Quận 3, TP.HCM", 
-            "amount": 1560000,
-            "billing_cycle": "08/2025"
-        }
+# External API bill checking function
+async def external_check_bill(customer_code: str, provider_region: ProviderRegion) -> CheckBillResult:
+    """Check bill via external n8n webhook"""
+    import aiohttp
+    import json as json_lib
+    
+    # Map provider region to external format
+    provider_mapping = {
+        ProviderRegion.MIEN_BAC: "mien_bac",
+        ProviderRegion.MIEN_NAM: "mien_nam", 
+        ProviderRegion.HCMC: "hcmc"
     }
     
-    if customer_code in mock_data:
-        data = mock_data[customer_code]
-        # Create bill record in database
-        bill_data = {
-            "id": str(uuid.uuid4()),
-            "gateway": Gateway.FPT,
-            "customer_code": customer_code,
-            "provider_region": provider_region,
-            "provider_name": provider_region.value,
-            "full_name": data["full_name"],
-            "address": data["address"],
-            "amount": data["amount"],
-            "billing_cycle": data["billing_cycle"],
-            "status": BillStatus.AVAILABLE,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }
-        
-        # Upsert bill (update if exists, create if not)
-        await db.bills.update_one(
-            {"customer_code": customer_code, "gateway": Gateway.FPT},
-            {"$set": bill_data},
-            upsert=True
-        )
-        
-        return CheckBillResult(
-            customer_code=customer_code,
-            full_name=data["full_name"],
-            address=data["address"],
-            amount=data["amount"],
-            billing_cycle=data["billing_cycle"],
-            status="OK"
-        )
-    else:
+    external_provider = provider_mapping.get(provider_region, "mien_nam")
+    
+    # Prepare payload for external webhook
+    payload = {
+        "bills": [
+            {
+                "customer_id": customer_code,
+                "electric_provider": external_provider,
+                "provider_name": external_provider,
+                "contractNumber": customer_code,
+                "sku": "ELECTRIC_BILL"
+            }
+        ],
+        "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
+        "request_id": f"fpt_bill_manager_{str(uuid.uuid4())[:8]}",
+        "webhookUrl": "https://n8n.phamthanh.net/webhook/checkbill",
+        "executionMode": "production"
+    }
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "https://n8n.phamthanh.net/webhook/checkbill",
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            ) as response:
+                response_text = await response.text()
+                
+                # Parse response - n8n returns array format
+                try:
+                    response_data = json_lib.loads(response_text)
+                    if isinstance(response_data, list) and len(response_data) > 0:
+                        first_item = response_data[0]
+                        
+                        # Check if successful response (has bill data)
+                        if "error" not in first_item and "customer_code" in str(first_item):
+                            # Successful bill found
+                            bill_data = {
+                                "id": str(uuid.uuid4()),
+                                "gateway": Gateway.FPT,
+                                "customer_code": customer_code,
+                                "provider_region": provider_region,
+                                "provider_name": external_provider,
+                                "full_name": first_item.get("full_name"),
+                                "address": first_item.get("address"),
+                                "amount": first_item.get("amount"),
+                                "billing_cycle": first_item.get("billing_cycle"),
+                                "status": BillStatus.AVAILABLE,
+                                "meta": first_item,
+                                "created_at": datetime.now(timezone.utc).isoformat(),
+                                "updated_at": datetime.now(timezone.utc).isoformat()
+                            }
+                            
+                            # Save to database
+                            await db.bills.update_one(
+                                {"customer_code": customer_code, "gateway": Gateway.FPT},
+                                {"$set": bill_data},
+                                upsert=True
+                            )
+                            
+                            return CheckBillResult(
+                                customer_code=customer_code,
+                                full_name=first_item.get("full_name"),
+                                address=first_item.get("address"),
+                                amount=first_item.get("amount"),
+                                billing_cycle=first_item.get("billing_cycle"),
+                                status="OK"
+                            )
+                        else:
+                            # Error response - extract message from nested error
+                            error_message = "Mã không tồn tại"
+                            if "error" in first_item:
+                                error_info = first_item["error"]
+                                if isinstance(error_info, dict) and "message" in error_info:
+                                    try:
+                                        # Parse nested JSON error message
+                                        nested_error = json_lib.loads(error_info["message"])
+                                        if "error" in nested_error and "message" in nested_error["error"]:
+                                            error_message = nested_error["error"]["message"]
+                                    except:
+                                        error_message = str(error_info.get("message", "Có lỗi xảy ra"))
+                                        
+                            return CheckBillResult(
+                                customer_code=customer_code,
+                                status="ERROR",
+                                errors={"code": "EXTERNAL_API_ERROR", "message": error_message}
+                            )
+                    else:
+                        return CheckBillResult(
+                            customer_code=customer_code,
+                            status="ERROR", 
+                            errors={"code": "INVALID_RESPONSE", "message": "Phản hồi không hợp lệ từ hệ thống"}
+                        )
+                        
+                except json_lib.JSONDecodeError:
+                    return CheckBillResult(
+                        customer_code=customer_code,
+                        status="ERROR",
+                        errors={"code": "PARSE_ERROR", "message": "Không thể phân tích phản hồi"}
+                    )
+                    
+    except Exception as e:
+        logger.error(f"Error calling external webhook for {customer_code}: {str(e)}")
         return CheckBillResult(
             customer_code=customer_code,
             status="ERROR",
-            errors={"code": "NOT_FOUND", "message": "Mã hóa đơn không tồn tại"}
+            errors={"code": "CONNECTION_ERROR", "message": f"Lỗi kết nối: {str(e)}"}
         )
 
 # API Routes
@@ -301,7 +359,7 @@ async def check_bills(request: CheckBillRequest):
                 continue
                 
             cleaned_code = clean_customer_code(code)
-            result = await mock_check_bill(cleaned_code, request.provider_region)
+            result = await external_check_bill(cleaned_code, request.provider_region)
             results.append(result)
             
             if result.status == "OK":
