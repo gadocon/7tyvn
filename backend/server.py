@@ -1453,6 +1453,162 @@ async def download_import_template():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/customers/export")
+async def export_customers_data(
+    customer_type: Optional[CustomerType] = None,
+    is_active: Optional[bool] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    include_transactions: bool = True
+):
+    """Export customers data with transactions to Excel"""
+    try:
+        # Build query
+        query = {}
+        
+        if customer_type:
+            query["type"] = customer_type
+        if is_active is not None:
+            query["is_active"] = is_active
+            
+        # Date filter for customers
+        if start_date or end_date:
+            date_filter = {}
+            if start_date:
+                date_filter["$gte"] = start_date
+            if end_date:
+                date_filter["$lte"] = end_date
+            query["created_at"] = date_filter
+        
+        # Get customers
+        customers = await db.customers.find(query).sort("created_at", -1).to_list(None)
+        
+        # Create Excel file
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill
+        from io import BytesIO
+        
+        workbook = openpyxl.Workbook()
+        
+        # Customers Sheet
+        customers_sheet = workbook.active
+        customers_sheet.title = "Khách Hàng"
+        
+        # Customer headers
+        customer_headers = [
+            "ID", "Tên khách hàng", "Số điện thoại", "Email", 
+            "Địa chỉ", "Loại khách hàng", "Trạng thái", "Tổng giao dịch",
+            "Tổng giá trị", "Tổng lợi nhuận", "Ngày tạo", "Ghi chú"
+        ]
+        
+        # Write customer headers
+        for col, header in enumerate(customer_headers, 1):
+            cell = customers_sheet.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Write customer data
+        for row, customer in enumerate(customers, 2):
+            customers_sheet.cell(row=row, column=1, value=customer.get("id"))
+            customers_sheet.cell(row=row, column=2, value=customer.get("name"))
+            customers_sheet.cell(row=row, column=3, value=customer.get("phone"))
+            customers_sheet.cell(row=row, column=4, value=customer.get("email"))
+            customers_sheet.cell(row=row, column=5, value=customer.get("address"))
+            customers_sheet.cell(row=row, column=6, value=customer.get("type"))
+            customers_sheet.cell(row=row, column=7, value="Hoạt động" if customer.get("is_active") else "Không hoạt động")
+            customers_sheet.cell(row=row, column=8, value=customer.get("total_transactions", 0))
+            customers_sheet.cell(row=row, column=9, value=customer.get("total_value", 0))
+            customers_sheet.cell(row=row, column=10, value=customer.get("total_profit_generated", 0))
+            customers_sheet.cell(row=row, column=11, value=customer.get("created_at"))
+            customers_sheet.cell(row=row, column=12, value=customer.get("notes"))
+        
+        # Auto-adjust column widths for customers sheet
+        for column in customers_sheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            customers_sheet.column_dimensions[column_letter].width = min(max_length + 2, 30)
+        
+        # Transactions Sheet (if requested)
+        if include_transactions:
+            transactions_sheet = workbook.create_sheet(title="Giao Dịch")
+            
+            # Transaction headers
+            transaction_headers = [
+                "ID Giao dịch", "ID Khách hàng", "Tên khách hàng", 
+                "Loại giao dịch", "Tổng tiền", "Lợi nhuận (%)", 
+                "Giá trị lợi nhuận", "Số tiền trả khách", "Phương thức thanh toán",
+                "Trạng thái", "Ngày giao dịch", "Ghi chú"
+            ]
+            
+            # Write transaction headers
+            for col, header in enumerate(transaction_headers, 1):
+                cell = transactions_sheet.cell(row=1, column=col, value=header)
+                cell.font = Font(bold=True, color="FFFFFF") 
+                cell.fill = PatternFill(start_color="28A745", end_color="28A745", fill_type="solid")
+                cell.alignment = Alignment(horizontal='center')
+            
+            # Get all sales/transactions
+            sales_query = {}
+            if start_date or end_date:
+                sales_date_filter = {}
+                if start_date:
+                    sales_date_filter["$gte"] = start_date
+                if end_date:
+                    sales_date_filter["$lte"] = end_date
+                sales_query["created_at"] = sales_date_filter
+            
+            sales = await db.sales.find(sales_query).sort("created_at", -1).to_list(None)
+            
+            # Write transaction data
+            row = 2
+            for sale in sales:
+                # Get customer info for this sale
+                customer = await db.customers.find_one({"id": sale.get("customer_id")})
+                customer_name = customer.get("name", "N/A") if customer else "N/A"
+                
+                transactions_sheet.cell(row=row, column=1, value=sale.get("id"))
+                transactions_sheet.cell(row=row, column=2, value=sale.get("customer_id"))
+                transactions_sheet.cell(row=row, column=3, value=customer_name)
+                transactions_sheet.cell(row=row, column=4, value=sale.get("transaction_type", "ELECTRIC_BILL"))
+                transactions_sheet.cell(row=row, column=5, value=sale.get("total", 0))
+                transactions_sheet.cell(row=row, column=6, value=sale.get("profit_pct", 0))
+                transactions_sheet.cell(row=row, column=7, value=sale.get("profit_value", 0))
+                transactions_sheet.cell(row=row, column=8, value=sale.get("payback", 0))
+                transactions_sheet.cell(row=row, column=9, value=sale.get("method", ""))
+                transactions_sheet.cell(row=row, column=10, value=sale.get("status", ""))
+                transactions_sheet.cell(row=row, column=11, value=sale.get("created_at"))
+                transactions_sheet.cell(row=row, column=12, value=sale.get("notes", ""))
+                row += 1
+            
+            # Auto-adjust column widths for transactions sheet
+            for column in transactions_sheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                transactions_sheet.column_dimensions[column_letter].width = min(max_length + 2, 25)
+        
+        # Save to BytesIO
+        excel_buffer = BytesIO()
+        workbook.save(excel_buffer)
+        excel_buffer.seek(0)
+        
+        from fastapi.responses import StreamingResponse
+        
+        return StreamingResponse(
+            BytesIO(excel_buffer.read()),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={"Content-Disposition": "attachment; filename=khach_hang_export.xlsx"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Sales/Transaction APIs
 @api_router.post("/sales", response_model=Sale)
 async def create_sale(sale_data: SaleCreate):
