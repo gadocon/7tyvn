@@ -2015,13 +2015,18 @@ def main():
     
     tester = FPTBillManagerAPITester()
     
-    # Run all tests - focusing on INVENTORY PAGE IMPROVEMENTS (as per review request)
+    # Run all tests - focusing on NEW PUT ENDPOINT for bill updates (as per review request)
     tests = [
-        tester.test_inventory_page_improvements_comprehensive,  # NEW: Comprehensive inventory improvements test
-        tester.test_crossed_status_creation,                   # NEW: Test 1 - CROSSED status creation
-        tester.test_crossed_bill_deletion_protection,          # NEW: Test 2 - CROSSED deletion protection
-        tester.test_bills_api_status_filter,                   # NEW: Test 3 - Bills API status filtering
-        tester.test_bill_update_recheck_logic,                 # NEW: Test 4 - Bill update for recheck
+        tester.test_put_bill_endpoint_comprehensive,           # NEW: Comprehensive PUT endpoint test
+        tester.test_put_bill_update_successful,               # NEW: Test 1 - Successful bill update
+        tester.test_put_bill_update_to_crossed_status,        # NEW: Test 2 - Update to CROSSED status
+        tester.test_put_bill_recheck_scenario,                # NEW: Test 3 - Recheck scenario
+        tester.test_put_bill_error_handling,                  # NEW: Test 4 - Error handling
+        tester.test_inventory_page_improvements_comprehensive, # Previous: Comprehensive inventory improvements test
+        tester.test_crossed_status_creation,                   # Previous: Test 1 - CROSSED status creation
+        tester.test_crossed_bill_deletion_protection,          # Previous: Test 2 - CROSSED deletion protection
+        tester.test_bills_api_status_filter,                   # Previous: Test 3 - Bills API status filtering
+        tester.test_bill_update_recheck_logic,                 # Previous: Test 4 - Bill update for recheck
         tester.test_critical_data_integrity_bill_deletion,     # CRITICAL: Data integrity fix testing
         tester.test_customer_detail_with_bill_codes,           # Bill codes functionality
         tester.test_multiple_customers_bill_codes,             # Test consistency across customers
