@@ -893,13 +893,30 @@ async def delete_inventory_item(item_id: str):
 
 @api_router.delete("/bills/{bill_id}")
 async def delete_bill(bill_id: str):
-    """Delete bill completely"""
+    """Delete bill completely - with validation for sold bills"""
     try:
-        # Remove from bills collection
-        result = await db.bills.delete_one({"id": bill_id})
-        
-        if result.deleted_count == 0:
+        # First check if bill exists and get its status
+        bill = await db.bills.find_one({"id": bill_id})
+        if not bill:
             raise HTTPException(status_code=404, detail="Không tìm thấy bill")
+        
+        # CRITICAL: Check if bill is already sold - prevent deletion
+        if bill.get("status") == BillStatus.SOLD:
+            raise HTTPException(
+                status_code=400, 
+                detail="Không thể xóa bill đã bán. Bill này đã được tham chiếu trong giao dịch khách hàng."
+            )
+        
+        # Check if bill is referenced in any sales (double-check safety)
+        sales_using_bill = await db.sales.find_one({"bill_ids": bill_id})
+        if sales_using_bill:
+            raise HTTPException(
+                status_code=400,
+                detail="Không thể xóa bill đã có giao dịch. Bill này đang được tham chiếu trong lịch sử bán hàng."
+            )
+        
+        # Safe to delete - bill is available/pending
+        result = await db.bills.delete_one({"id": bill_id})
         
         # Also remove from inventory if exists
         await db.inventory_items.delete_many({"bill_id": bill_id})
