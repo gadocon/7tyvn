@@ -2458,8 +2458,8 @@ const ImportModal = ({ show, onClose, onImportComplete, onDownloadTemplate }) =>
 // Export Modal Component
 const ExportModal = ({ show, onClose, onExport }) => {
   const [filters, setFilters] = useState({
-    status: "",
-    provider_region: "",
+    status: "ALL",
+    provider_region: "ALL",
     start_date: "",
     end_date: ""
   });
