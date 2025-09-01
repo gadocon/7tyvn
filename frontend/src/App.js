@@ -867,6 +867,84 @@ const Inventory = () => {
     }
   };
 
+  // Bulk selection functions
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      const currentItems = activeTab === "available" ? inventoryItems : allBills;
+      setSelectedItems(currentItems.map(item => item.id));
+    } else {
+      setSelectedItems([]);
+    }
+  };
+
+  const handleSelectItem = (itemId, checked) => {
+    if (checked) {
+      setSelectedItems(prev => [...prev, itemId]);
+    } else {
+      setSelectedItems(prev => prev.filter(id => id !== itemId));
+    }
+  };
+
+  // Sorting function
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Apply sorting to data
+  const getSortedData = () => {
+    const currentItems = activeTab === "available" ? inventoryItems : allBills;
+    if (!sortConfig.key) return currentItems;
+
+    return [...currentItems].sort((a, b) => {
+      const aValue = a[sortConfig.key] || '';
+      const bValue = b[sortConfig.key] || '';
+      
+      if (sortConfig.direction === 'asc') {
+        return aValue.toString().localeCompare(bValue.toString());
+      } else {
+        return bValue.toString().localeCompare(aValue.toString());
+      }
+    });
+  };
+
+  // Bulk actions
+  const handleBulkDelete = async () => {
+    if (selectedItems.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một item");
+      return;
+    }
+    
+    if (!confirm(`Bạn có chắc muốn xóa ${selectedItems.length} items đã chọn?`)) {
+      return;
+    }
+
+    try {
+      // For available items, remove from inventory
+      if (activeTab === "available") {
+        await Promise.all(selectedItems.map(id => 
+          axios.delete(`${API}/inventory/${id}`)
+        ));
+        toast.success(`Đã xóa ${selectedItems.length} items khỏi kho`);
+      } else {
+        // For all bills, delete bills (if allowed)
+        await Promise.all(selectedItems.map(id => 
+          axios.delete(`${API}/bills/${id}`)
+        ));
+        toast.success(`Đã xóa ${selectedItems.length} bills`);
+      }
+      
+      setSelectedItems([]);
+      fetchInventoryData();
+    } catch (error) {
+      console.error("Error bulk deleting:", error);
+      toast.error("Có lỗi xảy ra khi xóa hàng loạt");
+    }
+  };
+
   const handleDownloadTemplate = async () => {
     try {
       const response = await axios.get(`${API}/inventory/template`, {
