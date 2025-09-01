@@ -654,10 +654,17 @@ async def add_to_inventory(request: AddToInventoryRequest):
         
         for bill_id in request.bill_ids:
             # Check if bill exists and is available
-            bill = await db.bills.find_one({"id": bill_id, "status": BillStatus.AVAILABLE})
+            bill = await db.bills.find_one({"id": bill_id})
             if not bill:
-                continue
+                # Try to find by customer_code if bill_id lookup fails
+                bill = await db.bills.find_one({"customer_code": bill_id, "status": BillStatus.AVAILABLE})
+                if not bill:
+                    continue
+                bill_id = bill["id"]  # Use actual bill ID
                 
+            if bill["status"] != BillStatus.AVAILABLE:
+                continue
+            
             # Check if already in inventory
             existing = await db.inventory_items.find_one({"bill_id": bill_id})
             if existing:
