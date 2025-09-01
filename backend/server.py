@@ -1615,6 +1615,82 @@ async def get_sales(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/sales/export")
+async def export_sales_data():
+    """Export sales data to Excel"""
+    try:
+        # Get all sales (simple version)
+        sales = await db.sales.find({}).sort("created_at", -1).to_list(None)
+        
+        # Create Excel file
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill
+        from io import BytesIO
+        
+        workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Lịch Sử Bán Bill"
+        
+        # Headers
+        headers = [
+            "ID Giao dịch", "Tên khách hàng", "SĐT khách hàng",
+            "Loại giao dịch", "Tổng tiền (VND)", "Lợi nhuận (%)",
+            "Giá trị lợi nhuận (VND)", "Số tiền trả khách (VND)",
+            "Phương thức thanh toán", "Trạng thái", "Ngày giao dịch", "Ghi chú"
+        ]
+        
+        # Write headers with styling
+        for col, header in enumerate(headers, 1):
+            cell = worksheet.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="28A745", end_color="28A745", fill_type="solid")
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Write sales data
+        for row, sale in enumerate(sales, 2):
+            # Get customer info for this sale
+            customer = await db.customers.find_one({"id": sale.get("customer_id")})
+            customer_name = customer.get("name", "N/A") if customer else "N/A"
+            customer_phone = customer.get("phone", "N/A") if customer else "N/A"
+            
+            worksheet.cell(row=row, column=1, value=sale.get("id"))
+            worksheet.cell(row=row, column=2, value=customer_name)
+            worksheet.cell(row=row, column=3, value=customer_phone)
+            worksheet.cell(row=row, column=4, value=sale.get("transaction_type", "ELECTRIC_BILL"))
+            worksheet.cell(row=row, column=5, value=sale.get("total", 0))
+            worksheet.cell(row=row, column=6, value=sale.get("profit_pct", 0))
+            worksheet.cell(row=row, column=7, value=sale.get("profit_value", 0))
+            worksheet.cell(row=row, column=8, value=sale.get("payback", 0))
+            worksheet.cell(row=row, column=9, value=sale.get("method", ""))
+            worksheet.cell(row=row, column=10, value=sale.get("status", ""))
+            worksheet.cell(row=row, column=11, value=sale.get("created_at", ""))
+            worksheet.cell(row=row, column=12, value=sale.get("notes", ""))
+        
+        # Auto-adjust column widths
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            worksheet.column_dimensions[column_letter].width = min(max_length + 2, 25)
+        
+        # Save to BytesIO
+        excel_buffer = BytesIO()
+        workbook.save(excel_buffer)
+        excel_buffer.seek(0)
+        
+        from fastapi.responses import StreamingResponse
+        
+        return StreamingResponse(
+            BytesIO(excel_buffer.read()),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={"Content-Disposition": "attachment; filename=lich_su_ban_bill.xlsx"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/sales/{sale_id}", response_model=Sale)
 async def get_sale(sale_id: str):
     """Get sale by ID"""
