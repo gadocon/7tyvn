@@ -37,6 +37,7 @@ const API = `${BACKEND_URL}/api`;
 // Navigation Component
 const Navigation = () => {
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const navItems = [
     { path: "/", label: "Dashboard", icon: Home },
@@ -46,15 +47,49 @@ const Navigation = () => {
     { path: "/sales", label: "Bán Bill", icon: ShoppingCart }
   ];
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+
   return (
-    <nav className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-8">
-          <div className="flex items-center space-x-2">
-            <BarChart3 className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold text-gray-900">FPT Bill Manager</span>
+    <>
+      {/* Top Navigation Bar */}
+      <nav className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4 fixed top-0 left-0 right-0 z-40">
+        <div className="flex items-center justify-between">
+          {/* Mobile Menu Button */}
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={toggleSidebar}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <svg
+                className="w-6 h-6 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+
+            {/* Logo */}
+            <div className="flex items-center space-x-2">
+              <BarChart3 className="h-8 w-8 text-blue-600" />
+              <span className="text-xl font-bold text-gray-900 hidden sm:block">FPT Bill Manager</span>
+              <span className="text-lg font-bold text-gray-900 sm:hidden">FPT</span>
+            </div>
           </div>
           
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -76,15 +111,97 @@ const Navigation = () => {
               );
             })}
           </div>
+          
+          {/* Status Badge */}
+          <div className="flex items-center space-x-4">
+            <Badge variant="outline" className="text-green-600 border-green-200 hidden sm:flex">
+              Đang hoạt động
+            </Badge>
+          </div>
         </div>
-        
-        <div className="flex items-center space-x-4">
-          <Badge variant="outline" className="text-green-600 border-green-200">
-            Đang hoạt động
-          </Badge>
+      </nav>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
+          onClick={closeSidebar}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <div className={`fixed top-0 left-0 h-full w-80 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <BarChart3 className="h-8 w-8 text-blue-600" />
+            <span className="text-xl font-bold text-gray-900">FPT Bill Manager</span>
+          </div>
+          <button
+            onClick={closeSidebar}
+            className="p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <svg
+              className="w-6 h-6 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Sidebar Navigation */}
+        <div className="p-4">
+          <div className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={closeSidebar}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors w-full ${
+                    isActive 
+                      ? "bg-blue-100 text-blue-700 border-r-4 border-blue-700" 
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                  {isActive && (
+                    <div className="ml-auto">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                    </div>
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
+
+          {/* Sidebar Footer */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="flex items-center space-x-3 px-4 py-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-gray-600">Hệ thống đang hoạt động</span>
+            </div>
+            <div className="px-4 py-2">
+              <p className="text-xs text-gray-500">© 2025 FPT Bill Manager</p>
+            </div>
+          </div>
         </div>
       </div>
-    </nav>
+    </>
   );
 };
 
