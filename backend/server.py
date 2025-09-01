@@ -736,10 +736,16 @@ async def export_customers_data():
         customers = await db.customers.find({}).sort("created_at", -1).to_list(None)
         
         # DEBUG: Return JSON first to verify data
+        debug_customers = []
+        for c in customers[:2]:
+            # Remove ObjectId fields for JSON serialization
+            clean_customer = {k: v for k, v in c.items() if k != "_id"}
+            debug_customers.append(clean_customer)
+        
         return {
             "debug": True,
             "count": len(customers),
-            "customers": customers[:2] if customers else []
+            "customers": debug_customers
         }
         
         # Create Excel file
