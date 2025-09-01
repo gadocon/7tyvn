@@ -260,31 +260,41 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
                         else:
                             # Error response - extract message from nested error
                             error_message = "Mã không tồn tại"
-                            try:
-                                if "error" in first_item:
-                                    error_info = first_item["error"]
-                                    # The message field contains a JSON string, let's parse it
-                                    if "message" in error_info:
-                                        message_str = error_info["message"]
-                                        # Remove escape characters and parse JSON
-                                        clean_message = message_str.replace('\\"', '"')
-                                        if clean_message.startswith('"') and clean_message.endswith('"'):
-                                            clean_message = clean_message[1:-1]  # Remove outer quotes
-                                        
-                                        nested_data = json_lib.loads(clean_message)
-                                        if "error" in nested_data and "message" in nested_data["error"]:
-                                            error_message = nested_data["error"]["message"]
-                            except Exception as parse_error:
-                                logger.error(f"Error parsing nested message: {parse_error}")
-                                # Fallback to regex extraction
-                                if "error" in first_item and "message" in first_item["error"]:
-                                    full_message = first_item["error"]["message"]
-                                    # Try to extract Vietnamese error message using regex
-                                    import re
-                                    pattern = r'"message":"([^"]*(?:không|lỗi|tồn tại|nợ cước)[^"]*)"'
+                            
+                            if "error" in first_item and "message" in first_item["error"]:
+                                full_message = first_item["error"]["message"]
+                                
+                                # Method 1: Try to extract Vietnamese error message using regex
+                                import re
+                                vietnamese_patterns = [
+                                    r'"message":"([^"]*(?:không nợ cước)[^"]*)"',
+                                    r'"message":"([^"]*(?:không tồn tại)[^"]*)"', 
+                                    r'"message":"([^"]*(?:không hợp lệ)[^"]*)"',
+                                    r'"message":"([^"]*(?:lỗi)[^"]*)"'
+                                ]
+                                
+                                for pattern in vietnamese_patterns:
                                     match = re.search(pattern, full_message, re.IGNORECASE)
                                     if match:
                                         error_message = match.group(1)
+                                        break
+                                        
+                                # Method 2: If no Vietnamese message found, try JSON parsing
+                                if error_message == "Mã không tồn tại":
+                                    try:
+                                        # Handle escaped JSON string
+                                        clean_message = full_message
+                                        if '400 - "' in clean_message:
+                                            # Extract JSON part after "400 - "
+                                            json_start = clean_message.find('400 - "') + 7
+                                            json_part = clean_message[json_start:-1]  # Remove trailing quote
+                                            json_part = json_part.replace('\\"', '"')  # Unescape quotes
+                                            
+                                            nested_data = json_lib.loads(json_part)
+                                            if "error" in nested_data and "message" in nested_data["error"]:
+                                                error_message = nested_data["error"]["message"]
+                                    except Exception as e:
+                                        logger.debug(f"JSON parsing failed, using regex fallback: {e}")
                                         
                             return CheckBillResult(
                                 customer_code=customer_code,
