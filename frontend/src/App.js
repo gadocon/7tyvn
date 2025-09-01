@@ -905,6 +905,56 @@ const Inventory = () => {
     }
   };
 
+  const handleRecheckBill = async (bill) => {
+    if (recheckingBillId === bill.id) return; // Prevent double clicks
+    
+    setRecheckingBillId(bill.id);
+    
+    try {
+      // Call external API to check bill status (same as "Kiểm Tra Mã Điện" page)
+      const response = await axios.post(`${API}/bill/check/single`, {
+        bill_code: bill.customer_code,
+        provider: bill.provider_region
+      });
+
+      if (response.data.status === "OK") {
+        // Bill is valid - update status and show success
+        toast.success(`Bill ${bill.customer_code} hợp lệ - Đã cập nhật trạng thái`);
+        
+        // Update bill's last_checked time in database
+        await axios.put(`${API}/bills/${bill.id}`, {
+          ...bill,
+          last_checked: new Date().toISOString()
+        });
+        
+        fetchInventoryData(); // Refresh data
+        
+      } else {
+        // Bill not found - customer không nợ cước -> status "Đã Gạch"
+        await axios.put(`${API}/bills/${bill.id}`, {
+          ...bill,
+          status: "CROSSED",
+          full_name: "khách hàng ko nợ cước",
+          last_checked: new Date().toISOString()
+        });
+        
+        toast.info(`Bill ${bill.customer_code} - Khách hàng không nợ cước`);
+        
+        // Show transfer confirmation modal
+        setBillToTransfer(bill);
+        setShowTransferModal(true);
+        
+        fetchInventoryData(); // Refresh data
+      }
+      
+    } catch (error) {
+      console.error("Error rechecking bill:", error);
+      toast.error("Có lỗi xảy ra khi check lại bill");
+    } finally {
+      setRecheckingBillId(null);
+    }
+  };
+
   // Bulk selection functions
   const handleSelectAll = (checked) => {
     if (checked) {
