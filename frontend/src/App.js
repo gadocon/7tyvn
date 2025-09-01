@@ -1093,6 +1093,13 @@ const Inventory = () => {
         onClose={() => setShowSellModal(false)}
         onComplete={handleSellComplete}
       />
+
+      {/* Add Bill Modal */}
+      <AddBillModal
+        show={showAddBillModal}
+        onClose={() => setShowAddBillModal(false)}
+        onSubmit={handleAddBill}
+      />
     </div>
   );
 };
