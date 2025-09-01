@@ -286,13 +286,15 @@ const Dashboard = () => {
 const CheckBill = () => {
   const [codes, setCodes] = useState("");
   const [provider, setProvider] = useState("MIEN_NAM");
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedBills, setSelectedBills] = useState([]);
   const [checkAllSelected, setCheckAllSelected] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
   const [processedCount, setProcessedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [okCount, setOkCount] = useState(0);
+  const [errorCount, setErrorCount] = useState(0);
 
   const handleCheckBills = async () => {
     if (!codes.trim()) {
@@ -303,6 +305,10 @@ const CheckBill = () => {
     setLoading(true);
     setProcessingStep("Đang chuẩn bị...");
     setProcessedCount(0);
+    setResults([]);
+    setSelectedBills([]);
+    setOkCount(0);
+    setErrorCount(0);
     
     try {
       const codeList = codes
@@ -313,28 +319,70 @@ const CheckBill = () => {
       setTotalCount(codeList.length);
       setProcessingStep(`Đang kiểm tra ${codeList.length} mã điện qua cổng FPT...`);
 
-      const response = await axios.post(`${API}/bill/check`, {
-        gateway: "FPT",
-        provider_region: provider,
-        codes: codeList
-      });
+      // Process each bill one by one for realtime display
+      const allResults = [];
+      let currentOkCount = 0;
+      let currentErrorCount = 0;
 
-      setProcessingStep("Đang xử lý kết quả...");
-      setProcessedCount(codeList.length);
-
-      setTimeout(() => {
-        setResults(response.data);
-        setSelectedBills([]);
-        setCheckAllSelected(false);
-        setProcessingStep("");
+      for (let i = 0; i < codeList.length; i++) {
+        const code = codeList[i];
+        setProcessingStep(`Đang kiểm tra mã ${code}... (${i + 1}/${codeList.length})`);
         
-        if (response.data.summary.ok > 0) {
-          toast.success(`Tìm thấy ${response.data.summary.ok} bill hợp lệ`);
+        try {
+          const response = await axios.post(`${API}/bill/check/single`, null, {
+            params: {
+              customer_code: code,
+              provider_region: provider
+            }
+          });
+
+          const result = response.data;
+          allResults.push(result);
+          
+          if (result.status === "OK") {
+            currentOkCount++;
+            setOkCount(currentOkCount);
+          } else {
+            currentErrorCount++;
+            setErrorCount(currentErrorCount);
+          }
+
+          // Update results in real-time
+          setResults([...allResults]);
+          setProcessedCount(i + 1);
+          
+        } catch (error) {
+          // Handle individual bill errors
+          const errorResult = {
+            customer_code: code,
+            status: "ERROR",
+            errors: { message: "Lỗi kết nối" }
+          };
+          allResults.push(errorResult);
+          currentErrorCount++;
+          setErrorCount(currentErrorCount);
+          setResults([...allResults]);
+          setProcessedCount(i + 1);
         }
-        if (response.data.summary.error > 0) {
-          toast.warning(`${response.data.summary.error} mã không tìm thấy`);
+
+        // Small delay between requests to avoid overwhelming the server
+        if (i < codeList.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
-      }, 800);
+      }
+
+      setProcessingStep("Hoàn thành kiểm tra!");
+      
+      setTimeout(() => {
+        setProcessingStep("");
+        if (currentOkCount > 0) {
+          toast.success(`Tìm thấy ${currentOkCount} bill hợp lệ`);
+        }
+        if (currentErrorCount > 0) {
+          toast.warning(`${currentErrorCount} mã không tìm thấy`);
+        }
+      }, 1000);
+
     } catch (error) {
       console.error("Error checking bills:", error);
       toast.error("Có lỗi xảy ra khi kiểm tra bill");
@@ -358,7 +406,7 @@ const CheckBill = () => {
   const handleCheckAll = (checked) => {
     setCheckAllSelected(checked);
     if (checked) {
-      const validBills = results?.items?.filter(bill => bill.status === "OK") || [];
+      const validBills = results.filter(bill => bill.status === "OK") || [];
       setSelectedBills(validBills);
     } else {
       setSelectedBills([]);
@@ -372,9 +420,13 @@ const CheckBill = () => {
     }
 
     try {
-      // For now, we'll use customer_code as bill_id since we don't have actual bill IDs from check
-      // In real implementation, the check API should return bill IDs
-      const billIds = selectedBills.map(bill => bill.customer_code); // This is temporary
+      // Use bill_ids from the check results
+      const billIds = selectedBills.map(bill => bill.bill_id).filter(id => id);
+      
+      if (billIds.length === 0) {
+        toast.error("Không tìm thấy ID bill để thêm vào kho");
+        return;
+      }
       
       const response = await axios.post(`${API}/inventory/add`, {
         bill_ids: billIds,
@@ -387,16 +439,12 @@ const CheckBill = () => {
         setSelectedBills([]);
         setCheckAllSelected(false);
         
-        // Update results to remove added bills
-        const remainingResults = {
-          ...results,
-          items: results.items.map(item => 
-            selectedBills.some(b => b.customer_code === item.customer_code)
-              ? { ...item, status: "ADDED_TO_INVENTORY" }
-              : item
-          )
-        };
-        setResults(remainingResults);
+        // Update results to show bills added to inventory
+        setResults(results.map(item => 
+          selectedBills.some(b => b.customer_code === item.customer_code)
+            ? { ...item, status: "ADDED_TO_INVENTORY" }
+            : item
+        ));
       }
     } catch (error) {
       console.error("Error adding to inventory:", error);
@@ -456,14 +504,14 @@ const CheckBill = () => {
                 <Label htmlFor="codes">Mã Điện (mỗi dòng một mã)</Label>
                 <Textarea
                   id="codes"
-                  placeholder="PA22040522471&#10;PA22040506503,1,676,138&#10;PA22060724572,2,017,202"
+                  placeholder="PA2204000000&#10;PA22040522471&#10;INVALID123"
                   value={codes}
                   onChange={(e) => setCodes(e.target.value)}
                   rows={6}
                   className="font-mono"
                 />
                 <p className="text-sm text-gray-500">
-                  Có thể dán kèm số tiền (sẽ tự động loại bỏ). Ví dụ: PA22040522471,1,250,000
+                  Có thể dán kèm số tiền (sẽ tự động loại bỏ). Thử mã: <strong>PA2204000000</strong> (thành công)
                 </p>
               </div>
 
@@ -503,6 +551,12 @@ const CheckBill = () => {
                           </div>
                           <p className="text-xs text-blue-700 mt-1">
                             {processedCount}/{totalCount} mã đã xử lý
+                            {(okCount > 0 || errorCount > 0) && (
+                              <span className="ml-2">
+                                • <span className="text-green-600">{okCount} thành công</span>
+                                • <span className="text-red-600">{errorCount} lỗi</span>
+                              </span>
+                            )}
                           </p>
                         </div>
                       )}
@@ -516,13 +570,14 @@ const CheckBill = () => {
       </Card>
 
       {/* Results */}
-      {results && (
+      {results.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Kết Quả Kiểm Tra</CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Tìm thấy {results.summary.ok} bill hợp lệ, {results.summary.error} lỗi
+                Tìm thấy {okCount} bill hợp lệ, {errorCount} lỗi
+                {loading && ` (đang xử lý...)`}
               </p>
             </div>
             {selectedBills.length > 0 && (
@@ -537,7 +592,7 @@ const CheckBill = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">
-                    {results.items.some(bill => bill.status === "OK") && (
+                    {results.some(bill => bill.status === "OK") && (
                       <input
                         type="checkbox"
                         checked={checkAllSelected}
@@ -556,7 +611,7 @@ const CheckBill = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {results.items.map((bill, index) => (
+                {results.map((bill, index) => (
                   <TableRow key={bill.customer_code} className={bill.status === "ERROR" ? "bg-red-50" : ""}>
                     <TableCell>
                       {bill.status === "OK" && (
