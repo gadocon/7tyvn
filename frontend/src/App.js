@@ -1922,7 +1922,7 @@ function App() {
     <div className="App min-h-screen bg-gray-50">
       <BrowserRouter>
         <Navigation />
-        <main className="min-h-screen">
+        <main className="min-h-screen pt-20">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/check-bill" element={<CheckBill />} />
