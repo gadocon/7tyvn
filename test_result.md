@@ -324,12 +324,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Provider Mapping Correction - COMPLETED"
-    - "Debug Payload Endpoint - COMPLETED"
-    - "External API Integration - WORKING"
+    - "Add New Bill Modal UI"
+    - "Add New Bill Form Submission"
+    - "Add New Bill Backend API"
   stuck_tasks: []
   test_all: false
-  test_priority: "provider_mapping_verification_complete"
+  test_priority: "high_first"
 
 agent_communication:
     - agent: "testing"
