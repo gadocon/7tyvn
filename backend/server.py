@@ -269,7 +269,17 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
                                         if "error" in nested_error and "message" in nested_error["error"]:
                                             error_message = nested_error["error"]["message"]
                                     except:
+                                        # If parsing fails, extract simple message
                                         error_message = str(error_info.get("message", "Có lỗi xảy ra"))
+                                        # Try to extract just the error message from long string
+                                        if '"message":"' in error_message:
+                                            try:
+                                                import re
+                                                match = re.search(r'"message":"([^"]+)"', error_message)
+                                                if match:
+                                                    error_message = match.group(1)
+                                            except:
+                                                pass
                                         
                             return CheckBillResult(
                                 customer_code=customer_code,
