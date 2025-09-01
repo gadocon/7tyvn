@@ -1112,6 +1112,347 @@ async def create_bill_manual(bill_data: BillCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Import/Export APIs
+@api_router.post("/inventory/import/preview")
+async def preview_import_data(file: UploadFile = File(...)):
+    """Preview imported Excel data before saving"""
+    try:
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            raise HTTPException(status_code=400, detail="File phải có định dạng Excel (.xlsx hoặc .xls)")
+        
+        # Read Excel file
+        import openpyxl
+        import io
+        
+        content = await file.read()
+        workbook = openpyxl.load_workbook(io.BytesIO(content))
+        worksheet = workbook.active
+        
+        # Expected columns: Mã điện, Nhà cung cấp, Tên khách hàng, Địa chỉ, Nợ cước, Chu kỳ thanh toán, Trạng thái
+        expected_headers = ["Mã điện", "Nhà cung cấp", "Tên khách hàng", "Địa chỉ", "Nợ cước", "Chu kỳ thanh toán", "Trạng thái"]
+        
+        # Read header row
+        headers = [cell.value for cell in worksheet[1]]
+        
+        # Validate headers
+        if not all(header in headers for header in ["Mã điện"]):  # Only Mã điện is required
+            raise HTTPException(status_code=400, detail="File Excel thiếu cột bắt buộc 'Mã điện'")
+        
+        # Read data rows
+        preview_data = []
+        errors = []
+        
+        for row_num, row in enumerate(worksheet.iter_rows(min_row=2, values_only=True), start=2):
+            if not any(row):  # Skip empty rows
+                continue
+                
+            try:
+                # Map columns to data
+                row_data = {}
+                for i, header in enumerate(headers):
+                    if i < len(row):
+                        row_data[header] = row[i]
+                
+                # Validate required fields
+                if not row_data.get("Mã điện"):
+                    errors.append(f"Dòng {row_num}: Thiếu mã điện")
+                    continue
+                
+                # Map provider region
+                provider_map = {
+                    "Miền Bắc": "MIEN_BAC",
+                    "Miền Nam": "MIEN_NAM", 
+                    "TP.HCM": "HCMC",
+                    "HCMC": "HCMC"
+                }
+                
+                provider = row_data.get("Nhà cung cấp", "Miền Nam")
+                mapped_provider = provider_map.get(provider, "MIEN_NAM")
+                
+                # Format data
+                preview_item = {
+                    "customer_code": str(row_data.get("Mã điện", "")).strip(),
+                    "provider_region": mapped_provider,
+                    "full_name": str(row_data.get("Tên khách hàng", "")).strip() or None,
+                    "address": str(row_data.get("Địa chỉ", "")).strip() or None,
+                    "amount": float(row_data.get("Nợ cước", 0)) if row_data.get("Nợ cước") else None,
+                    "billing_cycle": str(row_data.get("Chu kỳ thanh toán", "")).strip() or None,
+                    "status": "AVAILABLE",  # Default status
+                    "row_number": row_num
+                }
+                
+                preview_data.append(preview_item)
+                
+            except Exception as e:
+                errors.append(f"Dòng {row_num}: Lỗi xử lý dữ liệu - {str(e)}")
+        
+        return {
+            "success": True,
+            "total_rows": len(preview_data),
+            "errors": errors,
+            "data": preview_data[:50],  # Preview first 50 rows
+            "has_more": len(preview_data) > 50
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi xử lý file: {str(e)}")
+
+@api_router.post("/inventory/import/confirm")
+async def confirm_import_data(import_data: Dict[str, Any]):
+    """Confirm and save imported data"""
+    try:
+        bills_data = import_data.get("data", [])
+        successful_imports = 0
+        errors = []
+        
+        for item in bills_data:
+            try:
+                # Check if bill already exists
+                existing_bill = await db.bills.find_one({
+                    "customer_code": item["customer_code"],
+                    "provider_region": item["provider_region"]
+                })
+                
+                if existing_bill:
+                    errors.append(f"Mã điện {item['customer_code']} đã tồn tại")
+                    continue
+                
+                # Create new bill
+                bill = Bill(
+                    gateway=Gateway.FPT,
+                    customer_code=item["customer_code"],
+                    provider_region=ProviderRegion(item["provider_region"]),
+                    provider_name=item["provider_region"].lower(),
+                    full_name=item.get("full_name"),
+                    address=item.get("address"),
+                    amount=item.get("amount"),
+                    billing_cycle=item.get("billing_cycle"),
+                    status=BillStatus.AVAILABLE
+                )
+                
+                # Save to database
+                bill_dict = bill.dict()
+                bill_dict["created_at"] = bill.created_at.isoformat()
+                bill_dict["updated_at"] = bill.updated_at.isoformat()
+                await db.bills.insert_one(bill_dict)
+                
+                # Add to inventory
+                inventory_item = {
+                    "id": str(uuid.uuid4()),
+                    "bill_id": bill.id,
+                    "note": "Import từ Excel",
+                    "batch_id": None,
+                    "added_by": "import",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.inventory_items.insert_one(inventory_item)
+                
+                successful_imports += 1
+                
+            except Exception as e:
+                errors.append(f"Mã điện {item.get('customer_code', 'unknown')}: {str(e)}")
+        
+        return {
+            "success": True,
+            "imported_count": successful_imports,
+            "total_count": len(bills_data),
+            "errors": errors,
+            "message": f"Đã import thành công {successful_imports}/{len(bills_data)} bills"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/inventory/export")
+async def export_inventory_data(
+    status: Optional[BillStatus] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    provider_region: Optional[ProviderRegion] = None
+):
+    """Export inventory data to Excel"""
+    try:
+        # Build query
+        query = {}
+        
+        # Build bills query
+        bills_query = {}
+        if status:
+            bills_query["status"] = status
+        if provider_region:
+            bills_query["provider_region"] = provider_region
+            
+        # Date filter
+        if start_date or end_date:
+            date_filter = {}
+            if start_date:
+                date_filter["$gte"] = start_date
+            if end_date:
+                date_filter["$lte"] = end_date
+            bills_query["created_at"] = date_filter
+        
+        # Get inventory items with bills
+        pipeline = [
+            {
+                "$lookup": {
+                    "from": "bills",
+                    "localField": "bill_id",
+                    "foreignField": "id",
+                    "as": "bill"
+                }
+            },
+            {
+                "$unwind": "$bill"
+            }
+        ]
+        
+        # Add match stage if filters exist
+        if bills_query:
+            pipeline.append({"$match": {f"bill.{k}": v for k, v in bills_query.items()}})
+        
+        pipeline.append({"$sort": {"created_at": -1}})
+        
+        inventory_items = await db.inventory_items.aggregate(pipeline).to_list(None)
+        
+        # Create Excel file
+        import openpyxl
+        from openpyxl.styles import Font, Alignment
+        from io import BytesIO
+        
+        workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Kho Bill"
+        
+        # Headers
+        headers = [
+            "Mã điện", "Tên khách hàng", "Địa chỉ", "Nợ cước", 
+            "Chu kỳ thanh toán", "Nhà cung cấp", "Trạng thái",
+            "Ngày thêm", "Ghi chú"
+        ]
+        
+        # Write headers
+        for col, header in enumerate(headers, 1):
+            cell = worksheet.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Write data
+        for row, item in enumerate(inventory_items, 2):
+            bill = item["bill"]
+            worksheet.cell(row=row, column=1, value=bill.get("customer_code"))
+            worksheet.cell(row=row, column=2, value=bill.get("full_name"))
+            worksheet.cell(row=row, column=3, value=bill.get("address"))
+            worksheet.cell(row=row, column=4, value=bill.get("amount"))
+            worksheet.cell(row=row, column=5, value=bill.get("billing_cycle"))
+            worksheet.cell(row=row, column=6, value=bill.get("provider_name"))
+            worksheet.cell(row=row, column=7, value=bill.get("status"))
+            worksheet.cell(row=row, column=8, value=item.get("created_at"))
+            worksheet.cell(row=row, column=9, value=item.get("note"))
+        
+        # Auto-adjust column widths
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            worksheet.column_dimensions[column_letter].width = min(max_length + 2, 50)
+        
+        # Save to BytesIO
+        excel_buffer = BytesIO()
+        workbook.save(excel_buffer)
+        excel_buffer.seek(0)
+        
+        # Return file
+        from fastapi.responses import StreamingResponse
+        
+        return StreamingResponse(
+            io=BytesIO(excel_buffer.read()),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={"Content-Disposition": "attachment; filename=kho_bill_export.xlsx"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/inventory/template")
+async def download_import_template():
+    """Download Excel template for importing bills"""
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill
+        from io import BytesIO
+        
+        workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Template Import Bills"
+        
+        # Headers
+        headers = [
+            "Mã điện", "Nhà cung cấp", "Tên khách hàng", 
+            "Địa chỉ", "Nợ cước", "Chu kỳ thanh toán", "Trạng thái"
+        ]
+        
+        # Write headers with styling
+        for col, header in enumerate(headers, 1):
+            cell = worksheet.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Add sample data
+        sample_data = [
+            ["PA2024000001", "Miền Nam", "Nguyễn Văn A", "123 Đường ABC, Quận 1", 850000, "10/2025", "Có Sẵn"],
+            ["PA2024000002", "Miền Bắc", "Trần Thị B", "456 Đường DEF, Quận 2", 920000, "10/2025", "Có Sẵn"],
+            ["PA2024000003", "TP.HCM", "Lê Văn C", "789 Đường GHI, Quận 3", 750000, "11/2025", "Có Sẵn"]
+        ]
+        
+        for row, data in enumerate(sample_data, 2):
+            for col, value in enumerate(data, 1):
+                worksheet.cell(row=row, column=col, value=value)
+        
+        # Auto-adjust column widths
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            worksheet.column_dimensions[column_letter].width = min(max_length + 2, 30)
+        
+        # Add instructions
+        instructions = [
+            "",
+            "HƯỚNG DẪN SỬ DỤNG:",
+            "1. Mã điện: Bắt buộc phải có",
+            "2. Nhà cung cấp: Miền Bắc / Miền Nam / TP.HCM",
+            "3. Nợ cước: Nhập số tiền (VD: 850000)",
+            "4. Chu kỳ thanh toán: Định dạng MM/YYYY (VD: 10/2025)",
+            "5. Trạng thái: Có Sẵn / Chờ Xử Lý / Đã Bán",
+            "6. Xóa các dòng mẫu trước khi import dữ liệu thật"
+        ]
+        
+        for i, instruction in enumerate(instructions, len(sample_data) + 3):
+            worksheet.cell(row=i, column=1, value=instruction)
+        
+        # Save to BytesIO
+        excel_buffer = BytesIO()
+        workbook.save(excel_buffer)
+        excel_buffer.seek(0)
+        
+        from fastapi.responses import StreamingResponse
+        
+        return StreamingResponse(
+            io=BytesIO(excel_buffer.read()),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={"Content-Disposition": "attachment; filename=template_import_bills.xlsx"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Sales/Transaction APIs
 @api_router.post("/sales", response_model=Sale)
 async def create_sale(sale_data: SaleCreate):
