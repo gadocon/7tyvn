@@ -525,6 +525,46 @@ async def check_single_bill(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/bill/debug-payload")
+async def debug_bill_payload(
+    customer_code: str,
+    provider_region: ProviderRegion
+):
+    """Debug endpoint to show exact payload being sent to external API"""
+    # Map provider region to external format
+    provider_mapping = {
+        ProviderRegion.MIEN_BAC: "mien_bac",
+        ProviderRegion.MIEN_NAM: "mien_nam", 
+        ProviderRegion.HCMC: "evnhcmc"
+    }
+    
+    external_provider = provider_mapping.get(provider_region, "mien_nam")
+    
+    # Prepare payload for external webhook
+    payload = {
+        "bills": [
+            {
+                "customer_id": customer_code,
+                "electric_provider": external_provider,
+                "provider_name": external_provider,
+                "contractNumber": customer_code,
+                "sku": "ELECTRIC_BILL"
+            }
+        ],
+        "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
+        "request_id": f"fpt_bill_manager_{str(uuid.uuid4())[:8]}",
+        "webhookUrl": "https://n8n.phamthanh.net/webhook/checkbill",
+        "executionMode": "production"
+    }
+    
+    return {
+        "customer_code": customer_code,
+        "provider_region": provider_region,
+        "external_provider": external_provider,
+        "payload": payload,
+        "external_api_url": "https://n8n.phamthanh.net/webhook/checkbill"
+    }
+
 @api_router.get("/bills", response_model=List[Bill])
 async def get_bills(status: Optional[BillStatus] = None, limit: int = 50):
     """Get bills with optional status filter"""
