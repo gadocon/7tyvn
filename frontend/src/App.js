@@ -1282,11 +1282,12 @@ const Inventory = () => {
                         <input
                           type="checkbox"
                           checked={selectedItems.includes(item.id)}
-                          onChange={(e) => {
-                            console.log('Checkbox clicked for:', item.id, e.target.checked);
-                            handleSelectItem(item.id, e.target.checked);
+                          onClick={(e) => {
+                            console.log('Checkbox clicked for:', item.id, !selectedItems.includes(item.id));
+                            handleSelectItem(item.id, !selectedItems.includes(item.id));
                           }}
-                          className="rounded"
+                          readOnly
+                          className="rounded cursor-pointer"
                         />
                       </TableCell>
                       <TableCell className="font-mono">{item.customer_code}</TableCell>
