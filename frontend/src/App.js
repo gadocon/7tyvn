@@ -956,10 +956,11 @@ const Inventory = () => {
       return;
     }
     
-    if (!confirm(`Bạn có chắc muốn xóa ${selectedItems.length} items đã chọn?`)) {
-      return;
-    }
+    // Show custom confirmation modal instead of confirm()
+    setShowBulkDeleteConfirm(true);
+  };
 
+  const confirmBulkDelete = async () => {
     try {
       // For available items, remove from inventory
       if (activeTab === "available") {
@@ -976,10 +977,12 @@ const Inventory = () => {
       }
       
       setSelectedItems([]);
+      setShowBulkDeleteConfirm(false);
       fetchInventoryData();
     } catch (error) {
       console.error("Error bulk deleting:", error);
       toast.error("Có lỗi xảy ra khi xóa hàng loạt");
+      setShowBulkDeleteConfirm(false);
     }
   };
 
