@@ -898,13 +898,29 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold text-gray-900">Kho Bill</h1>
           <p className="text-gray-600 mt-1">Quản lý hóa đơn điện trong kho</p>
         </div>
-        <Button 
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => setShowAddBillModal(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Thêm Bill Mới
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setShowImportModal(true)}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Import Excel
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => setShowExportModal(true)}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => setShowAddBillModal(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm Bill Mới
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
