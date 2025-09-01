@@ -810,6 +810,9 @@ const Inventory = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [allBills, setAllBills] = useState([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [recheckingBillId, setRecheckingBillId] = useState(null);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [billToTransfer, setBillToTransfer] = useState(null);
 
   useEffect(() => {
     fetchInventoryData();
