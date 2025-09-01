@@ -1574,6 +1574,13 @@ const Customers = () => {
         customerDetail={customerDetail}
         onClose={() => setCustomerDetail(null)}
       />
+
+      {/* Customer Export Modal */}
+      <CustomerExportModal
+        show={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExportCustomers}
+      />
     </div>
   );
 };
