@@ -855,6 +855,57 @@ const Inventory = () => {
     }
   };
 
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await axios.get(`${API}/inventory/template`, {
+        responseType: 'blob'
+      });
+      
+      // Create blob link to download file
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'template_import_bills.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success("Đã tải template thành công!");
+    } catch (error) {
+      console.error("Error downloading template:", error);
+      toast.error("Có lỗi xảy ra khi tải template");
+    }
+  };
+
+  const handleExportData = async (filters) => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+      if (filters.provider_region) params.append('provider_region', filters.provider_region);
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
+      
+      const response = await axios.get(`${API}/inventory/export?${params.toString()}`, {
+        responseType: 'blob'
+      });
+      
+      // Create blob link to download file
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'kho_bill_export.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success("Đã xuất dữ liệu thành công!");
+      setShowExportModal(false);
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      toast.error("Có lỗi xảy ra khi xuất dữ liệu");
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
