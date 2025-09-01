@@ -1880,6 +1880,54 @@ const Customers = () => {
         onClose={() => setShowExportModal(false)}
         onExport={handleExportCustomers}
       />
+
+      {/* Customer Delete Confirmation Modal */}
+      {showDeleteConfirm && customerToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="h-8 w-8 text-red-600 mr-3" />
+              <h2 className="text-xl font-semibold text-gray-900">Cảnh Báo Xóa Khách Hàng</h2>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-800 mb-3">
+                Bạn có chắc muốn xóa khách hàng <strong>"{customerToDelete.name}"</strong>?
+              </p>
+              
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h4 className="font-semibold text-red-800 mb-2">⚠️ Hành động này sẽ:</h4>
+                <ul className="text-red-700 text-sm space-y-1">
+                  <li>• <strong>Xóa vĩnh viễn</strong> khách hàng "{customerToDelete.name}"</li>
+                  <li>• <strong>Xóa tất cả</strong> giao dịch liên quan ({customerToDelete.total_transactions} giao dịch)</li>
+                  <li>• <strong>Xóa tất cả</strong> mã bill điện liên quan</li>
+                  <li>• <strong>Không thể khôi phục</strong> sau khi xóa</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setCustomerToDelete(null);
+                }}
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+              <Button
+                onClick={confirmDeleteCustomer}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Xóa Vĩnh Viễn
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
