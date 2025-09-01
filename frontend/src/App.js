@@ -1379,17 +1379,26 @@ const Inventory = () => {
                               Bán
                             </Button>
                           )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => activeTab === "available" 
-                              ? handleRemoveFromInventory(item.id)
-                              : handleDeleteBill(item.id)
-                            }
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            Xóa
-                          </Button>
+                          {/* Hide delete button for SOLD bills to prevent data integrity issues */}
+                          {item.status !== "SOLD" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => activeTab === "available" 
+                                ? handleRemoveFromInventory(item.id)
+                                : handleDeleteBill(item.id)
+                              }
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              Xóa
+                            </Button>
+                          )}
+                          {/* Show info for SOLD bills instead of delete button */}
+                          {item.status === "SOLD" && (
+                            <span className="text-sm text-gray-500 italic">
+                              Không thể xóa bill đã bán
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
