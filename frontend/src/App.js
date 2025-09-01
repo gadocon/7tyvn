@@ -1819,16 +1819,14 @@ const Customers = () => {
                         >
                           Sửa
                         </Button>
-                        {customer.total_transactions === 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteCustomer(customer.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            Xóa
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteCustomer(customer)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Xóa
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
