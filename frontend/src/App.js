@@ -1169,100 +1169,199 @@ const Inventory = () => {
             </TabsList>
           </Tabs>
 
-          {/* Inventory Table */}
-          {inventoryItems.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mã Điện</TableHead>
-                  <TableHead>Tên Khách Hàng</TableHead>
-                  <TableHead>Địa Chỉ</TableHead>
-                  <TableHead>Số Tiền</TableHead>
-                  <TableHead>Kỳ Thanh Toán</TableHead>
-                  <TableHead>Vùng</TableHead>
-                  <TableHead>Trạng Thái</TableHead>
-                  <TableHead>Ghi Chú</TableHead>
-                  <TableHead>Ngày Thêm</TableHead>
-                  <TableHead>Thao Tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {inventoryItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-mono">{item.customer_code}</TableCell>
-                    <TableCell>{item.full_name || "-"}</TableCell>
-                    <TableCell className="max-w-xs truncate">{item.address || "-"}</TableCell>
-                    <TableCell>{item.amount ? formatCurrency(item.amount) : "-"}</TableCell>
-                    <TableCell>{item.billing_cycle || "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {item.provider_region === "MIEN_BAC" ? "Miền Bắc" : 
-                         item.provider_region === "MIEN_NAM" ? "Miền Nam" : "TP.HCM"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {item.status === "AVAILABLE" ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Có Sẵn
-                        </Badge>
-                      ) : item.status === "PENDING" ? (
-                        <Badge className="bg-yellow-100 text-yellow-800">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Chờ Thanh Toán
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-gray-100 text-gray-800">
-                          Đã Bán
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {item.note || "-"}
-                    </TableCell>
-                    <TableCell>{formatDate(item.created_at)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {item.status === "AVAILABLE" && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleSellBill(item)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <DollarSign className="h-3 w-3 mr-1" />
-                            Bán
-                          </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveFromInventory(item.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <XCircle className="h-3 w-3 mr-1" />
-                          Xóa
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-12">
-              <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Kho trống</h3>
-              <p className="text-gray-500 mb-4">
-                {activeTab === "available" 
-                  ? "Không có bill nào sẵn sàng trong kho" 
-                  : "Chưa có bill nào trong kho"}
-              </p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Thêm Bill Đầu Tiên
+          {/* Bulk Actions */}
+          {selectedItems.length > 0 && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center">
+              <span className="text-blue-800">
+                Đã chọn {selectedItems.length} item(s)
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkDelete}
+                className="text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Xóa Hàng Loạt
               </Button>
             </div>
           )}
+
+          {/* Table */}
+          {(() => {
+            const currentItems = getSortedData();
+            const showData = activeTab === "available" ? inventoryItems.length > 0 : allBills.length > 0;
+            
+            return showData ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">
+                      <input
+                        type="checkbox"
+                        checked={currentItems.length > 0 && selectedItems.length === currentItems.length}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="rounded"
+                      />
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort(activeTab === "available" ? "customer_code" : "customer_code")}
+                    >
+                      <div className="flex items-center">
+                        Mã Điện
+                        {sortConfig.key === "customer_code" ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 ml-1" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("full_name")}
+                    >
+                      <div className="flex items-center">
+                        Tên Khách Hàng
+                        {sortConfig.key === "full_name" ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 ml-1" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead>Địa Chỉ</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("amount")}
+                    >
+                      <div className="flex items-center">
+                        Số Tiền
+                        {sortConfig.key === "amount" ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 ml-1" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead>Kỳ Thanh Toán</TableHead>
+                    <TableHead>Vùng</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("status")}
+                    >
+                      <div className="flex items-center">
+                        Trạng Thái
+                        {sortConfig.key === "status" ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 ml-1" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead>
+                      {activeTab === "available" ? "Ghi Chú" : "Ngày Tạo"}
+                    </TableHead>
+                    <TableHead>Thao Tác</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.includes(item.id)}
+                          onChange={(e) => handleSelectItem(item.id, e.target.checked)}
+                          className="rounded"
+                        />
+                      </TableCell>
+                      <TableCell className="font-mono">{item.customer_code}</TableCell>
+                      <TableCell>{item.full_name || "-"}</TableCell>
+                      <TableCell className="max-w-xs truncate">{item.address || "-"}</TableCell>
+                      <TableCell>{item.amount ? formatCurrency(item.amount) : "-"}</TableCell>
+                      <TableCell>{item.billing_cycle || "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {item.provider_region === "MIEN_BAC" ? "Miền Bắc" : 
+                           item.provider_region === "MIEN_NAM" ? "Miền Nam" : "TP.HCM"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {item.status === "AVAILABLE" ? (
+                          <Badge className="bg-green-100 text-green-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Có Sẵn  
+                          </Badge>
+                        ) : item.status === "PENDING" ? (
+                          <Badge className="bg-yellow-100 text-yellow-800">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Chờ Thanh Toán
+                          </Badge>
+                        ) : item.status === "SOLD" ? (
+                          <Badge className="bg-red-100 text-red-800">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Đã Bán
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-gray-100 text-gray-800">
+                            {item.status}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {activeTab === "available" 
+                          ? (item.note || "-")
+                          : new Date(item.created_at).toLocaleDateString('vi-VN')
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {item.status === "AVAILABLE" && activeTab === "available" && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleSellBill(item)}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              Bán
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => activeTab === "available" 
+                              ? handleRemoveFromInventory(item.id)
+                              : handleDeleteBill(item.id)
+                            }
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Xóa
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-12">
+                <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {activeTab === "available" ? "Chưa có bill nào trong kho" : "Chưa có bill nào"}
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  {activeTab === "available" 
+                    ? "Thêm bill vào kho để bắt đầu quản lý"
+                    : "Thêm bill mới để bắt đầu"
+                  }
+                </p>
+                <Button onClick={() => setShowAddBillModal(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Thêm Bill Đầu Tiên
+                </Button>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 
