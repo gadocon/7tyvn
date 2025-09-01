@@ -801,6 +801,11 @@ const Inventory = () => {
 
   useEffect(() => {
     fetchInventoryData();
+    
+    // Debug: Make functions globally accessible
+    window.debugSelectItem = handleSelectItem;
+    window.debugSelectedItems = selectedItems;
+    console.log('=== Inventory Component Mounted ===');
   }, [activeTab, searchTerm]);
 
   const fetchInventoryData = async () => {
