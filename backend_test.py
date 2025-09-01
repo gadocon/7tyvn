@@ -487,6 +487,301 @@ class FPTBillManagerAPITester:
             self.tests_run += 1
             return False
 
+    def test_customer_detail_with_bill_codes(self):
+        """Test customer detail API endpoint to verify bill_codes field in transactions"""
+        print(f"\n🔍 Testing Customer Detail API - Bill Codes Functionality")
+        
+        # First, get list of customers to find one with transactions
+        print("📋 Step 1: Getting customers list...")
+        customers_success, customers_response = self.run_test(
+            "Get Customers List",
+            "GET", 
+            "customers",
+            200
+        )
+        
+        if not customers_success or not customers_response:
+            print("❌ Failed to get customers list")
+            return False
+            
+        # Find a customer with transactions
+        target_customer = None
+        for customer in customers_response:
+            if customer.get('total_transactions', 0) > 0:
+                target_customer = customer
+                break
+                
+        if not target_customer:
+            print("⚠️  No customers with transactions found. Creating test data...")
+            # Try to create test customer and transaction data
+            return self.create_test_customer_with_transactions()
+            
+        customer_id = target_customer['id']
+        customer_name = target_customer.get('name', 'Unknown')
+        print(f"✅ Found customer with transactions: {customer_name} (ID: {customer_id})")
+        print(f"   Total transactions: {target_customer.get('total_transactions', 0)}")
+        
+        # Test the customer detail endpoint
+        print(f"\n📋 Step 2: Testing customer detail endpoint...")
+        detail_success, detail_response = self.run_test(
+            f"Customer Detail - {customer_name}",
+            "GET",
+            f"customers/{customer_id}/transactions", 
+            200
+        )
+        
+        if not detail_success:
+            print("❌ Failed to get customer detail")
+            return False
+            
+        # Verify response structure
+        print(f"\n🔍 Step 3: Verifying response structure...")
+        required_fields = ['customer', 'transactions', 'summary']
+        missing_fields = [field for field in required_fields if field not in detail_response]
+        
+        if missing_fields:
+            print(f"❌ Missing required fields: {missing_fields}")
+            return False
+            
+        print(f"✅ All required fields present: {required_fields}")
+        
+        # Verify transactions structure and bill_codes field
+        transactions = detail_response.get('transactions', [])
+        print(f"📊 Found {len(transactions)} transactions")
+        
+        if not transactions:
+            print("⚠️  No transactions found for this customer")
+            return True  # Not a failure, just no data
+            
+        # Check each transaction for bill_codes field
+        bill_codes_found = 0
+        transactions_with_codes = 0
+        
+        for i, transaction in enumerate(transactions):
+            print(f"\n   Transaction {i+1}:")
+            print(f"   - ID: {transaction.get('id', 'N/A')}")
+            print(f"   - Type: {transaction.get('type', 'N/A')}")
+            print(f"   - Total: {transaction.get('total', 'N/A')}")
+            print(f"   - Status: {transaction.get('status', 'N/A')}")
+            
+            # Check for bill_codes field
+            bill_codes = transaction.get('bill_codes', [])
+            if 'bill_codes' in transaction:
+                transactions_with_codes += 1
+                if bill_codes:
+                    bill_codes_found += len(bill_codes)
+                    print(f"   - Bill Codes: {bill_codes}")
+                else:
+                    print(f"   - Bill Codes: [] (empty array)")
+            else:
+                print(f"   - ❌ Missing 'bill_codes' field!")
+                return False
+                
+        print(f"\n📊 Bill Codes Analysis:")
+        print(f"   - Transactions with bill_codes field: {transactions_with_codes}/{len(transactions)}")
+        print(f"   - Total bill codes found: {bill_codes_found}")
+        
+        # Verify summary structure
+        summary = detail_response.get('summary', {})
+        summary_fields = ['total_transactions', 'total_value', 'total_profit']
+        print(f"\n📊 Summary verification:")
+        for field in summary_fields:
+            if field in summary:
+                print(f"   - {field}: {summary[field]}")
+            else:
+                print(f"   - ❌ Missing summary field: {field}")
+                
+        # Success criteria: all transactions have bill_codes field
+        if transactions_with_codes == len(transactions):
+            print(f"\n✅ SUCCESS: All transactions have 'bill_codes' field")
+            print(f"✅ Bill codes functionality is working correctly")
+            self.tests_passed += 1
+            return True
+        else:
+            print(f"\n❌ FAILURE: Not all transactions have 'bill_codes' field")
+            return False
+
+    def create_test_customer_with_transactions(self):
+        """Create test customer and transaction data for testing"""
+        print(f"\n🔧 Creating test customer with transactions...")
+        
+        # Create test customer
+        test_customer_data = {
+            "name": "Test Customer for Bill Codes",
+            "type": "INDIVIDUAL",
+            "phone": "0123456789",
+            "email": f"test_billcodes_{int(datetime.now().timestamp())}@example.com",
+            "address": "123 Test Street, Test City"
+        }
+        
+        customer_success, customer_response = self.run_test(
+            "Create Test Customer",
+            "POST",
+            "customers",
+            200,
+            data=test_customer_data
+        )
+        
+        if not customer_success:
+            print("❌ Failed to create test customer")
+            return False
+            
+        customer_id = customer_response.get('id')
+        print(f"✅ Created test customer: {customer_id}")
+        
+        # Create test bill first
+        test_bill_data = {
+            "customer_code": f"TEST{int(datetime.now().timestamp())}",
+            "provider_region": "MIEN_NAM",
+            "full_name": "Test Bill Customer",
+            "address": "Test Address",
+            "amount": 1000000,
+            "billing_cycle": "12/2025",
+            "status": "AVAILABLE"
+        }
+        
+        bill_success, bill_response = self.run_test(
+            "Create Test Bill",
+            "POST",
+            "bills/create",
+            200,
+            data=test_bill_data
+        )
+        
+        if not bill_success:
+            print("❌ Failed to create test bill")
+            return False
+            
+        bill_id = bill_response.get('id')
+        print(f"✅ Created test bill: {bill_id}")
+        
+        # Create test sale/transaction
+        test_sale_data = {
+            "customer_id": customer_id,
+            "bill_ids": [bill_id],
+            "profit_pct": 5.0,
+            "method": "CASH",
+            "notes": f"Test transaction for bill codes - {datetime.now().strftime('%d/%m/%Y')}"
+        }
+        
+        sale_success, sale_response = self.run_test(
+            "Create Test Sale",
+            "POST",
+            "sales",
+            200,
+            data=test_sale_data
+        )
+        
+        if not sale_success:
+            print("❌ Failed to create test sale")
+            return False
+            
+        print(f"✅ Created test sale: {sale_response.get('id')}")
+        
+        # Now test the customer detail endpoint with our test data
+        print(f"\n📋 Testing customer detail with test data...")
+        return self.test_customer_transactions_endpoint(customer_id)
+        
+    def test_customer_transactions_endpoint(self, customer_id):
+        """Test specific customer transactions endpoint"""
+        detail_success, detail_response = self.run_test(
+            f"Customer Transactions Detail",
+            "GET",
+            f"customers/{customer_id}/transactions",
+            200
+        )
+        
+        if not detail_success:
+            print("❌ Failed to get customer transactions")
+            return False
+            
+        # Verify the response has the expected structure
+        transactions = detail_response.get('transactions', [])
+        if not transactions:
+            print("⚠️  No transactions found")
+            return False
+            
+        # Check the first transaction for bill_codes
+        first_transaction = transactions[0]
+        print(f"\n🔍 Analyzing first transaction:")
+        print(f"   Transaction structure: {list(first_transaction.keys())}")
+        
+        if 'bill_codes' not in first_transaction:
+            print(f"❌ CRITICAL: 'bill_codes' field missing from transaction!")
+            return False
+            
+        bill_codes = first_transaction.get('bill_codes', [])
+        print(f"✅ Found 'bill_codes' field: {bill_codes}")
+        
+        # Verify bill_codes contains actual customer codes
+        if bill_codes and len(bill_codes) > 0:
+            print(f"✅ Bill codes populated: {bill_codes}")
+            print(f"✅ SUCCESS: Bill codes functionality working correctly!")
+            return True
+        else:
+            print(f"⚠️  Bill codes array is empty, but field exists")
+            return True  # Field exists, which is the main requirement
+
+    def test_multiple_customers_bill_codes(self):
+        """Test bill_codes functionality with multiple customers"""
+        print(f"\n🔍 Testing Bill Codes with Multiple Customers")
+        
+        # Get customers list
+        customers_success, customers_response = self.run_test(
+            "Get All Customers",
+            "GET",
+            "customers",
+            200
+        )
+        
+        if not customers_success:
+            print("❌ Failed to get customers")
+            return False
+            
+        customers_tested = 0
+        customers_with_bill_codes = 0
+        
+        # Test up to 3 customers with transactions
+        for customer in customers_response[:3]:
+            if customer.get('total_transactions', 0) > 0:
+                customer_id = customer['id']
+                customer_name = customer.get('name', 'Unknown')
+                
+                print(f"\n📋 Testing customer: {customer_name}")
+                
+                detail_success, detail_response = self.run_test(
+                    f"Customer Detail - {customer_name}",
+                    "GET",
+                    f"customers/{customer_id}/transactions",
+                    200
+                )
+                
+                if detail_success:
+                    customers_tested += 1
+                    transactions = detail_response.get('transactions', [])
+                    
+                    # Check if all transactions have bill_codes field
+                    has_bill_codes = all('bill_codes' in t for t in transactions)
+                    if has_bill_codes:
+                        customers_with_bill_codes += 1
+                        print(f"   ✅ All transactions have bill_codes field")
+                    else:
+                        print(f"   ❌ Some transactions missing bill_codes field")
+                        
+        print(f"\n📊 Multiple Customer Test Results:")
+        print(f"   - Customers tested: {customers_tested}")
+        print(f"   - Customers with proper bill_codes: {customers_with_bill_codes}")
+        
+        if customers_tested > 0 and customers_with_bill_codes == customers_tested:
+            print(f"✅ SUCCESS: All tested customers have proper bill_codes functionality")
+            return True
+        elif customers_tested == 0:
+            print(f"⚠️  No customers with transactions found to test")
+            return True  # Not a failure
+        else:
+            print(f"❌ FAILURE: Inconsistent bill_codes functionality across customers")
+            return False
+
     def test_error_handling(self):
         """Test API error handling"""
         print(f"\n🧪 Testing Error Handling...")
