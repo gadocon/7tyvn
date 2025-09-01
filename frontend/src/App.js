@@ -2248,6 +2248,342 @@ const AddBillModal = ({ show, onClose, onSubmit }) => {
   );
 };
 
+// Import Modal Component
+const ImportModal = ({ show, onClose, onImportComplete, onDownloadTemplate }) => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewData, setPreviewData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState([]);
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (show) {
+      setSelectedFile(null);
+      setPreviewData(null);
+      setErrors([]);
+    }
+  }, [show]);
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setPreviewData(null);
+      setErrors([]);
+    }
+  };
+
+  const handlePreview = async () => {
+    if (!selectedFile) {
+      toast.error("Vui lòng chọn file Excel");
+      return;
+    }
+
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const response = await axios.post(`${API}/inventory/import/preview`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      setPreviewData(response.data);
+      setErrors(response.data.errors || []);
+    } catch (error) {
+      console.error("Error previewing import:", error);
+      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi preview file");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!previewData) return;
+
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/inventory/import/confirm`, {
+        data: previewData.data
+      });
+
+      toast.success(response.data.message);
+      onImportComplete();
+    } catch (error) {
+      console.error("Error confirming import:", error);
+      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi import dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Import Bills từ Excel</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Download Template */}
+          <div className="border rounded-lg p-4 bg-blue-50">
+            <h3 className="font-medium text-blue-900 mb-2">1. Tải Template Excel</h3>
+            <p className="text-blue-700 text-sm mb-3">
+              Tải file mẫu để đảm bảo định dạng dữ liệu chính xác
+            </p>
+            <Button
+              variant="outline"
+              onClick={onDownloadTemplate}
+              className="border-blue-200 text-blue-700 hover:bg-blue-100"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Tải Template
+            </Button>
+          </div>
+
+          {/* File Upload */}
+          <div className="border rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-2">2. Chọn File Excel</h3>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileSelect}
+              className="mb-3"
+            />
+            {selectedFile && (
+              <p className="text-sm text-gray-600 mb-3">
+                Đã chọn: {selectedFile.name}
+              </p>
+            )}
+            <Button
+              onClick={handlePreview}
+              disabled={!selectedFile || loading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {loading ? "Đang xử lý..." : "Preview Dữ Liệu"}
+            </Button>
+          </div>
+
+          {/* Preview Data */}
+          {previewData && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-2">3. Preview Dữ Liệu</h3>
+              <div className="mb-3">
+                <p className="text-sm text-gray-600">
+                  Tổng cộng: {previewData.total_rows} bills
+                  {previewData.has_more && " (hiển thị 50 đầu tiên)"}
+                </p>
+              </div>
+
+              {/* Errors */}
+              {errors.length > 0 && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                  <h4 className="font-medium text-red-800 mb-2">Lỗi dữ liệu:</h4>
+                  <ul className="text-sm text-red-700 space-y-1">
+                    {errors.slice(0, 10).map((error, index) => (
+                      <li key={index}>• {error}</li>
+                    ))}
+                    {errors.length > 10 && (
+                      <li className="font-medium">... và {errors.length - 10} lỗi khác</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {/* Data Table */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border border-gray-300 px-2 py-1 text-xs">Mã điện</th>
+                      <th className="border border-gray-300 px-2 py-1 text-xs">Nhà cung cấp</th>
+                      <th className="border border-gray-300 px-2 py-1 text-xs">Tên KH</th>
+                      <th className="border border-gray-300 px-2 py-1 text-xs">Nợ cước</th>
+                      <th className="border border-gray-300 px-2 py-1 text-xs">Chu kỳ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.data.slice(0, 10).map((item, index) => (
+                      <tr key={index}>
+                        <td className="border border-gray-300 px-2 py-1 text-xs">{item.customer_code}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-xs">{item.provider_region}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-xs">{item.full_name}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-xs">{item.amount}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-xs">{item.billing_cycle}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                <Button
+                  onClick={handleConfirmImport}
+                  disabled={loading || errors.length > 0}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {loading ? "Đang import..." : `Import ${previewData.total_rows} Bills`}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setPreviewData(null)}
+                >
+                  Chọn File Khác
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <Button variant="outline" onClick={onClose}>
+            Đóng
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Export Modal Component
+const ExportModal = ({ show, onClose, onExport }) => {
+  const [filters, setFilters] = useState({
+    status: "",
+    provider_region: "",
+    start_date: "",
+    end_date: ""
+  });
+
+  // Reset filters when modal opens
+  useEffect(() => {
+    if (show) {
+      setFilters({
+        status: "",
+        provider_region: "",
+        start_date: "",
+        end_date: ""
+      });
+    }
+  }, [show]);
+
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleExport = () => {
+    onExport(filters);
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Export Dữ Liệu</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Status Filter */}
+          <div>
+            <Label className="text-sm font-medium text-gray-700">Trạng Thái</Label>
+            <Select 
+              value={filters.status} 
+              onValueChange={(value) => handleFilterChange("status", value)}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Tất cả trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Tất cả trạng thái</SelectItem>
+                <SelectItem value="AVAILABLE">Có Sẵn</SelectItem>
+                <SelectItem value="PENDING">Chờ Xử Lý</SelectItem>
+                <SelectItem value="SOLD">Đã Bán</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Provider Filter */}
+          <div>
+            <Label className="text-sm font-medium text-gray-700">Nhà Cung Cấp</Label>
+            <Select 
+              value={filters.provider_region} 
+              onValueChange={(value) => handleFilterChange("provider_region", value)}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Tất cả nhà cung cấp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Tất cả nhà cung cấp</SelectItem>
+                <SelectItem value="MIEN_BAC">Miền Bắc</SelectItem>
+                <SelectItem value="MIEN_NAM">Miền Nam</SelectItem>
+                <SelectItem value="HCMC">TP. Hồ Chí Minh</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Date Range */}
+          <div>
+            <Label className="text-sm font-medium text-gray-700">Từ Ngày</Label>
+            <Input
+              type="date"
+              value={filters.start_date}
+              onChange={(e) => handleFilterChange("start_date", e.target.value)}
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium text-gray-700">Đến Ngày</Label>
+            <Input
+              type="date"
+              value={filters.end_date}
+              onChange={(e) => handleFilterChange("end_date", e.target.value)}
+              className="mt-1"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleExport}
+            className="flex-1 bg-green-600 hover:bg-green-700"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component  
 function App() {
   return (
