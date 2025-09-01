@@ -940,10 +940,14 @@ async def delete_bill(bill_id: str):
 async def update_bill(bill_id: str, bill_data: BillCreate):
     """Update bill information - used for recheck functionality"""
     try:
+        logger.info(f"PUT /bills/{bill_id} called with data: {bill_data}")
+        
         # Check if bill exists
         existing_bill = await db.bills.find_one({"id": bill_id})
         if not existing_bill:
             raise HTTPException(status_code=404, detail="Không tìm thấy bill")
+        
+        logger.info(f"Found existing bill: {existing_bill.get('id')}")
         
         # Prepare update data
         update_data = {
@@ -958,21 +962,27 @@ async def update_bill(bill_id: str, bill_data: BillCreate):
             "last_checked": datetime.now(timezone.utc).isoformat()
         }
         
+        logger.info(f"Update data prepared: {update_data}")
+        
         # Update bill in database
         result = await db.bills.update_one(
             {"id": bill_id},
             {"$set": update_data}
         )
         
+        logger.info(f"Update result: matched={result.matched_count}, modified={result.modified_count}")
+        
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Không tìm thấy bill để cập nhật")
         
         # Get updated bill
         updated_bill = await db.bills.find_one({"id": bill_id})
+        logger.info(f"Retrieved updated bill: {updated_bill.get('id') if updated_bill else 'None'}")
         
         # If status changed to CROSSED, remove from inventory (if exists)
         if bill_data.status == BillStatus.CROSSED:
-            await db.inventory_items.delete_many({"bill_id": bill_id})
+            inventory_result = await db.inventory_items.delete_many({"bill_id": bill_id})
+            logger.info(f"Removed {inventory_result.deleted_count} items from inventory")
         
         return {
             "success": True,
@@ -983,6 +993,7 @@ async def update_bill(bill_id: str, bill_data: BillCreate):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error in update_bill: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.delete("/customers/{customer_id}")
