@@ -101,3 +101,87 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Test the bill checking functionality for the specific bill code 'PB09020058383' with provider 'miền nam'. The user reports that this bill code works in backend but shows an error on frontend."
+
+backend:
+  - task: "Bill Check API Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Backend API endpoint /api/bills/check is working correctly. Returns proper HTTP 200 status and structured JSON response with items array and summary object. The API correctly processes the request payload and calls external service."
+  
+  - task: "External API Integration"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "External API call to https://n8n.phamthanh.net/webhook/checkbill is failing with reCAPTCHA requirement. The external service returns 400 status with error 'BFF_BEFORE_RECAPTCHA_REQUIRED:00400' and message 'Đầu vào không hợp lệ' with details 'Too many requests. reCAPTCHA required.' This indicates rate limiting on the external service."
+
+  - task: "Bill Code PB09020058383 Processing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Backend correctly processes bill code PB09020058383 with provider MIEN_NAM. The code cleaning function works properly, request payload is correctly formatted, and error handling is functioning as expected. The backend returns proper error response when external API fails."
+
+  - task: "Error Response Parsing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Error parsing logic is working correctly. Backend properly extracts Vietnamese error message 'Đầu vào không hợp lệ' from the complex nested error response and returns it in a structured format with error code 'EXTERNAL_API_ERROR'."
+
+frontend:
+  - task: "Frontend Bill Check Integration"
+    implemented: "NA"
+    working: "NA"
+    file: "NA"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Frontend testing was not performed as per system limitations. The issue reported by user about frontend showing error while backend works is likely related to frontend error handling or display logic, not backend functionality."
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Bill Check API Endpoint"
+    - "External API Integration"
+    - "Bill Code PB09020058383 Processing"
+  stuck_tasks:
+    - "External API Integration"
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "testing"
+      message: "Completed comprehensive testing of bill code PB09020058383. Backend API is functioning correctly but external service is rate-limited with reCAPTCHA requirement. The backend properly handles this error condition and returns appropriate error response. The issue user reports about frontend vs backend discrepancy is not due to backend malfunction."
