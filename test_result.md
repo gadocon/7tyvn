@@ -178,11 +178,14 @@ frontend:
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: true
           agent: "main"
           comment: "Frontend correctly handles ERROR responses from backend and displays them appropriately. The 'error' user sees is actually correct behavior when external API fails."
+        - working: "unknown"
+          agent: "main"
+          comment: "Backend now returns successful OK responses with valid bill data after provider mapping fix. Frontend needs retesting to verify it properly displays successful results."
 
 metadata:
   created_by: "main_agent"
