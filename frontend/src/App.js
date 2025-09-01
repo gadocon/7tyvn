@@ -1488,6 +1488,8 @@ const Customers = () => {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [customerDetail, setCustomerDetail] = useState(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState(null);
 
   useEffect(() => {
     fetchCustomersData();
