@@ -80,7 +80,7 @@ def test_backend_api_detailed():
     print("\n🏠 Testing Our Backend API with External Integration")
     print("=" * 50)
     
-    base_url = "https://billhub-2.preview.emergentagent.com"
+    base_url = "https://billmanager-1.preview.emergentagent.com"
     api_url = f"{base_url}/api"
     
     test_cases = [
