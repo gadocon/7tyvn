@@ -273,13 +273,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Bill Check API Endpoint"
-    - "External API Integration"
-    - "Bill Code PB09020058383 Processing"
-  stuck_tasks:
-    - "External API Integration"
+    - "Provider Mapping Correction - COMPLETED"
+    - "Debug Payload Endpoint - COMPLETED"
+    - "External API Integration - WORKING"
+  stuck_tasks: []
   test_all: false
-  test_priority: "high_first"
+  test_priority: "provider_mapping_verification_complete"
 
 agent_communication:
     - agent: "testing"
