@@ -89,8 +89,40 @@ class Customer(BaseModel):
     email: Optional[str] = None
     address: Optional[str] = None
     is_active: bool = True
+    # Transaction tracking
+    total_transactions: int = 0
+    total_value: float = 0.0
+    total_bills: int = 0
+    total_cards: int = 0
+    total_profit_generated: float = 0.0
+    # Metadata
+    notes: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CustomerCreate(BaseModel):
+    type: CustomerType = CustomerType.INDIVIDUAL
+    name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    notes: Optional[str] = None
+
+class CustomerUpdate(BaseModel):
+    type: Optional[CustomerType] = None
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    is_active: Optional[bool] = None
+    notes: Optional[str] = None
+
+class CustomerStats(BaseModel):
+    total_customers: int
+    individual_customers: int
+    agent_customers: int
+    active_customers: int
+    total_customer_value: float
 
 class Sale(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
