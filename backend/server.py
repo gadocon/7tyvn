@@ -530,13 +530,206 @@ async def get_bills(status: Optional[BillStatus] = None, limit: int = 50):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.get("/customers", response_model=List[Customer])
-async def get_customers(limit: int = 50):
-    """Get customers"""
+@api_router.get("/customers/stats", response_model=CustomerStats)
+async def get_customer_stats():
+    """Get customer statistics"""
     try:
-        customers = await db.customers.find({}).limit(limit).to_list(limit)
+        # Count customers by type and status
+        total_customers = await db.customers.count_documents({})
+        individual_customers = await db.customers.count_documents({"type": CustomerType.INDIVIDUAL})
+        agent_customers = await db.customers.count_documents({"type": CustomerType.AGENT})
+        active_customers = await db.customers.count_documents({"is_active": True})
+        
+        # Calculate total customer value
+        pipeline = [
+            {"$group": {"_id": None, "total_value": {"$sum": "$total_value"}}}
+        ]
+        value_result = await db.customers.aggregate(pipeline).to_list(1)
+        total_customer_value = value_result[0]["total_value"] if value_result else 0
+        
+        return CustomerStats(
+            total_customers=total_customers,
+            individual_customers=individual_customers,
+            agent_customers=agent_customers,
+            active_customers=active_customers,
+            total_customer_value=total_customer_value
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/customers", response_model=List[Customer])
+async def get_customers(
+    search: Optional[str] = None,
+    customer_type: Optional[CustomerType] = None,
+    is_active: Optional[bool] = None,
+    page: int = 1,
+    page_size: int = 20
+):
+    """Get customers with filtering and pagination"""
+    try:
+        # Build query
+        query = {}
+        
+        if search:
+            query["$or"] = [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"phone": {"$regex": search, "$options": "i"}},
+                {"email": {"$regex": search, "$options": "i"}},
+                {"address": {"$regex": search, "$options": "i"}}
+            ]
+        
+        if customer_type:
+            query["type"] = customer_type
+            
+        if is_active is not None:
+            query["is_active"] = is_active
+        
+        # Get paginated results
+        skip = (page - 1) * page_size
+        customers = await db.customers.find(query).skip(skip).limit(page_size).sort("created_at", -1).to_list(page_size)
+        
         return [Customer(**parse_from_mongo(customer)) for customer in customers]
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/customers/{customer_id}", response_model=Customer)
+async def get_customer(customer_id: str):
+    """Get single customer by ID"""
+    try:
+        customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        return Customer(**parse_from_mongo(customer))
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/customers", response_model=Customer)
+async def create_customer(customer_data: CustomerCreate):
+    """Create new customer"""
+    try:
+        # Check for duplicate email if provided
+        if customer_data.email:
+            existing = await db.customers.find_one({"email": customer_data.email})
+            if existing:
+                raise HTTPException(status_code=400, detail="Email đã tồn tại")
+        
+        # Create customer
+        customer = Customer(
+            **customer_data.dict(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
+        )
+        
+        customer_dict = prepare_for_mongo(customer.dict())
+        await db.customers.insert_one(customer_dict)
+        
+        return customer
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/customers/{customer_id}", response_model=Customer)
+async def update_customer(customer_id: str, customer_data: CustomerUpdate):
+    """Update customer"""
+    try:
+        # Check if customer exists
+        existing = await db.customers.find_one({"id": customer_id})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        # Check for duplicate email if updating email
+        if customer_data.email and customer_data.email != existing.get("email"):
+            duplicate = await db.customers.find_one({"email": customer_data.email, "id": {"$ne": customer_id}})
+            if duplicate:
+                raise HTTPException(status_code=400, detail="Email đã tồn tại")
+        
+        # Update fields
+        update_data = {k: v for k, v in customer_data.dict().items() if v is not None}
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        await db.customers.update_one(
+            {"id": customer_id},
+            {"$set": update_data}
+        )
+        
+        # Return updated customer
+        updated_customer = await db.customers.find_one({"id": customer_id})
+        return Customer(**parse_from_mongo(updated_customer))
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/customers/{customer_id}")
+async def delete_customer(customer_id: str):
+    """Delete customer (only if no transactions)"""
+    try:
+        # Check if customer exists
+        customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        # Check if customer has transactions
+        has_sales = await db.sales.find_one({"customer_id": customer_id})
+        if has_sales:
+            raise HTTPException(status_code=400, detail="Không thể xóa khách hàng đã có giao dịch")
+        
+        # Delete customer
+        result = await db.customers.delete_one({"id": customer_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Không thể xóa khách hàng")
+        
+        return {"success": True, "message": "Đã xóa khách hàng thành công"}
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/customers/{customer_id}/transactions")
+async def get_customer_transactions(customer_id: str):
+    """Get customer transaction history"""
+    try:
+        # Check if customer exists
+        customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        # Get sales for this customer
+        sales = await db.sales.find({"customer_id": customer_id}).sort("created_at", -1).to_list(100)
+        
+        transactions = []
+        for sale in sales:
+            transactions.append({
+                "id": sale["id"],
+                "type": "SALE",
+                "total": sale["total"],
+                "profit_value": sale["profit_value"],
+                "payback": sale["payback"],
+                "method": sale["method"],
+                "status": sale["status"],
+                "notes": sale.get("notes"),
+                "created_at": sale["created_at"]
+            })
+        
+        return {
+            "customer": Customer(**parse_from_mongo(customer)),
+            "transactions": transactions,
+            "summary": {
+                "total_transactions": len(transactions),
+                "total_value": sum(t["total"] for t in transactions),
+                "total_profit": sum(t["profit_value"] for t in transactions)
+            }
+        }
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=str(e))
 
 # Inventory/Kho Bill APIs
