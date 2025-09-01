@@ -931,15 +931,611 @@ const Inventory = () => {
   );
 };
 
-const Customers = () => (
-  <div className="p-6">
-    <div className="text-center py-12">
-      <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Quản Lý Khách Hàng</h2>
-      <p className="text-gray-600">Tính năng đang được phát triển</p>
+// Customers/Khách Hàng Page
+const Customers = () => {
+  const [customers, setCustomers] = useState([]);
+  const [customerStats, setCustomerStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [customerType, setCustomerType] = useState("");
+  const [isActive, setIsActive] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [customerDetail, setCustomerDetail] = useState(null);
+
+  useEffect(() => {
+    fetchCustomersData();
+  }, [searchTerm, customerType, isActive]);
+
+  const fetchCustomersData = async () => {
+    try {
+      // Fetch stats
+      const statsResponse = await axios.get(`${API}/customers/stats`);
+      setCustomerStats(statsResponse.data);
+
+      // Fetch customers with filters
+      const params = new URLSearchParams();
+      if (searchTerm) params.append("search", searchTerm);
+      if (customerType) params.append("customer_type", customerType);
+      if (isActive !== "") params.append("is_active", isActive);
+
+      const customersResponse = await axios.get(`${API}/customers?${params.toString()}`);
+      setCustomers(customersResponse.data);
+    } catch (error) {
+      console.error("Error fetching customers data:", error);
+      toast.error("Không thể tải dữ liệu khách hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddCustomer = async (customerData) => {
+    try {
+      await axios.post(`${API}/customers`, customerData);
+      toast.success("Đã thêm khách hàng thành công");
+      setShowAddModal(false);
+      fetchCustomersData();
+    } catch (error) {
+      console.error("Error adding customer:", error);
+      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi thêm khách hàng");
+    }
+  };
+
+  const handleUpdateCustomer = async (customerId, customerData) => {
+    try {
+      await axios.put(`${API}/customers/${customerId}`, customerData);
+      toast.success("Đã cập nhật khách hàng thành công");
+      setEditingCustomer(null);
+      fetchCustomersData();
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi cập nhật khách hàng");
+    }
+  };
+
+  const handleDeleteCustomer = async (customerId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa khách hàng này?")) return;
+    
+    try {
+      await axios.delete(`${API}/customers/${customerId}`);
+      toast.success("Đã xóa khách hàng thành công");
+      fetchCustomersData();
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi xóa khách hàng");
+    }
+  };
+
+  const handleViewCustomerDetail = async (customerId) => {
+    try {
+      const response = await axios.get(`${API}/customers/${customerId}/transactions`);
+      setCustomerDetail(response.data);
+    } catch (error) {
+      console.error("Error fetching customer detail:", error);
+      toast.error("Không thể tải chi tiết khách hàng");
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-gray-200 rounded w-24"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-20"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Khách Hàng</h1>
+          <p className="text-gray-600 mt-1">Danh sách khách hàng và thông tin giao dịch</p>
+        </div>
+        <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="h-4 w-4 mr-2" />
+          Thêm Khách Hàng
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Users className="h-4 w-4 mr-2" />
+              Tổng Khách Hàng
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900">{customerStats?.total_customers || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Tất cả khách hàng</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Users className="h-4 w-4 mr-2" />
+              Cá Nhân
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{customerStats?.individual_customers || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Khách cá nhân</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Users className="h-4 w-4 mr-2" />
+              Đại Lý
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{customerStats?.agent_customers || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Đại lý/Doanh nghiệp</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-yellow-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Hoạt Động
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{customerStats?.active_customers || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Đang hoạt động</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Tổng Giá Trị
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {formatCurrency(customerStats?.total_customer_value || 0)}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Giá trị khách hàng</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Search */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>Danh Sách Khách Hàng</CardTitle>
+            <div className="flex items-center space-x-4">
+              <Select value={customerType} onValueChange={setCustomerType}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Loại KH" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Tất cả</SelectItem>
+                  <SelectItem value="INDIVIDUAL">Cá nhân</SelectItem>
+                  <SelectItem value="AGENT">Đại lý</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={isActive} onValueChange={setIsActive}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Tất cả</SelectItem>
+                  <SelectItem value="true">Hoạt động</SelectItem>
+                  <SelectItem value="false">Ngưng</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Tìm kiếm khách hàng..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-64"
+                />
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Customer Table */}
+          {customers.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tên Khách Hàng</TableHead>
+                  <TableHead>Loại</TableHead>
+                  <TableHead>Điện Thoại</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Số Giao Dịch</TableHead>
+                  <TableHead>Tổng Giá Trị</TableHead>
+                  <TableHead>Lợi Nhuận</TableHead>
+                  <TableHead>Trạng Thái</TableHead>
+                  <TableHead>Thao Tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell className="font-medium">{customer.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {customer.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{customer.phone || "-"}</TableCell>
+                    <TableCell>{customer.email || "-"}</TableCell>
+                    <TableCell>{customer.total_transactions}</TableCell>
+                    <TableCell>{formatCurrency(customer.total_value)}</TableCell>
+                    <TableCell>{formatCurrency(customer.total_profit_generated)}</TableCell>
+                    <TableCell>
+                      {customer.is_active ? (
+                        <Badge className="bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Hoạt động
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Ngưng
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewCustomerDetail(customer.id)}
+                        >
+                          Xem
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingCustomer(customer)}
+                        >
+                          Sửa
+                        </Button>
+                        {customer.total_transactions === 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteCustomer(customer.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Xóa
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-12">
+              <Users className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có khách hàng</h3>
+              <p className="text-gray-500 mb-4">Bắt đầu bằng cách thêm khách hàng đầu tiên</p>
+              <Button onClick={() => setShowAddModal(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Thêm Khách Hàng Đầu Tiên
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Customer Modal */}
+      <CustomerModal
+        show={showAddModal || editingCustomer}
+        customer={editingCustomer}
+        onClose={() => {
+          setShowAddModal(false);
+          setEditingCustomer(null);
+        }}
+        onSave={editingCustomer ? handleUpdateCustomer : handleAddCustomer}
+      />
+
+      {/* Customer Detail Modal */}
+      <CustomerDetailModal
+        customerDetail={customerDetail}
+        onClose={() => setCustomerDetail(null)}
+      />
     </div>
-  </div>
-);
+  );
+};
+
+// Customer Modal Component
+const CustomerModal = ({ show, customer, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    name: "",
+    type: "INDIVIDUAL",
+    phone: "",
+    email: "",
+    address: "",
+    notes: ""
+  });
+
+  useEffect(() => {
+    if (customer) {
+      setFormData({
+        name: customer.name || "",
+        type: customer.type || "INDIVIDUAL",
+        phone: customer.phone || "",
+        email: customer.email || "",
+        address: customer.address || "",
+        notes: customer.notes || ""
+      });
+    } else {
+      setFormData({
+        name: "",
+        type: "INDIVIDUAL",
+        phone: "",
+        email: "",
+        address: "",
+        notes: ""
+      });
+    }
+  }, [customer]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      toast.error("Vui lòng nhập tên khách hàng");
+      return;
+    }
+
+    if (customer) {
+      onSave(customer.id, formData);
+    } else {
+      onSave(formData);
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 className="text-lg font-semibold mb-4">
+          {customer ? "Sửa Khách Hàng" : "Thêm Khách Hàng"}
+        </h3>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="name">Tên Khách Hàng *</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Nhập tên khách hàng"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="type">Loại Khách Hàng</Label>
+            <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="INDIVIDUAL">Cá nhân</SelectItem>
+                <SelectItem value="AGENT">Đại lý</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="phone">Số Điện Thoại</Label>
+            <Input
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="Nhập số điện thoại"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="Nhập email"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="address">Địa Chỉ</Label>
+            <Textarea
+              id="address"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              placeholder="Nhập địa chỉ"
+              rows={2}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="notes">Ghi Chú</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Nhập ghi chú"
+              rows={2}
+            />
+          </div>
+
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Hủy
+            </Button>
+            <Button type="submit">
+              {customer ? "Cập nhật" : "Thêm"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Customer Detail Modal Component
+const CustomerDetailModal = ({ customerDetail, onClose }) => {
+  if (!customerDetail) return null;
+
+  const { customer, transactions, summary } = customerDetail;
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-semibold">Chi Tiết Khách Hàng</h3>
+          <Button variant="outline" onClick={onClose}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Customer Info */}
+        <div className="mb-6">
+          <h4 className="font-medium text-gray-900 mb-3">Thông Tin Khách Hàng</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div><strong>Tên:</strong> {customer.name}</div>
+            <div><strong>Loại:</strong> {customer.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}</div>
+            <div><strong>Điện thoại:</strong> {customer.phone || "-"}</div>
+            <div><strong>Email:</strong> {customer.email || "-"}</div>
+            <div className="col-span-2"><strong>Địa chỉ:</strong> {customer.address || "-"}</div>
+          </div>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-blue-600">{summary.total_transactions}</div>
+              <p className="text-xs text-gray-500">Tổng Giao Dịch</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.total_value)}</div>
+              <p className="text-xs text-gray-500">Tổng Giá Trị</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-purple-600">{formatCurrency(summary.total_profit)}</div>
+              <p className="text-xs text-gray-500">Tổng Lợi Nhuận</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Transaction History */}
+        <div>
+          <h4 className="font-medium text-gray-900 mb-3">Lịch Sử Giao Dịch</h4>
+          {transactions.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ngày</TableHead>
+                  <TableHead>Loại</TableHead>
+                  <TableHead>Tổng Tiền</TableHead>
+                  <TableHead>Lợi Nhuận</TableHead>
+                  <TableHead>Trả Khách</TableHead>
+                  <TableHead>PT Thanh Toán</TableHead>
+                  <TableHead>Trạng Thái</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell>{formatDate(transaction.created_at)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">Bán Bill</Badge>
+                    </TableCell>
+                    <TableCell>{formatCurrency(transaction.total)}</TableCell>
+                    <TableCell>{formatCurrency(transaction.profit_value)}</TableCell>
+                    <TableCell>{formatCurrency(transaction.payback)}</TableCell>
+                    <TableCell>{transaction.method}</TableCell>
+                    <TableCell>
+                      <Badge className="bg-green-100 text-green-800">
+                        {transaction.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>Chưa có giao dịch nào</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Sales = () => (
   <div className="p-6">
