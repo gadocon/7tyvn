@@ -388,6 +388,8 @@ def main():
         tester.test_dashboard_stats,
         tester.test_check_bills_valid,
         tester.test_check_bills_invalid,
+        tester.test_specific_bill_pb09020058383,  # New specific test
+        tester.test_external_api_call_simulation,  # New external API test
         tester.test_get_bills,
         tester.test_get_customers,
         tester.test_webhook_endpoint,
