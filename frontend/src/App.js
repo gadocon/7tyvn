@@ -1204,6 +1204,7 @@ const Customers = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [customerDetail, setCustomerDetail] = useState(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     fetchCustomersData();
