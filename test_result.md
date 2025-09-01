@@ -574,6 +574,21 @@ agent_communication:
       message: "ALL 4 PHASES IMPORT/EXPORT IMPLEMENTED: Complete Import/Export functionality implemented across all pages - Phase 1: Inventory Import/Export (already working), Phase 2: Customer Export with /api/customers/export, Phase 3: Sales Export with /api/sales/export, Phase 4: Backend API Integration. All export buttons, modals, and file downloads implemented. Ready for comprehensive testing across all pages."
     - agent: "testing"
       message: "🎉 ALL 4 PHASES IMPORT/EXPORT TESTING COMPLETED SUCCESSFULLY: Comprehensive testing across all pages completed. PHASE 1: Inventory Import/Export ✅ (confirmed working from previous tests). PHASE 2: Customer Export ✅ - Export Excel button in header working, CustomerExportModal opens with detailed information, file download (khach_hang_export.xlsx) successful, includes customer data + transaction sheets. PHASE 3: Sales Export ✅ - Export Excel button in header working, SalesExportModal opens correctly, central export card functionality working, file download (lich_su_ban_bill.xlsx) functional. PHASE 4: Backend API Integration ✅ - /api/customers/export and /api/sales/export APIs working with HTTP 200 status and proper Excel content-type headers. UI/UX: Professional styling, Vietnamese language consistency, responsive design verified. All export functionality is production-ready and working end-to-end."
+user_problem_statement: "Test the customer detail API endpoint specifically to verify that the 'Mã Bill/Thẻ' column bug has been fixed. I've modified the backend API `/api/customers/{customer_id}` to include bill_codes in the transaction data."
+
+backend:
+  - task: "Customer Detail API - Bill Codes Fix"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ BILL CODES BUG FIX FULLY VERIFIED: Comprehensive testing of /api/customers/{customer_id}/transactions endpoint confirms the 'Mã Bill/Thẻ' column bug has been completely fixed. DETAILED VERIFICATION: 1) API endpoint returns proper JSON structure with customer, transactions, and summary fields ✅ 2) All transactions include 'bill_codes' field populated with actual customer_code values from associated bills ✅ 3) Tested with multiple customers (GÀ Con, Phạm Thành, Nguyễn Văn Test) - all working consistently ✅ 4) Bill codes array contains actual bill customer_codes like ['TEST001'], ['UI_TEST_001'], ['PA2204000000'] ✅ 5) Backend logic at lines 997-1001 in server.py correctly fetches bills from bill_ids and extracts customer_codes ✅ 6) Response format matches expected structure from review request ✅ 7) Bill code PB09020058383 exists in system and is retrievable ✅. The fix completely resolves the empty 'Mã Bill/Thẻ' column issue by providing actual bill codes instead of trying to parse from notes field."
+
 user_problem_statement: "Test all the customer management improvements that have been implemented including updated table headers, cascade delete functionality, enhanced transaction modal, and UI/UX improvements."
 
 frontend:
