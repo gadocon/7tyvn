@@ -956,15 +956,142 @@ async def add_to_inventory(request: AddToInventoryRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.delete("/inventory/{inventory_id}")
-async def remove_from_inventory(inventory_id: str):
-    """Remove item from inventory"""
+# Sales/Transaction APIs
+@api_router.post("/sales", response_model=Sale)
+async def create_sale(sale_data: SaleCreate):
+    """Create new sale transaction"""
     try:
-        result = await db.inventory_items.delete_one({"id": inventory_id})
-        if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Không tìm thấy item trong kho")
+        # Validate customer exists
+        customer = await db.customers.find_one({"id": sale_data.customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        # Get bills and validate they're available
+        bill_filter = {"id": {"$in": sale_data.bill_ids}, "status": BillStatus.AVAILABLE}
+        bills = await db.bills.find(bill_filter).to_list(None)
+        
+        if len(bills) != len(sale_data.bill_ids):
+            raise HTTPException(status_code=400, detail="Một số bill không khả dụng hoặc không tồn tại")
+        
+        # Calculate totals
+        total = sum(bill.get("amount", 0) for bill in bills)
+        profit_value = round(total * sale_data.profit_pct / 100, 0)  # Round to VND
+        payback = total - profit_value
+        
+        # Create sale record
+        sale = Sale(
+            customer_id=sale_data.customer_id,
+            transaction_type="ELECTRIC_BILL",
+            total=total,
+            profit_pct=sale_data.profit_pct,
+            profit_value=profit_value,
+            payback=payback,
+            method=sale_data.method,
+            status="COMPLETED",
+            notes=sale_data.notes,
+            bill_ids=sale_data.bill_ids,
+            created_at=datetime.now(timezone.utc)
+        )
+        
+        # Save sale to database
+        sale_dict = prepare_for_mongo(sale.dict())
+        await db.sales.insert_one(sale_dict)
+        
+        # Update bill statuses to SOLD
+        await db.bills.update_many(
+            {"id": {"$in": sale_data.bill_ids}},
+            {"$set": {"status": BillStatus.SOLD, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Remove bills from inventory
+        await db.inventory_items.delete_many({"bill_id": {"$in": sale_data.bill_ids}})
+        
+        # Update customer stats
+        await db.customers.update_one(
+            {"id": sale_data.customer_id},
+            {
+                "$inc": {
+                    "total_transactions": 1,
+                    "total_value": total,
+                    "total_bills": len(sale_data.bill_ids),
+                    "total_profit_generated": profit_value
+                },
+                "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+            }
+        )
+        
+        return sale
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/sales", response_model=List[Sale])
+async def get_sales(
+    customer_id: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20
+):
+    """Get sales transactions"""
+    try:
+        query = {}
+        if customer_id:
+            query["customer_id"] = customer_id
             
-        return {"success": True, "message": "Đã xóa khỏi kho thành công"}
+        skip = (page - 1) * page_size
+        sales = await db.sales.find(query).skip(skip).limit(page_size).sort("created_at", -1).to_list(page_size)
+        
+        return [Sale(**parse_from_mongo(sale)) for sale in sales]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/sales/{sale_id}", response_model=Sale)
+async def get_sale(sale_id: str):
+    """Get sale by ID"""
+    try:
+        sale = await db.sales.find_one({"id": sale_id})
+        if not sale:
+            raise HTTPException(status_code=404, detail="Không tìm thấy giao dịch")
+        
+        return Sale(**parse_from_mongo(sale))
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/sales/stats/summary")
+async def get_sales_stats():
+    """Get sales statistics"""
+    try:
+        # Total sales count
+        total_sales = await db.sales.count_documents({})
+        
+        # Total revenue and profit
+        pipeline = [
+            {
+                "$group": {
+                    "_id": None,
+                    "total_revenue": {"$sum": "$total"},
+                    "total_profit": {"$sum": "$profit_value"},
+                    "total_payback": {"$sum": "$payback"}
+                }
+            }
+        ]
+        
+        result = await db.sales.aggregate(pipeline).to_list(1)
+        stats = result[0] if result else {"total_revenue": 0, "total_profit": 0, "total_payback": 0}
+        
+        # Recent sales
+        recent_sales = await db.sales.find({}).sort("created_at", -1).limit(5).to_list(5)
+        
+        return {
+            "total_sales": total_sales,
+            "total_revenue": stats["total_revenue"],
+            "total_profit": stats["total_profit"], 
+            "total_payback": stats["total_payback"],
+            "recent_sales": [Sale(**parse_from_mongo(sale)) for sale in recent_sales]
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
