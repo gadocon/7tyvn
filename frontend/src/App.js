@@ -1279,7 +1279,11 @@ const Inventory = () => {
                         <input
                           type="checkbox"
                           checked={selectedItems.includes(item.id)}
-                          onChange={(e) => handleSelectItem(item.id, e.target.checked)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleSelectItem(item.id, e.target.checked);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
                           className="rounded"
                         />
                       </TableCell>
