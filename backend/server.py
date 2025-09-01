@@ -42,6 +42,7 @@ class BillStatus(str, Enum):
     AVAILABLE = "AVAILABLE"
     PENDING = "PENDING"
     SOLD = "SOLD"
+    CROSSED = "CROSSED"  # Đã gạch - customer không nợ cước
     ERROR = "ERROR"
 
 class CustomerType(str, Enum):
