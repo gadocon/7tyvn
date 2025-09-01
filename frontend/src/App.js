@@ -1777,7 +1777,6 @@ const Customers = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{customer.phone || "-"}</TableCell>
-                    <TableCell>{customer.email || "-"}</TableCell>
                     <TableCell>{customer.total_transactions}</TableCell>
                     <TableCell>{formatCurrency(customer.total_value)}</TableCell>
                     <TableCell>{formatCurrency(customer.total_profit_generated)}</TableCell>
