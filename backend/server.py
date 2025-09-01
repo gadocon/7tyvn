@@ -982,8 +982,11 @@ async def get_customer_transactions(customer_id: str):
 async def get_inventory_stats():
     """Get inventory statistics"""
     try:
-        # Count bills by status
-        total_bills = await db.inventory_items.count_documents({})
+        # Count bills in inventory
+        inventory_bills = await db.inventory_items.count_documents({})
+        
+        # Count ALL bills in bills collection for "Tất cả bills" tab
+        total_bills_in_system = await db.bills.count_documents({})
         
         # Count bills in inventory by their bill status
         pipeline = [
