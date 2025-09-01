@@ -1207,11 +1207,13 @@ const Inventory = () => {
                       <input
                         type="checkbox"
                         checked={currentItems.length > 0 && selectedItems.length === currentItems.length}
-                        onChange={(e) => {
-                          console.log('Select all clicked:', e.target.checked);
-                          handleSelectAll(e.target.checked);
+                        onClick={(e) => {
+                          const shouldSelectAll = !(currentItems.length > 0 && selectedItems.length === currentItems.length);
+                          console.log('Select all clicked:', shouldSelectAll);
+                          handleSelectAll(shouldSelectAll);
                         }}
-                        className="rounded"
+                        readOnly
+                        className="rounded cursor-pointer"
                       />
                     </TableHead>
                     <TableHead 
