@@ -1454,23 +1454,11 @@ async def download_import_template():
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/customers/export")
-async def export_customers_data(
-    customer_type: Optional[CustomerType] = None,
-    is_active: Optional[bool] = None,
-    include_transactions: bool = True
-):
-    """Export customers data with transactions to Excel"""
+async def export_customers_data():
+    """Export customers data to Excel"""
     try:
-        # Build query (simplified - remove date filter for now)
-        query = {}
-        
-        if customer_type:
-            query["type"] = customer_type
-        if is_active is not None:
-            query["is_active"] = is_active
-        
-        # Get customers
-        customers = await db.customers.find(query).sort("created_at", -1).to_list(None)
+        # Get all customers (simple version)
+        customers = await db.customers.find({}).sort("created_at", -1).to_list(None)
         
         # Create Excel file
         import openpyxl
