@@ -1939,6 +1939,226 @@ const SellBillModal = ({ show, billItem, onClose, onComplete }) => {
   );
 };
 
+// Add Bill Modal Component
+const AddBillModal = ({ show, onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    customer_code: "",
+    provider_region: "MIEN_NAM",
+    full_name: "",
+    address: "",
+    amount: "",
+    billing_cycle: "",
+    status: "AVAILABLE"
+  });
+  const [loading, setLoading] = useState(false);
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (show) {
+      setFormData({
+        customer_code: "",
+        provider_region: "MIEN_NAM",
+        full_name: "",
+        address: "",
+        amount: "",
+        billing_cycle: "",
+        status: "AVAILABLE"
+      });
+    }
+  }, [show]);
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.customer_code.trim()) {
+      toast.error("Vui lòng nhập mã điện");
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      // Prepare data for API
+      const submitData = {
+        ...formData,
+        amount: formData.amount ? parseFloat(formData.amount) : null
+      };
+      
+      await onSubmit(submitData);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Thêm Bill Mới</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl"
+          >
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Mã điện */}
+          <div>
+            <Label htmlFor="customer_code" className="text-sm font-medium text-gray-700">
+              Mã điện <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="customer_code"
+              type="text"
+              value={formData.customer_code}
+              onChange={(e) => handleInputChange("customer_code", e.target.value)}
+              placeholder="Nhập mã điện"
+              className="mt-1"
+              required
+            />
+          </div>
+
+          {/* Nhà cung cấp */}
+          <div>
+            <Label htmlFor="provider_region" className="text-sm font-medium text-gray-700">
+              Nhà Cung Cấp Điện
+            </Label>
+            <Select 
+              value={formData.provider_region} 
+              onValueChange={(value) => handleInputChange("provider_region", value)}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Chọn nhà cung cấp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MIEN_BAC">Miền Bắc</SelectItem>
+                <SelectItem value="MIEN_NAM">Miền Nam</SelectItem>
+                <SelectItem value="HCMC">TP. Hồ Chí Minh</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Tên khách hàng */}
+          <div>
+            <Label htmlFor="full_name" className="text-sm font-medium text-gray-700">
+              Tên Khách Hàng
+            </Label>
+            <Input
+              id="full_name"
+              type="text"
+              value={formData.full_name}
+              onChange={(e) => handleInputChange("full_name", e.target.value)}
+              placeholder="Nhập tên khách hàng"
+              className="mt-1"
+            />
+          </div>
+
+          {/* Địa chỉ */}
+          <div>
+            <Label htmlFor="address" className="text-sm font-medium text-gray-700">
+              Địa Chỉ
+            </Label>
+            <Textarea
+              id="address"
+              value={formData.address}
+              onChange={(e) => handleInputChange("address", e.target.value)}
+              placeholder="Nhập địa chỉ"
+              className="mt-1"
+              rows={2}
+            />
+          </div>
+
+          {/* Nợ cước */}
+          <div>
+            <Label htmlFor="amount" className="text-sm font-medium text-gray-700">
+              Nợ Cước (VND)
+            </Label>
+            <Input
+              id="amount"
+              type="number"
+              value={formData.amount}
+              onChange={(e) => handleInputChange("amount", e.target.value)}
+              placeholder="Nhập số tiền nợ cước"
+              className="mt-1"
+              min="0"
+              step="1000"
+            />
+          </div>
+
+          {/* Chu kỳ thanh toán */}
+          <div>
+            <Label htmlFor="billing_cycle" className="text-sm font-medium text-gray-700">
+              Chu Kỳ Thanh Toán
+            </Label>
+            <Input
+              id="billing_cycle"
+              type="text"
+              value={formData.billing_cycle}
+              onChange={(e) => handleInputChange("billing_cycle", e.target.value)}
+              placeholder="MM/YYYY (VD: 09/2025)"
+              className="mt-1"
+              pattern="[0-9]{2}/[0-9]{4}"
+            />
+          </div>
+
+          {/* Trạng thái */}
+          <div>
+            <Label htmlFor="status" className="text-sm font-medium text-gray-700">
+              Trạng Thái
+            </Label>
+            <Select 
+              value={formData.status} 
+              onValueChange={(value) => handleInputChange("status", value)}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Chọn trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AVAILABLE">Có Sẵn</SelectItem>
+                <SelectItem value="PENDING">Chờ Xử Lý</SelectItem>
+                <SelectItem value="SOLD">Đã Bán</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+              disabled={loading}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              {loading ? "Đang thêm..." : "Thêm Bill"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component  
 function App() {
   return (
