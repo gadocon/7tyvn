@@ -605,15 +605,276 @@ const CheckBill = () => {
 };
 
 // Placeholder pages
-const Inventory = () => (
-  <div className="p-6">
-    <div className="text-center py-12">
-      <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Kho Bill</h2>
-      <p className="text-gray-600">Tính năng đang được phát triển</p>
+// Inventory/Kho Bill Page
+const Inventory = () => {
+  const [inventoryStats, setInventoryStats] = useState(null);
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("available");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    fetchInventoryData();
+  }, [activeTab, searchTerm]);
+
+  const fetchInventoryData = async () => {
+    try {
+      // Fetch stats
+      const statsResponse = await axios.get(`${API}/inventory/stats`);
+      setInventoryStats(statsResponse.data);
+
+      // Fetch inventory items
+      const params = new URLSearchParams();
+      if (activeTab === "available") {
+        params.append("status", "AVAILABLE");
+      }
+      if (searchTerm) {
+        params.append("search", searchTerm);
+      }
+
+      const itemsResponse = await axios.get(`${API}/inventory?${params.toString()}`);
+      setInventoryItems(itemsResponse.data);
+    } catch (error) {
+      console.error("Error fetching inventory data:", error);
+      toast.error("Không thể tải dữ liệu kho");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveFromInventory = async (inventoryId) => {
+    try {
+      await axios.delete(`${API}/inventory/${inventoryId}`);
+      toast.success("Đã xóa khỏi kho thành công");
+      fetchInventoryData(); // Refresh data
+    } catch (error) {
+      console.error("Error removing from inventory:", error);
+      toast.error("Có lỗi xảy ra khi xóa khỏi kho");
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-gray-200 rounded w-24"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-20"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Kho Bill</h1>
+          <p className="text-gray-600 mt-1">Quản lý hóa đơn điện trong kho</p>
+        </div>
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="h-4 w-4 mr-2" />
+          Thêm Bill Mới
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Package className="h-4 w-4 mr-2" />
+              Tổng Bill
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900">{inventoryStats?.total_bills || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Tất cả trong kho</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Có Sẵn
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{inventoryStats?.available_bills || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Sẵn sàng bán</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-yellow-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Clock className="h-4 w-4 mr-2" />
+              Chờ Thanh Toán
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{inventoryStats?.pending_bills || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Đang xử lý</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Tổng Giá Trị
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {formatCurrency(inventoryStats?.total_value || 0)}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Giá trị kho</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Search */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>Danh Sách Bill</CardTitle>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Tìm kiếm mã điện, tên khách hàng..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-64"
+                />
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+            <TabsList>
+              <TabsTrigger value="available">Bills Có Sẵn ({inventoryStats?.available_bills || 0})</TabsTrigger>
+              <TabsTrigger value="all">Tất Cả Bills ({inventoryStats?.total_bills || 0})</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Inventory Table */}
+          {inventoryItems.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mã Điện</TableHead>
+                  <TableHead>Tên Khách Hàng</TableHead>
+                  <TableHead>Địa Chỉ</TableHead>
+                  <TableHead>Số Tiền</TableHead>
+                  <TableHead>Kỳ Thanh Toán</TableHead>
+                  <TableHead>Vùng</TableHead>
+                  <TableHead>Trạng Thái</TableHead>
+                  <TableHead>Ghi Chú</TableHead>
+                  <TableHead>Ngày Thêm</TableHead>
+                  <TableHead>Thao Tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {inventoryItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-mono">{item.customer_code}</TableCell>
+                    <TableCell>{item.full_name || "-"}</TableCell>
+                    <TableCell className="max-w-xs truncate">{item.address || "-"}</TableCell>
+                    <TableCell>{item.amount ? formatCurrency(item.amount) : "-"}</TableCell>
+                    <TableCell>{item.billing_cycle || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {item.provider_region === "MIEN_BAC" ? "Miền Bắc" : 
+                         item.provider_region === "MIEN_NAM" ? "Miền Nam" : "TP.HCM"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {item.status === "AVAILABLE" ? (
+                        <Badge className="bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Có Sẵn
+                        </Badge>
+                      ) : item.status === "PENDING" ? (
+                        <Badge className="bg-yellow-100 text-yellow-800">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Chờ Thanh Toán
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-gray-100 text-gray-800">
+                          Đã Bán
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {item.note || "-"}
+                    </TableCell>
+                    <TableCell>{formatDate(item.created_at)}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemoveFromInventory(item.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Xóa
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-12">
+              <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Kho trống</h3>
+              <p className="text-gray-500 mb-4">
+                {activeTab === "available" 
+                  ? "Không có bill nào sẵn sàng trong kho" 
+                  : "Chưa có bill nào trong kho"}
+              </p>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Thêm Bill Đầu Tiên
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  </div>
-);
+  );
+};
 
 const Customers = () => (
   <div className="p-6">
