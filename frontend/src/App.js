@@ -1462,8 +1462,8 @@ const Inventory = () => {
                               Bán
                             </Button>
                           )}
-                          {/* Hide delete button for SOLD bills to prevent data integrity issues */}
-                          {item.status !== "SOLD" && (
+                          {/* Hide delete button for SOLD and CROSSED bills to prevent data integrity issues */}
+                          {item.status !== "SOLD" && item.status !== "CROSSED" && (
                             <Button
                               size="sm"
                               variant="outline"
