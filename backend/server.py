@@ -948,12 +948,12 @@ async def update_bill(bill_id: str, bill_data: BillCreate):
         # Prepare update data
         update_data = {
             "customer_code": bill_data.customer_code,
-            "provider_region": bill_data.provider_region,
+            "provider_region": bill_data.provider_region.value,  # Convert enum to string
             "full_name": bill_data.full_name,
             "address": bill_data.address,
             "amount": bill_data.amount,
             "billing_cycle": bill_data.billing_cycle,
-            "status": bill_data.status,
+            "status": bill_data.status.value,  # Convert enum to string
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "last_checked": datetime.now(timezone.utc).isoformat()
         }
