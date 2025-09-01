@@ -1141,27 +1141,25 @@ const Customers = () => {
           <div className="flex justify-between items-center">
             <CardTitle>Danh Sách Khách Hàng</CardTitle>
             <div className="flex items-center space-x-4">
-              <Select value={customerType || ""} onValueChange={setCustomerType}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Loại KH" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Tất cả</SelectItem>
-                  <SelectItem value="INDIVIDUAL">Cá nhân</SelectItem>
-                  <SelectItem value="AGENT">Đại lý</SelectItem>
-                </SelectContent>
-              </Select>
+              <select 
+                value={customerType || ""} 
+                onChange={(e) => setCustomerType(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 text-sm w-40"
+              >
+                <option value="">Tất cả loại</option>
+                <option value="INDIVIDUAL">Cá nhân</option>
+                <option value="AGENT">Đại lý</option>
+              </select>
 
-              <Select value={isActive || ""} onValueChange={setIsActive}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Tất cả</SelectItem>
-                  <SelectItem value="true">Hoạt động</SelectItem>
-                  <SelectItem value="false">Ngưng</SelectItem>
-                </SelectContent>
-              </Select>
+              <select 
+                value={isActive || ""} 
+                onChange={(e) => setIsActive(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 text-sm w-40"
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="true">Hoạt động</option>
+                <option value="false">Ngưng</option>
+              </select>
 
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
