@@ -1801,4 +1801,27 @@ const SellBillModal = ({ show, billItem, onClose, onComplete }) => {
   );
 };
 
+// Main App Component
+function App() {
+  return (
+    <div className="App min-h-screen bg-gray-50">
+      <BrowserRouter>
+        <Navigation />
+        <main className="min-h-screen">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/check-bill" element={<CheckBill />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/sales" element={<Sales />} />
+          </Routes>
+        </main>
+      </BrowserRouter>
+      <Toaster />
+    </div>
+  );
+}
+
+export default App;
+
 export default App;
