@@ -1541,16 +1541,24 @@ const Customers = () => {
     }
   };
 
-  const handleDeleteCustomer = async (customerId) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa khách hàng này?")) return;
+  const handleDeleteCustomer = (customer) => {
+    setCustomerToDelete(customer);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteCustomer = async () => {
+    if (!customerToDelete) return;
     
     try {
-      await axios.delete(`${API}/customers/${customerId}`);
-      toast.success("Đã xóa khách hàng thành công");
+      const response = await axios.delete(`${API}/customers/${customerToDelete.id}`);
+      toast.success(response.data.message || "Đã xóa khách hàng thành công");
+      setShowDeleteConfirm(false);
+      setCustomerToDelete(null);
       fetchCustomersData();
     } catch (error) {
       console.error("Error deleting customer:", error);
       toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi xóa khách hàng");
+      setShowDeleteConfirm(false);
     }
   };
 
