@@ -786,6 +786,7 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSellModal, setShowSellModal] = useState(false);
   const [selectedBillForSale, setSelectedBillForSale] = useState(null);
+  const [showAddBillModal, setShowAddBillModal] = useState(false);
 
   useEffect(() => {
     fetchInventoryData();
