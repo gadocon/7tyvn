@@ -839,6 +839,18 @@ const Inventory = () => {
     fetchInventoryData(); // Refresh data
   };
 
+  const handleAddBill = async (billData) => {
+    try {
+      await axios.post(`${API}/bills/create`, billData);
+      toast.success("Đã thêm bill mới thành công!");
+      setShowAddBillModal(false);
+      fetchInventoryData(); // Refresh data
+    } catch (error) {
+      console.error("Error adding new bill:", error);
+      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi thêm bill");
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
