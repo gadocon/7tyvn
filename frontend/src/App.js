@@ -1208,10 +1208,9 @@ const Inventory = () => {
                         type="checkbox"
                         checked={currentItems.length > 0 && selectedItems.length === currentItems.length}
                         onChange={(e) => {
-                          e.stopPropagation();
+                          console.log('Select all clicked:', e.target.checked);
                           handleSelectAll(e.target.checked);
                         }}
-                        onClick={(e) => e.stopPropagation()}
                         className="rounded"
                       />
                     </TableHead>
