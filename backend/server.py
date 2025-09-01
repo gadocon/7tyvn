@@ -728,6 +728,85 @@ async def get_customers(
         logger.error(f"Error getting customers: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/customers/export")
+async def export_customers_data():
+    """Export customers data to Excel"""
+    try:
+        # Get all customers (simple version)
+        customers = await db.customers.find({}).sort("created_at", -1).to_list(None)
+        
+        # DEBUG: Return JSON first to verify data
+        return {
+            "debug": True,
+            "count": len(customers),
+            "customers": customers[:2] if customers else []
+        }
+        
+        # Create Excel file
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill
+        from io import BytesIO
+        
+        workbook = openpyxl.Workbook()
+        
+        # Customers Sheet
+        customers_sheet = workbook.active
+        customers_sheet.title = "Khách Hàng"
+        
+        # Customer headers
+        customer_headers = [
+            "ID", "Tên khách hàng", "Số điện thoại", "Email", 
+            "Địa chỉ", "Loại khách hàng", "Trạng thái", "Tổng giao dịch",
+            "Tổng giá trị", "Tổng lợi nhuận", "Ngày tạo", "Ghi chú"
+        ]
+        
+        # Write customer headers
+        for col, header in enumerate(customer_headers, 1):
+            cell = customers_sheet.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Write customer data
+        for row, customer in enumerate(customers, 2):
+            customers_sheet.cell(row=row, column=1, value=customer.get("id"))
+            customers_sheet.cell(row=row, column=2, value=customer.get("name"))
+            customers_sheet.cell(row=row, column=3, value=customer.get("phone"))
+            customers_sheet.cell(row=row, column=4, value=customer.get("email"))
+            customers_sheet.cell(row=row, column=5, value=customer.get("address"))
+            customers_sheet.cell(row=row, column=6, value=customer.get("type"))
+            customers_sheet.cell(row=row, column=7, value="Hoạt động" if customer.get("is_active") else "Không hoạt động")
+            customers_sheet.cell(row=row, column=8, value=customer.get("total_transactions", 0))
+            customers_sheet.cell(row=row, column=9, value=customer.get("total_value", 0))
+            customers_sheet.cell(row=row, column=10, value=customer.get("total_profit_generated", 0))
+            customers_sheet.cell(row=row, column=11, value=customer.get("created_at"))
+            customers_sheet.cell(row=row, column=12, value=customer.get("notes"))
+        
+        # Auto-adjust column widths for customers sheet
+        for column in customers_sheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            customers_sheet.column_dimensions[column_letter].width = min(max_length + 2, 30)
+        
+        # Save to BytesIO
+        excel_buffer = BytesIO()
+        workbook.save(excel_buffer)
+        excel_buffer.seek(0)
+        
+        from fastapi.responses import StreamingResponse
+        
+        return StreamingResponse(
+            BytesIO(excel_buffer.read()),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={"Content-Disposition": "attachment; filename=khach_hang_export.xlsx"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/customers/{customer_id}", response_model=Customer)
 async def get_customer(customer_id: str):
     """Get single customer by ID"""
