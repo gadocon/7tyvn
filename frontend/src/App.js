@@ -2099,14 +2099,24 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
               <TableBody>
                 {transactions.map((transaction) => (
                   <TableRow key={transaction.id}>
-                    <TableCell>{formatDate(transaction.created_at)}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {transaction.id.slice(-8)}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {transaction.bill_ids && transaction.bill_ids.length > 0 
+                        ? transaction.bill_ids[0].slice(-8)
+                        : "-"
+                      }
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {formatDateTimeVN(transaction.created_at)}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">Bán Bill</Badge>
                     </TableCell>
                     <TableCell>{formatCurrency(transaction.total)}</TableCell>
                     <TableCell>{formatCurrency(transaction.profit_value)}</TableCell>
                     <TableCell>{formatCurrency(transaction.payback)}</TableCell>
-                    <TableCell>{transaction.method}</TableCell>
                     <TableCell>
                       <Badge className="bg-green-100 text-green-800">
                         {transaction.status}
