@@ -1267,7 +1267,7 @@ const Inventory = () => {
                       onClick={() => handleSort("full_name")}
                     >
                       <div className="flex items-center">
-                        Tên Khách Hàng
+                        Tên
                         {sortConfig.key === "full_name" ? (
                           sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
                         ) : (
@@ -1289,8 +1289,7 @@ const Inventory = () => {
                         )}
                       </div>
                     </TableHead>
-                    <TableHead>Kỳ Thanh Toán</TableHead>
-                    <TableHead>Vùng</TableHead>
+                    <TableHead>Kỳ</TableHead>
                     <TableHead 
                       className="cursor-pointer hover:bg-gray-50"
                       onClick={() => handleSort("status")}
@@ -1304,9 +1303,20 @@ const Inventory = () => {
                         )}
                       </div>
                     </TableHead>
-                    <TableHead>
-                      {activeTab === "available" ? "Ghi Chú" : "Ngày Tạo"}
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("created_at")}
+                    >
+                      <div className="flex items-center">
+                        Ngày Thêm
+                        {sortConfig.key === "created_at" ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 ml-1" />
+                        )}
+                      </div>
                     </TableHead>
+                    <TableHead>Ghi Chú</TableHead>
                     <TableHead>Thao Tác</TableHead>
                   </TableRow>
                 </TableHeader>
