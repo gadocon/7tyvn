@@ -127,6 +127,7 @@ class CustomerStats(BaseModel):
 class Sale(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     customer_id: str
+    transaction_type: str = "ELECTRIC_BILL"  # ELECTRIC_BILL or CREDIT_CARD
     total: float
     profit_pct: float
     profit_value: float
@@ -136,6 +137,13 @@ class Sale(BaseModel):
     notes: Optional[str] = None
     bill_ids: List[str]
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class SaleCreate(BaseModel):
+    customer_id: str
+    bill_ids: List[str]
+    profit_pct: float
+    method: PaymentMethod
+    notes: Optional[str] = None
 
 # Request/Response Models
 class AddToInventoryRequest(BaseModel):
