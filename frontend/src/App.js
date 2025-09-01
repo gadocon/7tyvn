@@ -805,17 +805,26 @@ const Inventory = () => {
       const statsResponse = await axios.get(`${API}/inventory/stats`);
       setInventoryStats(statsResponse.data);
 
-      // Fetch inventory items
-      const params = new URLSearchParams();
       if (activeTab === "available") {
+        // Fetch inventory items (available only)
+        const params = new URLSearchParams();
         params.append("status", "AVAILABLE");
+        if (searchTerm) {
+          params.append("search", searchTerm);
+        }
+        const itemsResponse = await axios.get(`${API}/inventory?${params.toString()}`);
+        setInventoryItems(itemsResponse.data);
+        setAllBills([]);
+      } else {
+        // Fetch all bills for "Tất cả bills" tab
+        const params = new URLSearchParams();
+        if (searchTerm) {
+          params.append("search", searchTerm);
+        }
+        const billsResponse = await axios.get(`${API}/bills?${params.toString()}&limit=100`);
+        setAllBills(billsResponse.data);
+        setInventoryItems([]);
       }
-      if (searchTerm) {
-        params.append("search", searchTerm);
-      }
-
-      const itemsResponse = await axios.get(`${API}/inventory?${params.toString()}`);
-      setInventoryItems(itemsResponse.data);
     } catch (error) {
       console.error("Error fetching inventory data:", error);
       toast.error("Không thể tải dữ liệu kho");
