@@ -1446,10 +1446,11 @@ const Inventory = () => {
                               size="sm"
                               variant="outline"
                               onClick={() => handleRecheckBill(item)}
+                              disabled={recheckingBillId === item.id}
                               className="text-blue-600 hover:text-blue-700"
                               title="Check lại mã điện"
                             >
-                              <RefreshCw className="h-3 w-3" />
+                              <RefreshCw className={`h-3 w-3 ${recheckingBillId === item.id ? 'animate-spin' : ''}`} />
                             </Button>
                           )}
                           
