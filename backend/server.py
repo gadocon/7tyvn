@@ -983,17 +983,21 @@ async def update_bill(bill_id: str, bill_data: BillCreate):
         
         # Get updated bill
         updated_bill = await db.bills.find_one({"id": bill_id})
-        print(f"Retrieved updated bill")
+        print(f"Retrieved updated bill: {type(updated_bill)}")
         
         # If status changed to CROSSED, remove from inventory (if exists)
         if bill_data.status == BillStatus.CROSSED:
             inventory_result = await db.inventory_items.delete_many({"bill_id": bill_id})
             print(f"Removed {inventory_result.deleted_count} items from inventory")
         
+        # Parse the bill data
+        parsed_bill = parse_from_mongo(updated_bill)
+        print(f"Parsed bill successfully")
+        
         return {
             "success": True,
             "message": "Đã cập nhật bill thành công",
-            "bill": parse_from_mongo(updated_bill)
+            "bill": parsed_bill
         }
         
     except HTTPException:
