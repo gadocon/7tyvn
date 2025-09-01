@@ -648,10 +648,11 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Bill Codes Bug Fix Testing Completed Successfully"
     - "Customer Management Improvements Testing Completed Successfully"
   stuck_tasks: []
   test_all: false
-  test_priority: "customer_management_testing_complete"
+  test_priority: "bill_codes_fix_verified"
 
 agent_communication:
     - agent: "main"
