@@ -964,21 +964,6 @@ const Inventory = () => {
     }
   };
 
-  const handleDeleteBill = async (billId) => {
-    if (!confirm("Bạn có chắc muốn xóa bill này?")) {
-      return;
-    }
-
-    try {
-      await axios.delete(`${API}/bills/${billId}`);
-      toast.success("Đã xóa bill thành công");
-      fetchInventoryData();
-    } catch (error) {
-      console.error("Error deleting bill:", error);
-      toast.error("Có lỗi xảy ra khi xóa bill");
-    }
-  };
-
   const handleDownloadTemplate = async () => {
     try {
       const response = await axios.get(`${API}/inventory/template`, {
