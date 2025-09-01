@@ -596,8 +596,37 @@ async def get_customers(
         skip = (page - 1) * page_size
         customers = await db.customers.find(query).skip(skip).limit(page_size).sort("created_at", -1).to_list(page_size)
         
-        return [Customer(**parse_from_mongo(customer)) for customer in customers]
+        # Filter out invalid customers and fix old data
+        valid_customers = []
+        for customer in customers:
+            try:
+                # Handle old BUSINESS type data
+                if customer.get("type") == "BUSINESS":
+                    customer["type"] = "AGENT"
+                    # Update in database
+                    await db.customers.update_one(
+                        {"_id": customer["_id"]},
+                        {"$set": {"type": "AGENT"}}
+                    )
+                
+                # Ensure all required fields exist with defaults
+                customer.setdefault("total_transactions", 0)
+                customer.setdefault("total_value", 0.0)
+                customer.setdefault("total_bills", 0)
+                customer.setdefault("total_cards", 0)
+                customer.setdefault("total_profit_generated", 0.0)
+                customer.setdefault("is_active", True)
+                customer.setdefault("notes", None)
+                
+                parsed_customer = Customer(**parse_from_mongo(customer))
+                valid_customers.append(parsed_customer)
+            except Exception as parse_error:
+                logger.warning(f"Skipping invalid customer {customer.get('_id', 'unknown')}: {parse_error}")
+                continue
+        
+        return valid_customers
     except Exception as e:
+        logger.error(f"Error getting customers: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/customers/{customer_id}", response_model=Customer)
