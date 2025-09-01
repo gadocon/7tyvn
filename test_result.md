@@ -347,3 +347,140 @@ agent_communication:
       message: "ADD NEW BILL FUNCTIONALITY IMPLEMENTED: Complete Add New Bill feature has been implemented including modal UI with all required fields, form validation, API integration with /api/bills/create endpoint, duplicate checking, and automatic inventory addition. Ready for comprehensive testing."
     - agent: "testing"
       message: "✅ ADD NEW BILL FUNCTIONALITY FULLY TESTED AND WORKING: Comprehensive testing completed successfully. All core functionality working: 1) Modal UI with all required fields ✅ 2) Form validation and error handling ✅ 3) Successful bill creation and API integration ✅ 4) Duplicate bill prevention ✅ 5) Automatic inventory addition ✅ 6) Stats cards update ✅ 7) UI states (loading, cancel, close) ✅. Minor issue: Modal doesn't auto-close after success, but core functionality is perfect. Ready for production use."
+
+user_problem_statement: "Test the complete Import/Export functionality that has just been implemented for the Inventory page."
+
+frontend:
+  - task: "Import/Export Buttons UI"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Import Excel and Export Excel buttons are visible in inventory page header. Need to test button functionality and modal opening."
+
+  - task: "Export Modal UI and Functionality"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Export modal implemented with filter options: Trạng Thái (Status), Nhà Cung Cấp (Provider), Date range filters (start_date, end_date). Need to test modal UI, filters, and file download functionality."
+
+  - task: "Import Modal UI and Template Download"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Import modal implemented with 3-step process: 1) Template download, 2) File selection, 3) Preview and confirm. Need to test template download functionality and modal UI."
+
+  - task: "Import File Upload and Preview"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "File upload and preview functionality implemented with validation and error handling. Need to test file selection, preview table display, and validation logic."
+
+  - task: "Import Data Confirmation"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Import confirmation process implemented to save data to inventory. Need to test data import, inventory table updates, and stats cards refresh."
+
+backend:
+  - task: "Template Download API"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Backend API /api/inventory/template implemented to generate and download Excel template with sample data and instructions. Need to test file generation and download."
+
+  - task: "Import Preview API"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Backend API /api/inventory/import/preview implemented to validate and preview Excel data before import. Need to test file parsing, validation, and error handling."
+
+  - task: "Import Confirm API"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Backend API /api/inventory/import/confirm implemented to save validated data to database and inventory. Need to test data persistence and duplicate handling."
+
+  - task: "Export Data API"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Backend API /api/inventory/export implemented with filtering options for status, provider, and date range. Need to test Excel generation and filtering logic."
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.1"
+  test_sequence: 2
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "Import/Export Buttons UI"
+    - "Export Modal UI and Functionality"
+    - "Import Modal UI and Template Download"
+    - "Import File Upload and Preview"
+    - "Import Data Confirmation"
+    - "Template Download API"
+    - "Import Preview API"
+    - "Import Confirm API"
+    - "Export Data API"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "IMPORT/EXPORT FUNCTIONALITY IMPLEMENTED: Complete Import/Export feature has been implemented for the Inventory page including Export modal with filters, Import modal with 3-step process, template download, file upload & preview, data validation, and confirmation. Backend APIs are ready: /api/inventory/template, /api/inventory/import/preview, /api/inventory/import/confirm, /api/inventory/export. Ready for comprehensive testing of the complete workflow."
