@@ -72,6 +72,15 @@ class Bill(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class InventoryItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    bill_id: str
+    bill: Optional[Bill] = None
+    note: Optional[str] = None
+    added_by: Optional[str] = "system"  # user who added to inventory
+    batch_id: Optional[str] = None  # group bills added together
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class Customer(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     type: CustomerType = CustomerType.INDIVIDUAL
@@ -95,6 +104,33 @@ class Sale(BaseModel):
     notes: Optional[str] = None
     bill_ids: List[str]
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Request/Response Models
+class AddToInventoryRequest(BaseModel):
+    bill_ids: List[str]
+    note: Optional[str] = None
+    batch_name: Optional[str] = None
+
+class InventoryStats(BaseModel):
+    total_bills: int
+    available_bills: int
+    pending_bills: int
+    sold_bills: int
+    total_value: float
+
+class InventoryResponse(BaseModel):
+    id: str
+    bill_id: str
+    customer_code: str
+    full_name: Optional[str] = None
+    address: Optional[str] = None
+    amount: Optional[float] = None
+    billing_cycle: Optional[str] = None
+    provider_region: str
+    status: str
+    note: Optional[str] = None
+    batch_id: Optional[str] = None
+    created_at: datetime
 
 # Request/Response Models
 class CheckBillRequest(BaseModel):
