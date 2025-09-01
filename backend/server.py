@@ -1457,34 +1457,20 @@ async def download_import_template():
 async def export_customers_data(
     customer_type: Optional[CustomerType] = None,
     is_active: Optional[bool] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
     include_transactions: bool = True
 ):
     """Export customers data with transactions to Excel"""
     try:
-        # Build query
+        # Build query (simplified - remove date filter for now)
         query = {}
         
         if customer_type:
             query["type"] = customer_type
         if is_active is not None:
             query["is_active"] = is_active
-            
-        # Date filter for customers
-        if start_date or end_date:
-            date_filter = {}
-            if start_date:
-                date_filter["$gte"] = start_date
-            if end_date:
-                date_filter["$lte"] = end_date
-            query["created_at"] = date_filter
         
         # Get customers
         customers = await db.customers.find(query).sort("created_at", -1).to_list(None)
-        
-        # Return empty Excel file with headers if no customers found
-        # (Better UX than 404 error)
         
         # Create Excel file
         import openpyxl
