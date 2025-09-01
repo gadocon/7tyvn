@@ -198,10 +198,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "User Issue Analysis Complete"
-  stuck_tasks: []
+    - "Backend Bill Check API Fix Required"
+  stuck_tasks: 
+    - "Bill Check Processing"
   test_all: false
-  test_priority: "analysis_complete"
+  test_priority: "backend_fix_required"
 
 agent_communication:
     - agent: "main"
