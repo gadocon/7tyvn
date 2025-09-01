@@ -667,6 +667,8 @@ const Inventory = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("available");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showSellModal, setShowSellModal] = useState(false);
+  const [selectedBillForSale, setSelectedBillForSale] = useState(null);
 
   useEffect(() => {
     fetchInventoryData();
@@ -706,6 +708,17 @@ const Inventory = () => {
       console.error("Error removing from inventory:", error);
       toast.error("Có lỗi xảy ra khi xóa khỏi kho");
     }
+  };
+
+  const handleSellBill = (inventoryItem) => {
+    setSelectedBillForSale(inventoryItem);
+    setShowSellModal(true);
+  };
+
+  const handleSellComplete = () => {
+    setShowSellModal(false);
+    setSelectedBillForSale(null);
+    fetchInventoryData(); // Refresh data
   };
 
   const formatCurrency = (amount) => {
@@ -896,15 +909,27 @@ const Inventory = () => {
                     </TableCell>
                     <TableCell>{formatDate(item.created_at)}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveFromInventory(item.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <XCircle className="h-3 w-3 mr-1" />
-                        Xóa
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        {item.status === "AVAILABLE" && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleSellBill(item)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            Bán
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveFromInventory(item.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Xóa
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -927,6 +952,14 @@ const Inventory = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Sell Bill Modal */}
+      <SellBillModal
+        show={showSellModal}
+        billItem={selectedBillForSale}
+        onClose={() => setShowSellModal(false)}
+        onComplete={handleSellComplete}
+      />
     </div>
   );
 };
