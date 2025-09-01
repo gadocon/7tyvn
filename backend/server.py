@@ -935,6 +935,55 @@ async def delete_bill(bill_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.put("/bills/{bill_id}")
+async def update_bill(bill_id: str, bill_data: BillCreate):
+    """Update bill information - used for recheck functionality"""
+    try:
+        # Check if bill exists
+        existing_bill = await db.bills.find_one({"id": bill_id})
+        if not existing_bill:
+            raise HTTPException(status_code=404, detail="Không tìm thấy bill")
+        
+        # Prepare update data
+        update_data = {
+            "customer_code": bill_data.customer_code,
+            "provider_region": bill_data.provider_region,
+            "full_name": bill_data.full_name,
+            "address": bill_data.address,
+            "amount": bill_data.amount,
+            "billing_cycle": bill_data.billing_cycle,
+            "status": bill_data.status,
+            "updated_at": datetime.now(timezone.utc),
+            "last_checked": datetime.now(timezone.utc)
+        }
+        
+        # Update bill in database
+        result = await db.bills.update_one(
+            {"id": bill_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy bill để cập nhật")
+        
+        # Get updated bill
+        updated_bill = await db.bills.find_one({"id": bill_id})
+        
+        # If status changed to CROSSED, remove from inventory (if exists)
+        if bill_data.status == BillStatus.CROSSED:
+            await db.inventory_items.delete_many({"bill_id": bill_id})
+        
+        return {
+            "success": True,
+            "message": "Đã cập nhật bill thành công",
+            "bill": parse_from_mongo(updated_bill)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.delete("/customers/{customer_id}")
 async def delete_customer(customer_id: str):
     """Delete customer with CASCADE delete (transactions + bills)"""
