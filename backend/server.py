@@ -774,7 +774,116 @@ async def seed_data():
         ]
         
         await db.customers.insert_many(sample_customers)
-        logger.info("Sample data seeded successfully")
+        
+        # Create sample bills for inventory
+        sample_bills = [
+            {
+                "id": str(uuid.uuid4()),
+                "gateway": Gateway.FPT,
+                "customer_code": "PA22040501111",
+                "provider_region": ProviderRegion.MIEN_NAM,
+                "provider_name": "Điện lực miền Nam",
+                "full_name": "Lê Thị Mai",
+                "address": "111 Nguyễn Trãi, Quận 5, TP.HCM",
+                "amount": 850000,
+                "billing_cycle": "08/2025",
+                "status": BillStatus.AVAILABLE,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "gateway": Gateway.FPT,
+                "customer_code": "PA22040502222",
+                "provider_region": ProviderRegion.MIEN_BAC,
+                "provider_name": "Điện lực miền Bắc",
+                "full_name": "Hoàng Văn Nam",
+                "address": "222 Láng Hạ, Ba Đình, Hà Nội",
+                "amount": 1200000,
+                "billing_cycle": "08/2025",
+                "status": BillStatus.AVAILABLE,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "gateway": Gateway.FPT,
+                "customer_code": "PA22040503333",
+                "provider_region": ProviderRegion.HCMC,
+                "provider_name": "Điện lực TP.HCM",
+                "full_name": "Phan Minh Đức",
+                "address": "333 Lê Văn Sỹ, Quận 3, TP.HCM",
+                "amount": 950000,
+                "billing_cycle": "08/2025",
+                "status": BillStatus.AVAILABLE,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "gateway": Gateway.FPT,
+                "customer_code": "PA22040504444",
+                "provider_region": ProviderRegion.MIEN_NAM,
+                "provider_name": "Điện lực miền Nam",
+                "full_name": "Võ Thị Lan",
+                "address": "444 Cách Mạng Tháng 8, Quận 10, TP.HCM",
+                "amount": 750000,
+                "billing_cycle": "07/2025",
+                "status": BillStatus.AVAILABLE,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "gateway": Gateway.FPT,
+                "customer_code": "PA22040505555",
+                "provider_region": ProviderRegion.MIEN_BAC,
+                "provider_name": "Điện lực miền Bắc",
+                "full_name": "Đặng Quang Hải",
+                "address": "555 Giải Phóng, Hai Bà Trưng, Hà Nội",
+                "amount": 1450000,
+                "billing_cycle": "08/2025",
+                "status": BillStatus.PENDING,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "gateway": Gateway.FPT,
+                "customer_code": "PA22040506666",
+                "provider_region": ProviderRegion.HCMC,
+                "provider_name": "Điện lực TP.HCM",
+                "full_name": "Bùi Thị Hồng",
+                "address": "666 Phan Xích Long, Phú Nhuận, TP.HCM",
+                "amount": 680000,
+                "billing_cycle": "07/2025",
+                "status": BillStatus.SOLD,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        ]
+        
+        await db.bills.insert_many(sample_bills)
+        
+        # Create inventory items for some bills
+        inventory_batch_id = f"batch_{str(uuid.uuid4())[:8]}_initial_import"
+        inventory_items = []
+        
+        for i, bill in enumerate(sample_bills[:4]):  # Add first 4 bills to inventory
+            inventory_item = {
+                "id": str(uuid.uuid4()),
+                "bill_id": bill["id"],
+                "note": "Import ban đầu từ hệ thống" if i < 2 else "Batch kiểm tra tháng 08",
+                "batch_id": inventory_batch_id if i < 2 else f"batch_{str(uuid.uuid4())[:8]}_test_08",
+                "added_by": "system",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            inventory_items.append(inventory_item)
+        
+        if inventory_items:
+            await db.inventory_items.insert_many(inventory_items)
+        
+        logger.info("Sample data seeded successfully - customers, bills, and inventory")
         
     except Exception as e:
         logger.error(f"Error seeding data: {str(e)}")
