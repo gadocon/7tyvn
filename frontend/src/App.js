@@ -1894,15 +1894,78 @@ const CustomerExportModal = ({ show, onClose, onExport }) => {
   );
 };
 
-const Sales = () => (
-  <div className="p-6">
-    <div className="text-center py-12">
-      <ShoppingCart className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Bán Bill</h2>
-      <p className="text-gray-600">Tính năng đang được phát triển</p>
+const Sales = () => {
+  const [showExportModal, setShowExportModal] = useState(false);
+
+  const handleExportSales = async () => {
+    try {
+      const response = await axios.get(`${API}/sales/export`, {
+        responseType: 'blob'
+      });
+      
+      // Create blob link to download file
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'lich_su_ban_bill.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success("Đã xuất lịch sử bán bill thành công!");
+      setShowExportModal(false);
+    } catch (error) {
+      console.error("Error exporting sales:", error);
+      toast.error("Có lỗi xảy ra khi xuất dữ liệu");
+    }
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Lịch Sử Bán Bill</h1>
+          <p className="text-gray-600 mt-1">Quản lý và xuất dữ liệu giao dịch bán bill</p>
+        </div>
+        <Button 
+          variant="outline"
+          onClick={() => setShowExportModal(true)}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export Excel
+        </Button>
+      </div>
+
+      {/* Stats or Table would go here - for now showing export feature */}
+      <Card>
+        <CardContent className="p-8">
+          <div className="text-center">
+            <ShoppingCart className="h-16 w-16 mx-auto text-green-600 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Export Lịch Sử Giao Dịch</h3>
+            <p className="text-gray-500 mb-6">
+              Xuất toàn bộ lịch sử bán bill ra file Excel với đầy đủ thông tin giao dịch
+            </p>
+            <Button 
+              onClick={() => setShowExportModal(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Dữ Liệu
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sales Export Modal */}
+      <SalesExportModal
+        show={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExportSales}
+      />
     </div>
-  </div>
-);
+  );
+};
 
 // Sell Bill Modal Component
 const SellBillModal = ({ show, billItem, onClose, onComplete }) => {
