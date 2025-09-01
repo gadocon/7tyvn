@@ -994,6 +994,12 @@ async def get_customer_transactions(customer_id: str):
         
         transactions = []
         for sale in sales:
+            # Get bill codes for this sale
+            bill_codes = []
+            if sale.get("bill_ids"):
+                bills = await db.bills.find({"id": {"$in": sale["bill_ids"]}}).to_list(None)
+                bill_codes = [bill.get("customer_code", "") for bill in bills]
+            
             transactions.append({
                 "id": sale["id"],
                 "type": "SALE",
@@ -1003,6 +1009,7 @@ async def get_customer_transactions(customer_id: str):
                 "method": sale["method"],
                 "status": sale["status"],
                 "notes": sale.get("notes"),
+                "bill_codes": bill_codes,
                 "created_at": sale["created_at"]
             })
         
