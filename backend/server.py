@@ -946,29 +946,29 @@ async def delete_bill(bill_id: str):
 async def update_bill(bill_id: str, bill_data: BillCreate):
     """Update bill information - used for recheck functionality"""
     try:
-        logger.info(f"PUT /bills/{bill_id} called with data: {bill_data}")
+        print(f"PUT /bills/{bill_id} called")
         
         # Check if bill exists
         existing_bill = await db.bills.find_one({"id": bill_id})
         if not existing_bill:
             raise HTTPException(status_code=404, detail="Không tìm thấy bill")
         
-        logger.info(f"Found existing bill: {existing_bill.get('id')}")
+        print(f"Found existing bill: {existing_bill.get('id')}")
         
-        # Prepare update data
-        update_data = {
+        # Prepare update data - convert enums to strings
+        update_data = prepare_for_mongo({
             "customer_code": bill_data.customer_code,
-            "provider_region": bill_data.provider_region.value,  # Convert enum to string
+            "provider_region": bill_data.provider_region.value,
             "full_name": bill_data.full_name,
             "address": bill_data.address,
             "amount": bill_data.amount,
             "billing_cycle": bill_data.billing_cycle,
-            "status": bill_data.status.value,  # Convert enum to string
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "last_checked": datetime.now(timezone.utc).isoformat()
-        }
+            "status": bill_data.status.value,
+            "updated_at": datetime.now(timezone.utc),
+            "last_checked": datetime.now(timezone.utc)
+        })
         
-        logger.info(f"Update data prepared: {update_data}")
+        print(f"Update data prepared")
         
         # Update bill in database
         result = await db.bills.update_one(
@@ -976,19 +976,19 @@ async def update_bill(bill_id: str, bill_data: BillCreate):
             {"$set": update_data}
         )
         
-        logger.info(f"Update result: matched={result.matched_count}, modified={result.modified_count}")
+        print(f"Update result: matched={result.matched_count}")
         
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Không tìm thấy bill để cập nhật")
         
         # Get updated bill
         updated_bill = await db.bills.find_one({"id": bill_id})
-        logger.info(f"Retrieved updated bill: {updated_bill.get('id') if updated_bill else 'None'}")
+        print(f"Retrieved updated bill")
         
         # If status changed to CROSSED, remove from inventory (if exists)
         if bill_data.status == BillStatus.CROSSED:
             inventory_result = await db.inventory_items.delete_many({"bill_id": bill_id})
-            logger.info(f"Removed {inventory_result.deleted_count} items from inventory")
+            print(f"Removed {inventory_result.deleted_count} items from inventory")
         
         return {
             "success": True,
@@ -999,7 +999,9 @@ async def update_bill(bill_id: str, bill_data: BillCreate):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in update_bill: {str(e)}", exc_info=True)
+        print(f"Error in update_bill: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.delete("/customers/{customer_id}")
