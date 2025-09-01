@@ -873,6 +873,43 @@ async def update_customer(customer_id: str, customer_data: CustomerUpdate):
             raise e
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.delete("/inventory/{item_id}")
+async def delete_inventory_item(item_id: str):
+    """Delete item from inventory"""
+    try:
+        # Remove from inventory_items collection
+        result = await db.inventory_items.delete_one({"id": item_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy item trong kho")
+        
+        return {"success": True, "message": "Đã xóa item khỏi kho thành công"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/bills/{bill_id}")
+async def delete_bill(bill_id: str):
+    """Delete bill completely"""
+    try:
+        # Remove from bills collection
+        result = await db.bills.delete_one({"id": bill_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy bill")
+        
+        # Also remove from inventory if exists
+        await db.inventory_items.delete_many({"bill_id": bill_id})
+        
+        return {"success": True, "message": "Đã xóa bill thành công"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.delete("/customers/{customer_id}")
 async def delete_customer(customer_id: str):
     """Delete customer (only if no transactions)"""
