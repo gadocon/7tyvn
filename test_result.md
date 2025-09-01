@@ -254,3 +254,5 @@ test_plan:
 agent_communication:
     - agent: "testing"
       message: "Completed comprehensive testing of bill code PB09020058383. Backend API is functioning correctly but external service is rate-limited with reCAPTCHA requirement. The backend properly handles this error condition and returns appropriate error response. The issue user reports about frontend vs backend discrepancy is not due to backend malfunction."
+    - agent: "testing"
+      message: "PROVIDER MAPPING CORRECTION VERIFIED: Successfully tested the corrected provider mapping functionality. MIEN_NAM correctly maps to 'mien_nam' and HCMC now correctly maps to 'evnhcmc' (previously was 'hcmc'). Debug endpoint confirms correct payload generation. External API now accepts the corrected parameters properly. All backend functionality working as expected with the corrected mapping."
