@@ -896,7 +896,10 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold text-gray-900">Kho Bill</h1>
           <p className="text-gray-600 mt-1">Quản lý hóa đơn điện trong kho</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button 
+          className="bg-blue-600 hover:bg-blue-700"
+          onClick={() => setShowAddBillModal(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Thêm Bill Mới
         </Button>
