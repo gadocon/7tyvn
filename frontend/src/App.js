@@ -1192,7 +1192,7 @@ const Inventory = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
             <TabsList>
               <TabsTrigger value="available">Bills Có Sẵn ({inventoryStats?.available_bills || 0})</TabsTrigger>
-              <TabsTrigger value="all">Tất Cả Bills ({inventoryStats?.total_bills || 0})</TabsTrigger>
+              <TabsTrigger value="all">Tất Cả Bills ({allBills.length})</TabsTrigger>
             </TabsList>
           </Tabs>
 
