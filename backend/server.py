@@ -472,6 +472,19 @@ async def check_bills(request: CheckBillRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/bill/check/single", response_model=CheckBillResult)
+async def check_single_bill(
+    customer_code: str,
+    provider_region: ProviderRegion
+):
+    """Check single bill for realtime response"""
+    try:
+        cleaned_code = clean_customer_code(customer_code)
+        result = await external_check_bill(cleaned_code, provider_region)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/bills", response_model=List[Bill])
 async def get_bills(status: Optional[BillStatus] = None, limit: int = 50):
     """Get bills with optional status filter"""
