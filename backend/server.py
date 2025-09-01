@@ -152,11 +152,12 @@ class AddToInventoryRequest(BaseModel):
     batch_name: Optional[str] = None
 
 class InventoryStats(BaseModel):
-    total_bills: int
+    total_bills: int  # Bills in inventory
     available_bills: int
     pending_bills: int
     sold_bills: int
     total_value: float
+    total_bills_in_system: int  # All bills in bills collection
 
 class InventoryResponse(BaseModel):
     id: str
