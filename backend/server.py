@@ -1445,7 +1445,7 @@ async def download_import_template():
         from fastapi.responses import StreamingResponse
         
         return StreamingResponse(
-            io=BytesIO(excel_buffer.read()),
+            BytesIO(excel_buffer.read()),
             media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             headers={"Content-Disposition": "attachment; filename=template_import_bills.xlsx"}
         )
