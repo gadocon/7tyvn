@@ -2681,6 +2681,48 @@ const ExportModal = ({ show, onClose, onExport }) => {
   );
 };
 
+// Sales Export Modal Component
+const SalesExportModal = ({ show, onClose, onExport }) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 className="text-lg font-semibold mb-4">Export Lịch Sử Bán Bill</h3>
+        
+        <div className="space-y-4">
+          <div className="text-center py-6">
+            <Download className="h-12 w-12 mx-auto text-green-600 mb-3" />
+            <p className="text-gray-600 mb-4">
+              Xuất toàn bộ lịch sử giao dịch bán bill ra file Excel
+            </p>
+            <p className="text-sm text-gray-500">
+              File sẽ bao gồm: Mã điện, tên khách hàng, số tiền, lợi nhuận, ngày bán
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={onExport}
+            className="flex-1 bg-green-600 hover:bg-green-700"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component  
 function App() {
   return (
