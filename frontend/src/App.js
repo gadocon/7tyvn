@@ -1281,16 +1281,17 @@ const Inventory = () => {
                   {currentItems.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <input
-                          type="checkbox"
-                          checked={selectedItems.includes(item.id)}
-                          onClick={(e) => {
-                            console.log('Checkbox clicked for:', item.id, !selectedItems.includes(item.id));
+                        <button
+                          onClick={() => {
+                            console.log('Button clicked for:', item.id, !selectedItems.includes(item.id));
                             handleSelectItem(item.id, !selectedItems.includes(item.id));
                           }}
-                          readOnly
-                          className="rounded cursor-pointer"
-                        />
+                          className="w-4 h-4 border border-gray-300 rounded cursor-pointer flex items-center justify-center hover:bg-blue-50"
+                        >
+                          {selectedItems.includes(item.id) && (
+                            <CheckCircle className="h-3 w-3 text-blue-600" />
+                          )}
+                        </button>
                       </TableCell>
                       <TableCell className="font-mono">{item.customer_code}</TableCell>
                       <TableCell>{item.full_name || "-"}</TableCell>
