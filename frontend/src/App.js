@@ -897,10 +897,17 @@ const Inventory = () => {
   };
 
   const handleSelectItem = (itemId, checked) => {
+    console.log('handleSelectItem called:', { itemId, checked });
     if (checked) {
-      setSelectedItems(prev => [...prev, itemId]);
+      setSelectedItems(prev => {
+        console.log('Adding item, prev:', prev, 'new:', [...prev, itemId]);
+        return [...prev, itemId];
+      });
     } else {
-      setSelectedItems(prev => prev.filter(id => id !== itemId));
+      setSelectedItems(prev => {
+        console.log('Removing item, prev:', prev, 'new:', prev.filter(id => id !== itemId));
+        return prev.filter(id => id !== itemId);
+      });
     }
   };
 
