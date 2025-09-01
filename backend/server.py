@@ -1460,6 +1460,13 @@ async def export_customers_data():
         # Get all customers (simple version)
         customers = await db.customers.find({}).sort("created_at", -1).to_list(None)
         
+        # DEBUG: Return JSON first to verify data
+        return {
+            "debug": True,
+            "count": len(customers),
+            "customers": customers[:2] if customers else []
+        }
+        
         # Create Excel file
         import openpyxl
         from openpyxl.styles import Font, Alignment, PatternFill
