@@ -207,6 +207,15 @@ class WebhookPayload(BaseModel):
     webhook_url: str
     execution_mode: str
 
+class BillCreate(BaseModel):
+    customer_code: str
+    provider_region: ProviderRegion
+    full_name: Optional[str] = None
+    address: Optional[str] = None
+    amount: Optional[float] = None
+    billing_cycle: Optional[str] = None  # Format: MM/YYYY
+    status: BillStatus = BillStatus.AVAILABLE
+
 # Utility functions
 def clean_customer_code(code: str) -> str:
     """Clean customer code by removing fees and extra characters"""
