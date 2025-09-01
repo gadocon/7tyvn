@@ -994,11 +994,26 @@ async def update_bill(bill_id: str, bill_data: BillCreate):
         parsed_bill = parse_from_mongo(updated_bill)
         print(f"Parsed bill successfully")
         
-        return {
+        # Create response with proper serialization
+        response_data = {
             "success": True,
             "message": "Đã cập nhật bill thành công",
-            "bill": parsed_bill
+            "bill": {
+                "id": parsed_bill.get("id"),
+                "status": parsed_bill.get("status"),
+                "updated_at": parsed_bill.get("updated_at"),
+                "last_checked": parsed_bill.get("last_checked"),
+                "customer_code": parsed_bill.get("customer_code"),
+                "provider_region": parsed_bill.get("provider_region"),
+                "full_name": parsed_bill.get("full_name"),
+                "address": parsed_bill.get("address"),
+                "amount": parsed_bill.get("amount"),
+                "billing_cycle": parsed_bill.get("billing_cycle")
+            }
         }
+        print(f"Response data prepared")
+        
+        return response_data
         
     except HTTPException:
         raise
