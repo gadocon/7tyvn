@@ -46,7 +46,7 @@ class BillStatus(str, Enum):
 
 class CustomerType(str, Enum):
     INDIVIDUAL = "INDIVIDUAL"
-    BUSINESS = "BUSINESS"
+    AGENT = "AGENT"
 
 class PaymentMethod(str, Enum):
     CASH = "CASH"
