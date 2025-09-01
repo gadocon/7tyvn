@@ -851,7 +851,7 @@ async def seed_data():
             },
             {
                 "id": str(uuid.uuid4()),
-                "type": CustomerType.BUSINESS,
+                "type": CustomerType.AGENT,
                 "name": "Công ty TNHH ABC",
                 "phone": "0281234567",
                 "email": "info@abc.com",
