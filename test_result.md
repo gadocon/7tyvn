@@ -228,7 +228,7 @@ agent_communication:
     - agent: "testing"
       message: "✅ TESTING COMPLETE - ALL SYSTEMS WORKING: Comprehensive re-testing confirms the backend fix is successful. Bill code PB09020058383 with MIEN_NAM provider now returns OK status with correct customer data (Phùng Thị Sen, 782,471 VND). Frontend displays results perfectly and 'Thêm vào kho' functionality works flawlessly. The review request was accurate - the entire bill check flow is now working end-to-end. No further testing required."
 
-user_problem_statement: "Test the bill checking functionality for the specific bill code 'PB09020058383' with provider 'miền nam'. The user reports that this bill code works in backend but shows an error on frontend."
+user_problem_statement: "Test the complete 'Add New Bill' functionality that has just been implemented."
 
 backend:
   - task: "Bill Check API Endpoint"
