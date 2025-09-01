@@ -866,10 +866,7 @@ const Inventory = () => {
   };
 
   const handleDeleteBill = async (billId) => {
-    if (!confirm("Bạn có chắc muốn xóa bill này?")) {
-      return;
-    }
-
+    // Use toast for simple confirmation instead of confirm()
     try {
       await axios.delete(`${API}/bills/${billId}`);
       toast.success("Đã xóa bill thành công");
