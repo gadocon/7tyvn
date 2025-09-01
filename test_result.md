@@ -297,15 +297,18 @@ frontend:
 
   - task: "Add New Bill Form Submission"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Form submission logic implemented with validation, API call to /api/bills/create endpoint, loading states, and success/error handling. Needs testing with real data."
+        - working: true
+          agent: "testing"
+          comment: "✅ FORM SUBMISSION WORKING CORRECTLY: API calls to /api/bills/create return HTTP 200 with proper JSON response containing bill data. Duplicate bill validation works (returns 400 error with message 'Bill với mã điện [code] đã tồn tại'). Required field validation works for customer_code. Loading state displays 'Đang thêm...' during submission. Minor: Modal doesn't auto-close after successful submission, but this doesn't affect core functionality."
 
   - task: "Add New Bill Backend API"
     implemented: true
