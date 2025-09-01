@@ -2514,7 +2514,7 @@ const ExportModal = ({ show, onClose, onExport }) => {
                 <SelectValue placeholder="Tất cả trạng thái" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tất cả trạng thái</SelectItem>
+                <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
                 <SelectItem value="AVAILABLE">Có Sẵn</SelectItem>
                 <SelectItem value="PENDING">Chờ Xử Lý</SelectItem>
                 <SelectItem value="SOLD">Đã Bán</SelectItem>
