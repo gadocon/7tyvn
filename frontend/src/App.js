@@ -1757,11 +1757,10 @@ const Customers = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tên Khách Hàng</TableHead>
+                  <TableHead>Tên</TableHead>
                   <TableHead>Loại</TableHead>
                   <TableHead>Điện Thoại</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Số Giao Dịch</TableHead>
+                  <TableHead>Số GD</TableHead>
                   <TableHead>Tổng Giá Trị</TableHead>
                   <TableHead>Lợi Nhuận</TableHead>
                   <TableHead>Trạng Thái</TableHead>
