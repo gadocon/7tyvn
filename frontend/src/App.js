@@ -2468,8 +2468,8 @@ const ExportModal = ({ show, onClose, onExport }) => {
   useEffect(() => {
     if (show) {
       setFilters({
-        status: "",
-        provider_region: "",
+        status: "ALL",
+        provider_region: "ALL",
         start_date: "",
         end_date: ""
       });
