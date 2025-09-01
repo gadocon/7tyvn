@@ -1204,17 +1204,18 @@ const Inventory = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
-                      <input
-                        type="checkbox"
-                        checked={currentItems.length > 0 && selectedItems.length === currentItems.length}
-                        onClick={(e) => {
+                      <button
+                        onClick={() => {
                           const shouldSelectAll = !(currentItems.length > 0 && selectedItems.length === currentItems.length);
                           console.log('Select all clicked:', shouldSelectAll);
                           handleSelectAll(shouldSelectAll);
                         }}
-                        readOnly
-                        className="rounded cursor-pointer"
-                      />
+                        className="w-4 h-4 border border-gray-300 rounded cursor-pointer flex items-center justify-center hover:bg-blue-50"
+                      >
+                        {(currentItems.length > 0 && selectedItems.length === currentItems.length) && (
+                          <CheckCircle className="h-3 w-3 text-blue-600" />
+                        )}
+                      </button>
                     </TableHead>
                     <TableHead 
                       className="cursor-pointer hover:bg-gray-50"
