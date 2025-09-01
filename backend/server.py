@@ -1483,6 +1483,9 @@ async def export_customers_data(
         # Get customers
         customers = await db.customers.find(query).sort("created_at", -1).to_list(None)
         
+        # Return empty Excel file with headers if no customers found
+        # (Better UX than 404 error)
+        
         # Create Excel file
         import openpyxl
         from openpyxl.styles import Font, Alignment, PatternFill
