@@ -958,18 +958,26 @@ const Inventory = () => {
   };
 
   const confirmBulkDelete = async () => {
+    console.log('=== confirmBulkDelete called ===');
+    console.log('activeTab:', activeTab);
+    console.log('selectedItems:', selectedItems);
+    
     try {
       // For available items, remove from inventory
       if (activeTab === "available") {
-        await Promise.all(selectedItems.map(id => 
-          axios.delete(`${API}/inventory/${id}`)
-        ));
+        console.log('Deleting from inventory...');
+        await Promise.all(selectedItems.map(id => {
+          console.log(`DELETE ${API}/inventory/${id}`);
+          return axios.delete(`${API}/inventory/${id}`);
+        }));
         toast.success(`Đã xóa ${selectedItems.length} items khỏi kho`);
       } else {
         // For all bills, delete bills (if allowed)
-        await Promise.all(selectedItems.map(id => 
-          axios.delete(`${API}/bills/${id}`)
-        ));
+        console.log('Deleting bills...');
+        await Promise.all(selectedItems.map(id => {
+          console.log(`DELETE ${API}/bills/${id}`);
+          return axios.delete(`${API}/bills/${id}`);
+        }));
         toast.success(`Đã xóa ${selectedItems.length} bills`);
       }
       
