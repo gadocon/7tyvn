@@ -2786,62 +2786,7 @@ const SalesExportModal = ({ show, onClose, onExport }) => {
   );
 };
 
-// Sales Export Modal Component
-const SalesExportModal = ({ show, onClose, onExport }) => {
-  if (!show) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Export Lịch Sử Bán Bill</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl"
-          >
-            ×
-          </button>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="border rounded-lg p-4 bg-green-50">
-            <h3 className="font-medium text-green-900 mb-2">Dữ Liệu Export</h3>
-            <ul className="text-green-700 text-sm space-y-1">
-              <li>• Tất cả giao dịch bán bill</li>
-              <li>• Thông tin khách hàng và liên hệ</li>
-              <li>• Chi tiết lợi nhuận và số tiền</li>
-              <li>• Phương thức thanh toán và ngày giao dịch</li>
-            </ul>
-          </div>
-
-          <div className="text-center py-4">
-            <Download className="h-12 w-12 mx-auto text-green-600 mb-3" />
-            <p className="text-gray-600 text-sm">
-              File Excel sẽ chứa đầy đủ lịch sử giao dịch với định dạng chuyên nghiệp
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="flex-1"
-          >
-            Hủy
-          </Button>
-          <Button
-            onClick={onExport}
-            className="flex-1 bg-green-600 hover:bg-green-700"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export Excel
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Main App Component  
 function App() {
