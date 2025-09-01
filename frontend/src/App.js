@@ -27,7 +27,9 @@ import {
   CheckCircle,
   XCircle,
   Home,
-  AlertTriangle
+  AlertTriangle,
+  Upload,
+  Download
 } from "lucide-react";
 import axios from "axios";
 
