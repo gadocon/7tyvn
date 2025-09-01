@@ -1141,7 +1141,7 @@ const Customers = () => {
           <div className="flex justify-between items-center">
             <CardTitle>Danh Sách Khách Hàng</CardTitle>
             <div className="flex items-center space-x-4">
-              <Select value={customerType} onValueChange={setCustomerType}>
+              <Select value={customerType || ""} onValueChange={setCustomerType}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Loại KH" />
                 </SelectTrigger>
@@ -1152,7 +1152,7 @@ const Customers = () => {
                 </SelectContent>
               </Select>
 
-              <Select value={isActive} onValueChange={setIsActive}>
+              <Select value={isActive || ""} onValueChange={setIsActive}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
