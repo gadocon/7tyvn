@@ -791,6 +791,9 @@ const Inventory = () => {
   const [showAddBillModal, setShowAddBillModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [allBills, setAllBills] = useState([]);
 
   useEffect(() => {
     fetchInventoryData();
