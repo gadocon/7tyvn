@@ -193,89 +193,224 @@ class FPTBillManagerAPITester:
         
         return success
 
-    def test_specific_bill_pb09020058383(self):
-        """Test specific bill code PB09020058383 with provider miền nam"""
-        print(f"\n🔍 Testing Specific Bill Code: PB09020058383")
+    def test_debug_payload_mien_nam(self):
+        """Test debug endpoint for MIEN_NAM provider mapping"""
+        print(f"\n🔍 Testing Debug Payload - MIEN_NAM Provider")
         
-        # Prepare the exact request payload
-        request_payload = {
-            "gateway": "FPT",
-            "provider_region": "MIEN_NAM",
-            "codes": ["PB09020058383"]
+        url = f"{self.api_url}/bill/debug-payload"
+        params = {
+            "customer_code": "PB09020058383",
+            "provider_region": "MIEN_NAM"
         }
         
-        print(f"📤 Request Payload:")
-        print(f"   {json.dumps(request_payload, indent=2, ensure_ascii=False)}")
-        
-        url = f"{self.api_url}/bill/check"
-        headers = {'Content-Type': 'application/json'}
-        
         print(f"🌐 Making request to: {url}")
-        print(f"📋 Headers: {headers}")
+        print(f"📋 Parameters: {params}")
         
         try:
-            # Make the actual request
-            response = requests.post(url, json=request_payload, headers=headers, timeout=30)
+            response = requests.post(url, params=params, timeout=30)
             
             print(f"\n📥 Response Details:")
             print(f"   Status Code: {response.status_code}")
-            print(f"   Headers: {dict(response.headers)}")
             
-            # Get response text first
-            response_text = response.text
-            print(f"   Raw Response: {response_text}")
-            
-            # Try to parse JSON
-            try:
+            if response.status_code == 200:
                 response_data = response.json()
-                print(f"   Parsed JSON Response:")
+                print(f"   Debug Response:")
                 print(f"   {json.dumps(response_data, indent=2, ensure_ascii=False)}")
                 
-                # Analyze the response structure
-                if isinstance(response_data, dict):
-                    if 'items' in response_data:
-                        items = response_data['items']
-                        print(f"\n📊 Analysis:")
-                        print(f"   Number of items: {len(items)}")
-                        
-                        for i, item in enumerate(items):
-                            print(f"   Item {i+1}:")
-                            print(f"     Customer Code: {item.get('customer_code', 'N/A')}")
-                            print(f"     Status: {item.get('status', 'N/A')}")
-                            print(f"     Full Name: {item.get('full_name', 'N/A')}")
-                            print(f"     Address: {item.get('address', 'N/A')}")
-                            print(f"     Amount: {item.get('amount', 'N/A')}")
-                            print(f"     Billing Cycle: {item.get('billing_cycle', 'N/A')}")
-                            
-                            if item.get('errors'):
-                                print(f"     Errors: {item['errors']}")
-                    
-                    if 'summary' in response_data:
-                        summary = response_data['summary']
-                        print(f"   Summary: OK={summary.get('ok', 0)}, Error={summary.get('error', 0)}")
+                # Verify the provider mapping
+                payload = response_data.get('payload', {})
+                bills = payload.get('bills', [])
                 
-                # Check if this is a successful response
-                if response.status_code == 200:
-                    print(f"✅ Backend API call successful")
-                    self.tests_passed += 1
-                    return True, response_data
-                else:
-                    print(f"❌ Backend API call failed with status {response.status_code}")
-                    return False, response_data
+                if bills and len(bills) > 0:
+                    electric_provider = bills[0].get('electric_provider')
+                    print(f"\n✅ Provider Mapping Verification:")
+                    print(f"   Input: provider_region = MIEN_NAM")
+                    print(f"   Output: electric_provider = {electric_provider}")
                     
-            except json.JSONDecodeError as e:
-                print(f"❌ Failed to parse JSON response: {e}")
-                print(f"   Raw response: {response_text}")
+                    if electric_provider == "mien_nam":
+                        print(f"   ✅ CORRECT: MIEN_NAM maps to 'mien_nam'")
+                        self.tests_passed += 1
+                        return True, response_data
+                    else:
+                        print(f"   ❌ INCORRECT: Expected 'mien_nam', got '{electric_provider}'")
+                        return False, response_data
+                else:
+                    print(f"   ❌ No bills found in payload")
+                    return False, response_data
+            else:
+                print(f"   ❌ Request failed with status {response.status_code}")
+                print(f"   Response: {response.text}")
                 return False, {}
                 
-        except requests.exceptions.Timeout:
-            print(f"❌ Request timed out after 30 seconds")
-            return False, {}
-        except requests.exceptions.ConnectionError as e:
-            print(f"❌ Connection error: {e}")
-            return False, {}
         except Exception as e:
-            print(f"❌ Unexpected error: {e}")
+            print(f"❌ Error: {e}")
+            return False, {}
+        finally:
+            self.tests_run += 1
+
+    def test_debug_payload_hcmc(self):
+        """Test debug endpoint for HCMC provider mapping"""
+        print(f"\n🔍 Testing Debug Payload - HCMC Provider")
+        
+        url = f"{self.api_url}/bill/debug-payload"
+        params = {
+            "customer_code": "PB09020058383",
+            "provider_region": "HCMC"
+        }
+        
+        print(f"🌐 Making request to: {url}")
+        print(f"📋 Parameters: {params}")
+        
+        try:
+            response = requests.post(url, params=params, timeout=30)
+            
+            print(f"\n📥 Response Details:")
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                print(f"   Debug Response:")
+                print(f"   {json.dumps(response_data, indent=2, ensure_ascii=False)}")
+                
+                # Verify the provider mapping
+                payload = response_data.get('payload', {})
+                bills = payload.get('bills', [])
+                
+                if bills and len(bills) > 0:
+                    electric_provider = bills[0].get('electric_provider')
+                    print(f"\n✅ Provider Mapping Verification:")
+                    print(f"   Input: provider_region = HCMC")
+                    print(f"   Output: electric_provider = {electric_provider}")
+                    
+                    if electric_provider == "evnhcmc":
+                        print(f"   ✅ CORRECT: HCMC maps to 'evnhcmc' (corrected from 'hcmc')")
+                        self.tests_passed += 1
+                        return True, response_data
+                    else:
+                        print(f"   ❌ INCORRECT: Expected 'evnhcmc', got '{electric_provider}'")
+                        return False, response_data
+                else:
+                    print(f"   ❌ No bills found in payload")
+                    return False, response_data
+            else:
+                print(f"   ❌ Request failed with status {response.status_code}")
+                print(f"   Response: {response.text}")
+                return False, {}
+                
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            return False, {}
+        finally:
+            self.tests_run += 1
+
+    def test_single_bill_check_mien_nam(self):
+        """Test single bill check endpoint with MIEN_NAM"""
+        print(f"\n🔍 Testing Single Bill Check - MIEN_NAM")
+        
+        url = f"{self.api_url}/bill/check/single"
+        params = {
+            "customer_code": "PB09020058383",
+            "provider_region": "MIEN_NAM"
+        }
+        
+        print(f"🌐 Making request to: {url}")
+        print(f"📋 Parameters: {params}")
+        
+        try:
+            response = requests.post(url, params=params, timeout=30)
+            
+            print(f"\n📥 Response Details:")
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                print(f"   Single Bill Response:")
+                print(f"   {json.dumps(response_data, indent=2, ensure_ascii=False)}")
+                
+                # Analyze the response
+                customer_code = response_data.get('customer_code')
+                status = response_data.get('status')
+                errors = response_data.get('errors')
+                
+                print(f"\n📊 Analysis:")
+                print(f"   Customer Code: {customer_code}")
+                print(f"   Status: {status}")
+                
+                if status == "ERROR" and errors:
+                    print(f"   Error Code: {errors.get('code')}")
+                    print(f"   Error Message: {errors.get('message')}")
+                    print(f"   ✅ External API error handled correctly")
+                elif status == "OK":
+                    print(f"   Full Name: {response_data.get('full_name')}")
+                    print(f"   Address: {response_data.get('address')}")
+                    print(f"   Amount: {response_data.get('amount')}")
+                    print(f"   ✅ Bill found successfully")
+                
+                self.tests_passed += 1
+                return True, response_data
+            else:
+                print(f"   ❌ Request failed with status {response.status_code}")
+                print(f"   Response: {response.text}")
+                return False, {}
+                
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            return False, {}
+        finally:
+            self.tests_run += 1
+
+    def test_single_bill_check_hcmc(self):
+        """Test single bill check endpoint with HCMC"""
+        print(f"\n🔍 Testing Single Bill Check - HCMC")
+        
+        url = f"{self.api_url}/bill/check/single"
+        params = {
+            "customer_code": "PB09020058383",
+            "provider_region": "HCMC"
+        }
+        
+        print(f"🌐 Making request to: {url}")
+        print(f"📋 Parameters: {params}")
+        
+        try:
+            response = requests.post(url, params=params, timeout=30)
+            
+            print(f"\n📥 Response Details:")
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                print(f"   Single Bill Response:")
+                print(f"   {json.dumps(response_data, indent=2, ensure_ascii=False)}")
+                
+                # Analyze the response
+                customer_code = response_data.get('customer_code')
+                status = response_data.get('status')
+                errors = response_data.get('errors')
+                
+                print(f"\n📊 Analysis:")
+                print(f"   Customer Code: {customer_code}")
+                print(f"   Status: {status}")
+                
+                if status == "ERROR" and errors:
+                    print(f"   Error Code: {errors.get('code')}")
+                    print(f"   Error Message: {errors.get('message')}")
+                    print(f"   ✅ External API error handled correctly")
+                elif status == "OK":
+                    print(f"   Full Name: {response_data.get('full_name')}")
+                    print(f"   Address: {response_data.get('address')}")
+                    print(f"   Amount: {response_data.get('amount')}")
+                    print(f"   ✅ Bill found successfully")
+                
+                self.tests_passed += 1
+                return True, response_data
+            else:
+                print(f"   ❌ Request failed with status {response.status_code}")
+                print(f"   Response: {response.text}")
+                return False, {}
+                
+        except Exception as e:
+            print(f"❌ Error: {e}")
             return False, {}
         finally:
             self.tests_run += 1
