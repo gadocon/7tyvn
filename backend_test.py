@@ -813,13 +813,15 @@ def main():
     
     tester = FPTBillManagerAPITester()
     
-    # Run all tests - focusing on provider mapping tests first
+    # Run all tests - focusing on bill_codes functionality first (as per review request)
     tests = [
-        tester.test_debug_payload_mien_nam,      # Test MIEN_NAM -> mien_nam mapping
-        tester.test_debug_payload_hcmc,          # Test HCMC -> evnhcmc mapping (corrected)
-        tester.test_single_bill_check_mien_nam,  # Test actual bill check with MIEN_NAM
-        tester.test_single_bill_check_hcmc,      # Test actual bill check with HCMC
-        tester.test_external_api_call_simulation, # Test external API call
+        tester.test_customer_detail_with_bill_codes,  # PRIMARY TEST: Bill codes functionality
+        tester.test_multiple_customers_bill_codes,    # Test consistency across customers
+        tester.test_debug_payload_mien_nam,           # Test MIEN_NAM -> mien_nam mapping
+        tester.test_debug_payload_hcmc,               # Test HCMC -> evnhcmc mapping (corrected)
+        tester.test_single_bill_check_mien_nam,       # Test actual bill check with MIEN_NAM
+        tester.test_single_bill_check_hcmc,           # Test actual bill check with HCMC
+        tester.test_external_api_call_simulation,     # Test external API call
         tester.test_dashboard_stats,
         tester.test_check_bills_valid,
         tester.test_check_bills_invalid,
