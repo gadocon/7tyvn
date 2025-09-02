@@ -228,8 +228,8 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "12.0"
-  test_sequence: 13
+  version: "13.0"
+  test_sequence: 14
   run_ui: false
 
 test_plan:
