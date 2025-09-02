@@ -190,7 +190,7 @@ const Navigation = () => {
 
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-3">
-              <BarChart3 className="h-8 w-8 text-blue-600" />
+              <BarChart3 className="h-8 w-8 text-green-600" />
               <span className="text-xl font-bold text-gray-900 hidden sm:block">7ty.vn CRM</span>
               <span className="text-lg font-bold text-gray-900 sm:hidden">7ty.vn</span>
             </Link>
