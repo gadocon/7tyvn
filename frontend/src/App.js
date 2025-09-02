@@ -3390,6 +3390,33 @@ const CreditCards = () => {
     }
   };
 
+  const handleViewCard = async (card) => {
+    try {
+      const response = await axios.get(`${API}/credit-cards/${card.id}/detail`);
+      setCardDetail(response.data);
+      setSelectedCard(card);
+      setShowInfoModal(true);
+    } catch (error) {
+      console.error("Error getting card detail:", error);
+      toast.error("Không thể tải thông tin chi tiết thẻ");
+    }
+  };
+
+  const handleEditCard = (card) => {
+    setSelectedCard(card);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteCard = (card) => {
+    setSelectedCard(card);
+    setShowDeleteModal(true);
+  };
+
+  const handleDaoCard = (card) => {
+    setSelectedCard(card);
+    setShowDaoModal(true);
+  };
+
   const filteredCards = cards.filter(card => 
     card.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     card.cardholder_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
