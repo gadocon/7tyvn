@@ -287,12 +287,7 @@ const Dashboard = () => {
     return `${hours}:${minutes} ${day}/${month}/${year}`;
   };
 
-  const handleCustomerClick = (customerId) => {
-    // Navigate to customer detail or show customer info
-    console.log('Navigate to customer:', customerId);
-    // You can implement navigation logic here
-    toast.info(`Xem thông tin khách hàng ID: ${customerId}`);
-  };
+
 
   if (loading) {
     return (
