@@ -363,6 +363,36 @@ test_plan:
           agent: "testing"
           comment: "🎉 FIXED ACTIVITY DASHBOARD INTEGRATION - COMPLETE SUCCESS! ✅ BACKEND BUG RESOLVED: Backend API /api/activities/recent now returns 8+ real activities successfully instead of empty state. ✅ REAL ACTIVITIES DISPLAYING: Found 8 activities with perfect formatting - 'Đáo thẻ ****3456 - 3.0M VND', 'Thêm thẻ ****3456', etc. ✅ CUSTOMER LINKS FUNCTIONAL: All 8 customer links clickable with proper toast messages ('Activity Test Customer 1756788280'). ✅ VIETNAMESE FORMATTING PERFECT: Currency amounts (3.000.000 ₫), timestamps (05:04 02/09/2025), all in Vietnamese format. ✅ ACTIVITY ICONS & COLORS: 8 green background containers with CreditCard icons for CARD activities. ✅ ACTIVITY TYPES WORKING: CARD_CREATE and CARD_PAYMENT_POS activities displaying correctly. ✅ MOBILE RESPONSIVE: All features work perfectly on mobile view. ✅ NO CONSOLE ERRORS: Clean execution with proper error handling. ALL REQUIREMENTS FROM REVIEW REQUEST SATISFIED - comprehensive activity logging system now fully operational!"
 
+  - task: "Dashboard Customer Hyperlinks Bug Fix"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Fixed customer hyperlinks to open customer detail modal instead of just showing toast. Enhanced styling with blue pill-shaped 'Xem Chi Tiết' buttons with Users icon. Implemented proper customer modal with transaction history."
+        - working: true
+          agent: "testing"
+          comment: "🎉 DASHBOARD CUSTOMER HYPERLINKS BUG FIX FULLY WORKING! ✅ COMPREHENSIVE TESTING COMPLETED: Found 8 'Xem Chi Tiết' buttons in dashboard activities with perfect blue pill styling (bg-blue-50, border-blue-200, text-blue-700, hover:bg-blue-100). ✅ MODAL FUNCTIONALITY: Customer detail modal opens successfully when clicking buttons (not just toast notifications). Modal displays customer info and recent transactions correctly. ✅ ENHANCED STYLING: Users icon present in buttons, proper hover effects, responsive design works on mobile (390x844). ✅ PROFESSIONAL APPEARANCE: All styling requirements met - blue backgrounds, borders, text colors, transition effects. ✅ CRITICAL SUCCESS: Customer modal opens from dashboard activities as intended, replacing previous toast-only behavior."
+
+  - task: "Check Lại Button API Error Fix"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Fixed API call from POST with body to POST with query parameters to resolve 422 'Unprocessable Content' error. API call format changed to: /api/bill/check/single?customer_code=XXX&provider_region=XXX"
+        - working: true
+          agent: "testing"
+          comment: "🎉 CHECK LẠI BUTTON API ERROR FIX FULLY WORKING! ✅ COMPREHENSIVE TESTING COMPLETED: Found 21 bills with 'Có Sẵn' status and working Check lại buttons in Kho Bill page. ✅ API FORMAT FIXED: API calls now use correct query parameter format (POST /api/bill/check/single?customer_code=PB09020058383&provider_region=MIEN_NAM) with no POST body data. ✅ NO 422 ERRORS: API calls return 200 success status, no more 'Unprocessable Content' errors detected. ✅ PROPER ERROR HANDLING: Success/error toast messages working correctly. ✅ CRITICAL SUCCESS: Check lại API calls succeed without 422 errors, resolving the original issue completely."
+
 agent_communication:
     - agent: "main"
       message: "DAO CARD MODAL IMPLEMENTED: Complete DAO Card Modal functionality has been implemented with comprehensive 2-method payment system (POS/BILL). Modal accessible from InfoCard, features tab navigation, form validation, real-time calculations, multi-bill selection, and API integration. Backend API endpoint ready at POST /api/credit-cards/{card_id}/dao. Ready for comprehensive testing of all features including modal access, tab switching, payment methods, calculations, and API integration."
