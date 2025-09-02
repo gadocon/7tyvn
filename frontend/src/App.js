@@ -2036,7 +2036,9 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
                 <TableBody>
                   {customers.map((customer) => (
                     <TableRow key={customer.id}>
-                      <TableCell className="font-medium whitespace-nowrap">{customer.name}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        <CustomerNameLink customer={customer} />
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <Badge variant="outline">
                           {customer.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}
