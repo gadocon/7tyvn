@@ -1111,40 +1111,56 @@ const Inventory = () => {
       console.log(`Customer Code: ${bill.customer_code}`);
       console.log(`Provider Region: ${bill.provider_region}`);
       
-      // Check if bill exists first
-      const checkResponse = await axios.get(`${API}/bills/${bill.id}`).catch(err => {
-        console.log(`Bill ${bill.id} not found in database, refreshing inventory...`);
+      // Check if bill exists first - CRITICAL VALIDATION
+      try {
+        await axios.get(`${API}/bills/${bill.id}`);
+        console.log(`✅ Bill ${bill.id} exists in database`);
+      } catch (existenceError) {
+        console.log(`❌ Bill ${bill.id} not found in database, refreshing inventory...`);
+        toast.error(`Bill không tồn tại trong hệ thống. Dữ liệu sẽ được làm mới.`);
         fetchInventoryData(); // Refresh to get current data
-        throw new Error(`Bill không tồn tại trong database. Dữ liệu đã được làm mới.`);
-      });
+        return; // STOP EXECUTION HERE - Don't proceed with API calls
+      }
       
-      // Proceed with external check
+      // Proceed with external check only if bill exists
       const response = await axios.post(`${API}/bills/check`, {
         customer_code: bill.customer_code,
         provider_region: bill.provider_region
       });
       
-      console.log('Check response:', response.data);
+      console.log('External check response:', response.data);
       
       if (response.data.success && response.data.customer_name) {
         // Bill is valid - update status and show success
         toast.success(`Bill ${bill.customer_code} hợp lệ - Đã cập nhật trạng thái`);
         
         // Update bill's last_checked time in database
-        await axios.put(`${API}/bills/${bill.id}`, {
-          last_checked: new Date().toISOString(),
-          status: "AVAILABLE"
-        });
+        try {
+          await axios.put(`${API}/bills/${bill.id}`, {
+            last_checked: new Date().toISOString(),
+            status: "AVAILABLE"
+          });
+          console.log(`✅ Successfully updated bill ${bill.id} status to AVAILABLE`);
+        } catch (updateError) {
+          console.error(`❌ Failed to update bill ${bill.id}:`, updateError);
+          toast.error(`Không thể cập nhật trạng thái bill`);
+        }
         
         fetchInventoryData(); // Refresh data
         
       } else {
-        // Bill not found - customer không nợ cước -> status "Đã Gạch"
-        await axios.put(`${API}/bills/${bill.id}`, {
-          status: "CROSSED",
-          full_name: "khách hàng ko nợ cước",
-          last_checked: new Date().toISOString()
-        });
+        // Bill not found - customer không nợ cước -> status "Đã Gạch"  
+        try {
+          await axios.put(`${API}/bills/${bill.id}`, {
+            status: "CROSSED",
+            full_name: "khách hàng ko nợ cước",
+            last_checked: new Date().toISOString()
+          });
+          console.log(`✅ Successfully updated bill ${bill.id} status to CROSSED`);
+        } catch (updateError) {
+          console.error(`❌ Failed to update bill ${bill.id}:`, updateError);
+          toast.error(`Không thể cập nhật trạng thái bill`);
+        }
         
         toast.info(`Bill ${bill.customer_code} - Khách hàng không nợ cước`);
         
@@ -1159,10 +1175,7 @@ const Inventory = () => {
       console.error("Error rechecking bill:", error);
       
       if (error.response?.status === 404) {
-        toast.error(`Bill không tồn tại. Dữ liệu sẽ được làm mới.`);
-        fetchInventoryData(); // Refresh inventory data
-      } else if (error.message && error.message.includes('không tồn tại')) {
-        toast.error(error.message);
+        toast.error(`API endpoint không tồn tại. Liên hệ kỹ thuật để khắc phục.`);
       } else {
         toast.error("Có lỗi xảy ra khi check lại bill");
       }
