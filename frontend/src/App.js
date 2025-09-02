@@ -3568,11 +3568,12 @@ const CreditCards = () => {
                     </div>
                   </div>
                   
-                  {/* Status Badge */}
-                  <div className="absolute top-4 left-4">
-                    <Badge className={`${getStatusColor(card.status)} border-0`}>
-                      {card.status}
-                    </Badge>
+                    {/* Status Badge */}
+                    <div className="absolute top-2 left-2 sm:top-4 sm:left-4">
+                      <Badge className={`${getStatusColor(card.status)} border-0 text-xs`}>
+                        {card.status}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               </div>
