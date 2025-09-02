@@ -249,6 +249,17 @@ const Dashboard = () => {
     }
   };
 
+  const handleCustomerClick = async (customerId) => {
+    try {
+      const response = await axios.get(`${API}/customers/${customerId}/transactions`);
+      setSelectedCustomerDetail(response.data);
+      setShowCustomerModal(true);
+    } catch (error) {
+      console.error("Error fetching customer detail:", error);
+      toast.error("Không thể tải thông tin khách hàng");
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
