@@ -1197,24 +1197,48 @@ async def get_customer_transactions(customer_id: str):
         
         transactions = []
         for sale in sales:
-            # Get bill codes for this sale
-            bill_codes = []
-            if sale.get("bill_ids"):
-                bills = await db.bills.find({"id": {"$in": sale["bill_ids"]}}).to_list(None)
-                bill_codes = [bill.get("customer_code", "") for bill in bills]
-            
-            transactions.append({
-                "id": sale["id"],
-                "type": "SALE",
-                "total": sale["total"],
-                "profit_value": sale["profit_value"],
-                "payback": sale["payback"],
-                "method": sale["method"],
-                "status": sale["status"],
-                "notes": sale.get("notes"),
-                "bill_codes": bill_codes,
-                "created_at": sale["created_at"]
-            })
+            if sale.get("transaction_type") == "ELECTRIC_BILL":
+                # Handle electric bill transactions
+                bill_codes = []
+                if sale.get("bill_ids"):
+                    bills = await db.bills.find({"id": {"$in": sale["bill_ids"]}}).to_list(None)
+                    bill_codes = [bill.get("customer_code", "") for bill in bills]
+                
+                transactions.append({
+                    "id": sale["id"],
+                    "type": "SALE",
+                    "total": sale["total"],
+                    "profit_value": sale["profit_value"],
+                    "payback": sale["payback"],
+                    "method": sale["method"],
+                    "status": sale["status"],
+                    "notes": sale.get("notes"),
+                    "bill_codes": bill_codes,
+                    "created_at": sale["created_at"]
+                })
+                
+            elif sale.get("transaction_type") == "CREDIT_CARD":
+                # Handle credit card transactions - extract card number from notes
+                bill_codes = []
+                notes = sale.get("notes", "")
+                # Extract ****1234 pattern from notes
+                import re
+                card_match = re.search(r'\*{4}(\d{4})', notes)
+                if card_match:
+                    bill_codes = [f"****{card_match.group(1)}"]
+                
+                transactions.append({
+                    "id": sale["id"],
+                    "type": "SALE",
+                    "total": sale["total"],
+                    "profit_value": sale["profit_value"],
+                    "payback": sale["payback"],
+                    "method": sale["method"],
+                    "status": sale["status"],
+                    "notes": sale.get("notes"),
+                    "bill_codes": bill_codes,  # Will show ****1234 for credit cards
+                    "created_at": sale["created_at"]
+                })
         
         return {
             "customer": Customer(**parse_from_mongo(customer)),
