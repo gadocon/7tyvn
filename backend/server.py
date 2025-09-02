@@ -3178,44 +3178,13 @@ async def get_transactions_stats():
 # =============================================================================
 
 @api_router.get("/reports/dashboard-stats")
-async def get_dashboard_stats(period: str = "monthly"):
-    """Get comprehensive dashboard statistics for reports"""
+async def get_dashboard_stats(period: str = "all"):
+    """Get comprehensive dashboard statistics for reports - REAL DATA ONLY"""
     try:
-        # Calculate date ranges based on period
-        now = datetime.now(timezone.utc)
+        # For now, get all data (will add date filtering later)
         
-        if period == "daily":
-            current_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            previous_start = current_start - timedelta(days=1)
-            previous_end = current_start
-            current_end = now
-        elif period == "weekly":
-            days_since_monday = now.weekday()
-            current_start = (now - timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
-            previous_start = current_start - timedelta(weeks=1)
-            previous_end = current_start
-            current_end = now
-        elif period == "monthly":
-            current_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            if current_start.month == 1:
-                previous_start = current_start.replace(year=current_start.year-1, month=12)
-            else:
-                previous_start = current_start.replace(month=current_start.month-1)
-            previous_end = current_start
-            current_end = now
-        else:  # yearly
-            current_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            previous_start = current_start.replace(year=current_start.year-1)
-            previous_end = current_start
-            current_end = now
-
-        # Current period stats
-        current_filter = {"created_at": {"$gte": current_start, "$lte": current_end}}
-        previous_filter = {"created_at": {"$gte": previous_start, "$lt": previous_end}}
-
-        # Bill Sales Current Period
-        current_bill_pipeline = [
-            {"$match": current_filter},
+        # Bill Sales Stats - ALL REAL DATA
+        bill_pipeline = [
             {
                 "$group": {
                     "_id": None,
@@ -3227,14 +3196,13 @@ async def get_dashboard_stats(period: str = "monthly"):
             }
         ]
         
-        current_bill_stats = await db.sales.aggregate(current_bill_pipeline).to_list(1)
-        current_bills = current_bill_stats[0] if current_bill_stats else {
+        bill_result = await db.sales.aggregate(bill_pipeline).to_list(1)
+        bill_stats = bill_result[0] if bill_result else {
             "total_revenue": 0, "total_profit": 0, "transaction_count": 0, "avg_transaction": 0
         }
 
-        # Credit DAO Current Period
-        current_dao_pipeline = [
-            {"$match": current_filter},
+        # Credit DAO Stats - ALL REAL DATA
+        dao_pipeline = [
             {
                 "$group": {
                     "_id": None,
@@ -3246,76 +3214,49 @@ async def get_dashboard_stats(period: str = "monthly"):
             }
         ]
         
-        current_dao_stats = await db.credit_card_transactions.aggregate(current_dao_pipeline).to_list(1)
-        current_dao = current_dao_stats[0] if current_dao_stats else {
+        dao_result = await db.credit_card_transactions.aggregate(dao_pipeline).to_list(1)
+        dao_stats = dao_result[0] if dao_result else {
             "total_revenue": 0, "total_profit": 0, "transaction_count": 0, "avg_transaction": 0
         }
 
-        # Previous period stats for comparison
-        previous_bill_stats = await db.sales.aggregate([
-            {"$match": previous_filter},
-            {"$group": {"_id": None, "total_revenue": {"$sum": "$total"}, "total_profit": {"$sum": "$profit_value"}}}
-        ]).to_list(1)
-        previous_bills = previous_bill_stats[0] if previous_bill_stats else {"total_revenue": 0, "total_profit": 0}
-
-        previous_dao_stats = await db.credit_card_transactions.aggregate([
-            {"$match": previous_filter},
-            {"$group": {"_id": None, "total_revenue": {"$sum": "$total_amount"}, "total_profit": {"$sum": "$profit_value"}}}
-        ]).to_list(1)
-        previous_dao = previous_dao_stats[0] if previous_dao_stats else {"total_revenue": 0, "total_profit": 0}
-
-        # Calculate totals and growth
-        current_total_revenue = current_bills["total_revenue"] + current_dao["total_revenue"]
-        current_total_profit = current_bills["total_profit"] + current_dao["total_profit"]
-        current_total_transactions = current_bills["transaction_count"] + current_dao["transaction_count"]
-        
-        previous_total_revenue = previous_bills["total_revenue"] + previous_dao["total_revenue"]
-        previous_total_profit = previous_bills["total_profit"] + previous_dao["total_profit"]
-
-        # Calculate growth percentages
-        revenue_growth = ((current_total_revenue - previous_total_revenue) / previous_total_revenue * 100) if previous_total_revenue > 0 else 0
-        profit_growth = ((current_total_profit - previous_total_profit) / previous_total_profit * 100) if previous_total_profit > 0 else 0
-
-        # Customer stats
+        # Customer Stats - REAL DATA
         total_customers = await db.customers.count_documents({})
         active_customers = await db.customers.count_documents({"is_active": True})
-        new_customers = await db.customers.count_documents({"created_at": {"$gte": current_start}})
 
-        # Calculate average transaction value
-        avg_transaction_value = (current_bills["avg_transaction"] + current_dao["avg_transaction"]) / 2 if (current_bills["transaction_count"] + current_dao["transaction_count"]) > 0 else 0
+        # Calculate totals
+        total_revenue = bill_stats["total_revenue"] + dao_stats["total_revenue"]
+        total_profit = bill_stats["total_profit"] + dao_stats["total_profit"]
+        total_transactions = bill_stats["transaction_count"] + dao_stats["transaction_count"]
+        avg_transaction_value = (bill_stats["avg_transaction"] + dao_stats["avg_transaction"]) / 2 if total_transactions > 0 else 0
+
+        # Calculate profit margin
+        profit_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
 
         return {
             "period": period,
-            "current_period": {
-                "start": current_start.isoformat(),
-                "end": current_end.isoformat()
-            },
-            "total_revenue": current_total_revenue,
-            "total_profit": current_total_profit,
-            "total_transactions": current_total_transactions,
-            "revenue_growth": round(revenue_growth, 1),
-            "profit_growth": round(profit_growth, 1),
-            "avg_transaction_value": avg_transaction_value,
+            "total_revenue": total_revenue,
+            "total_profit": total_profit,
+            "total_transactions": total_transactions,
+            "profit_margin": round(profit_margin, 1),
+            "avg_transaction_value": round(avg_transaction_value, 0),
             "customer_stats": {
                 "total_customers": total_customers,
                 "active_customers": active_customers,
-                "new_customers": new_customers
+                "inactive_customers": total_customers - active_customers
             },
             "breakdown": {
                 "bill_sales": {
-                    "revenue": current_bills["total_revenue"],
-                    "profit": current_bills["total_profit"],
-                    "transactions": current_bills["transaction_count"]
+                    "revenue": bill_stats["total_revenue"],
+                    "profit": bill_stats["total_profit"],
+                    "transactions": bill_stats["transaction_count"],
+                    "avg_value": round(bill_stats["avg_transaction"], 0)
                 },
                 "credit_dao": {
-                    "revenue": current_dao["total_revenue"],
-                    "profit": current_dao["total_profit"],
-                    "transactions": current_dao["transaction_count"]
+                    "revenue": dao_stats["total_revenue"],
+                    "profit": dao_stats["total_profit"],
+                    "transactions": dao_stats["transaction_count"],
+                    "avg_value": round(dao_stats["avg_transaction"], 0)
                 }
-            },
-            "previous_period": {
-                "revenue": previous_total_revenue,
-                "profit": previous_total_profit
             }
         }
 
