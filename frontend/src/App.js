@@ -4393,7 +4393,25 @@ const DaoCardModal = ({ show, card, onClose, onSuccess }) => {
       
     } catch (error) {
       console.error("Error processing dao:", error);
-      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi đáo thẻ");
+      
+      // Handle different error response formats
+      let errorMessage = "Có lỗi xảy ra khi đáo thẻ";
+      
+      if (error.response?.data) {
+        const { detail } = error.response.data;
+        
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (Array.isArray(detail)) {
+          // If detail is array of validation errors
+          errorMessage = detail.map(err => err.msg || err.message || 'Validation error').join(', ');
+        } else if (detail && typeof detail === 'object') {
+          // If detail is object with validation info
+          errorMessage = detail.msg || detail.message || 'Validation error';
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
