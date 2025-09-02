@@ -6802,4 +6802,354 @@ const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activitie
   );
 };
 
+// Customer Credit Cards Tab Component
+const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
+  const [selectedCard, setSelectedCard] = useState(null);
+
+  const getCardStyle = (cardType) => {
+    switch (cardType?.toLowerCase()) {
+      case 'visa':
+        return {
+          gradient: 'bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600',
+          textColor: 'text-white',
+          logo: '💳'
+        };
+      case 'mastercard':
+        return {
+          gradient: 'bg-gradient-to-br from-red-400 via-red-500 to-orange-500',
+          textColor: 'text-white',
+          logo: '💳'
+        };
+      case 'jcb':
+        return {
+          gradient: 'bg-gradient-to-br from-green-400 via-green-500 to-teal-500',
+          textColor: 'text-white',
+          logo: '💳'
+        };
+      default:
+        return {
+          gradient: 'bg-gradient-to-br from-gray-400 via-gray-500 to-gray-600',
+          textColor: 'text-white',
+          logo: '💳'
+        };
+    }
+  };
+
+  const getBankIcon = (bankName) => {
+    switch (bankName?.toLowerCase()) {
+      case 'techcombank': return '🏦';
+      case 'vietcombank': return '🏛️';
+      case 'bidv': return '🏪';
+      case 'vietinbank': return '🏢';
+      case 'acb': return '🏦';
+      case 'mb bank': return '💰';
+      case 'sacombank': return '🏦';
+      case 'tpbank': return '🏛️';
+      default: return '🏦';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Đã đáo':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'Cần đáo':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Chưa đến hạn':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Quá hạn':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'Hết hạn':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  if (credit_cards.total_cards === 0) {
+    return (
+      <div className="text-center py-12">
+        <CreditCard className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có thẻ tín dụng</h3>
+        <p className="text-gray-500 mb-4">Khách hàng này chưa có thẻ tín dụng nào</p>
+        <Button variant="outline">
+          <Plus className="h-4 w-4 mr-2" />
+          Thêm Thẻ Đầu Tiên
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Credit Cards Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-purple-600">{credit_cards.total_cards}</div>
+            <div className="text-sm text-gray-600">Tổng Thẻ</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{credit_cards.active_cards}</div>
+            <div className="text-sm text-gray-600">Hoạt Động</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{formatCurrency(credit_cards.total_credit_limit)}</div>
+            <div className="text-sm text-gray-600">Tổng Hạn Mức</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-orange-600">{Math.round(credit_cards.total_credit_limit / credit_cards.total_cards)}</div>
+            <div className="text-sm text-gray-600">TB Hạn Mức</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Credit Cards Gallery */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Thẻ Tín Dụng ({credit_cards.total_cards})</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          {credit_cards.cards.map((card) => (
+            <div key={card.id} className="relative group">
+              {/* Credit Card Visual */}
+              <div className="w-full max-w-sm mx-auto">
+                <div 
+                  className={`aspect-[1.586/1] ${getCardStyle(card.card_type).gradient} rounded-xl p-4 sm:p-6 ${getCardStyle(card.card_type).textColor} shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105 relative`}
+                  onClick={() => setSelectedCard(card)}
+                >
+                  {/* Status Badge */}
+                  <div className="absolute top-2 left-2 sm:top-4 sm:left-4">
+                    <Badge className={`${getStatusColor(card.status)} border-0 text-xs`}>
+                      {card.status}
+                    </Badge>
+                  </div>
+
+                  {/* Card Type & Bank Icons */}
+                  <div className="flex justify-between items-start mb-8">
+                    <div className="flex items-center space-x-2">
+                      <div className="text-2xl">{getBankIcon(card.bank_name)}</div>
+                      <div className="text-xs font-bold opacity-90">{card.bank_name}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold">{getCardStyle(card.card_type).logo}</div>
+                      <p className="text-xs opacity-60">{card.card_type}</p>
+                    </div>
+                  </div>
+
+                  {/* Card Number */}
+                  <div className="mb-6">
+                    <p className="text-lg font-mono tracking-wider">
+                      {card.card_number}
+                    </p>
+                  </div>
+
+                  {/* Card Info */}
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-xs opacity-60 mb-1">CREDIT LIMIT</p>
+                      <p className="font-semibold text-sm">
+                        {formatCurrency(card.credit_limit)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs opacity-60 mb-1">EXPIRES</p>
+                      <p className="font-mono text-sm">{card.expiry_date}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Action Buttons */}
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-xl transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <div className="flex space-x-2">
+                  <Button 
+                    size="sm" 
+                    variant="secondary"
+                    className="bg-white text-gray-900 hover:bg-gray-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedCard(card);
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Xem
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="secondary"
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Handle DAO action
+                    }}
+                  >
+                    <CreditCard className="h-4 w-4 mr-1" />
+                    Đáo
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Cards Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Status Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <PieChart className="h-5 w-5 mr-2" />
+              Phân Bố Trạng Thái
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Object.entries(
+                credit_cards.cards.reduce((acc, card) => {
+                  acc[card.status] = (acc[card.status] || 0) + 1;
+                  return acc;
+                }, {})
+              ).map(([status, count]) => (
+                <div key={status} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Badge className={`${getStatusColor(status)} text-xs`}>
+                      {status}
+                    </Badge>
+                  </div>
+                  <div className="text-sm font-medium">{count} thẻ</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bank Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Building className="h-5 w-5 mr-2" />
+              Phân Bố Ngân Hàng
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Object.entries(
+                credit_cards.cards.reduce((acc, card) => {
+                  acc[card.bank_name] = (acc[card.bank_name] || 0) + 1;
+                  return acc;
+                }, {})
+              ).map(([bank, count]) => (
+                <div key={bank} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">{getBankIcon(bank)}</span>
+                    <span className="text-sm font-medium">{bank}</span>
+                  </div>
+                  <div className="text-sm text-gray-600">{count} thẻ</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Card Detail Modal */}
+      {selectedCard && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Chi Tiết Thẻ Tín Dụng</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setSelectedCard(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Card Visual in Modal */}
+              <div className="mb-6 flex justify-center">
+                <div className={`w-80 aspect-[1.586/1] ${getCardStyle(selectedCard.card_type).gradient} rounded-xl p-6 ${getCardStyle(selectedCard.card_type).textColor} shadow-xl`}>
+                  <div className="flex justify-between items-start mb-8">
+                    <div className="flex items-center space-x-2">
+                      <div className="text-2xl">{getBankIcon(selectedCard.bank_name)}</div>
+                      <div className="text-xs font-bold opacity-90">{selectedCard.bank_name}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold">{getCardStyle(selectedCard.card_type).logo}</div>
+                      <p className="text-xs opacity-60">{selectedCard.card_type}</p>
+                    </div>
+                  </div>
+                  <div className="mb-6">
+                    <p className="text-lg font-mono tracking-wider">{selectedCard.card_number}</p>
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-xs opacity-60 mb-1">CREDIT LIMIT</p>
+                      <p className="font-semibold text-sm">{formatCurrency(selectedCard.credit_limit)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs opacity-60 mb-1">EXPIRES</p>
+                      <p className="font-mono text-sm">{selectedCard.expiry_date}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Details */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Ngân hàng:</span>
+                  <span className="ml-2 font-medium">{selectedCard.bank_name}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Loại thẻ:</span>
+                  <span className="ml-2 font-medium">{selectedCard.card_type}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Hạn mức:</span>
+                  <span className="ml-2 font-medium">{formatCurrency(selectedCard.credit_limit)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Trạng thái:</span>
+                  <Badge className={`ml-2 ${getStatusColor(selectedCard.status)} text-xs`}>
+                    {selectedCard.status}
+                  </Badge>
+                </div>
+                <div>
+                  <span className="text-gray-600">Hạn sử dụng:</span>
+                  <span className="ml-2 font-medium">{selectedCard.expiry_date}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 mt-6 pt-4 border-t">
+                <Button className="flex-1">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Đáo Thẻ
+                </Button>
+                <Button variant="outline" className="flex-1">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Chỉnh Sửa
+                </Button>
+                <Button variant="outline" className="flex-1">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Xóa Thẻ
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default App;
