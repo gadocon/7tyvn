@@ -3298,6 +3298,336 @@ const SalesExportModal = ({ show, onClose, onExport }) => {
 
 
 
+// Credit Cards Component
+const CreditCards = () => {
+  const [cards, setCards] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [cardStats, setCardStats] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    fetchCreditCards();
+    fetchCustomers();
+    fetchCardStats();
+  }, []);
+
+  const fetchCreditCards = async () => {
+    try {
+      const response = await axios.get(`${API}/credit-cards?page_size=100`);
+      setCards(response.data);
+    } catch (error) {
+      console.error("Error fetching credit cards:", error);
+      toast.error("Không thể tải dữ liệu thẻ tín dụng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const response = await axios.get(`${API}/customers?page_size=100`);
+      setCustomers(response.data);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+    }
+  };
+
+  const fetchCardStats = async () => {
+    try {
+      const response = await axios.get(`${API}/credit-cards/stats`);
+      setCardStats(response.data);
+    } catch (error) {
+      console.error("Error fetching card stats:", error);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const maskCardNumber = (cardNumber) => {
+    if (!cardNumber) return "";
+    const lastFour = cardNumber.slice(-4);
+    return `**** **** **** ${lastFour}`;
+  };
+
+  const getCardTypeIcon = (cardType) => {
+    switch (cardType) {
+      case "VISA":
+        return "💳";
+      case "MASTERCARD":
+        return "💳";
+      case "JCB":
+        return "💳";
+      case "AMEX":
+        return "💳";
+      default:
+        return "💳";
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Đã đáo":
+        return "bg-green-100 text-green-800";
+      case "Cần đáo":
+        return "bg-red-100 text-red-800";
+      case "Chưa đến hạn":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const filteredCards = cards.filter(card => 
+    card.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    card.cardholder_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    card.bank_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    card.card_number?.includes(searchTerm)
+  );
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải dữ liệu thẻ...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Quản Lý Thẻ Tín Dụng</h1>
+          <p className="text-gray-600 mt-1">Quản lý thẻ tín dụng và theo dõi thanh toán</p>
+        </div>
+        <Button 
+          onClick={() => setShowAddModal(true)} 
+          className="bg-green-600 hover:bg-green-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Thêm Thẻ Mới
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <CreditCard className="h-4 w-4 mr-2" />
+              Tổng Thẻ
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900">{cardStats.total_cards || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Tất cả thẻ trong hệ thống</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Đã Đáo
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{cardStats.paid_off_cards || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Thẻ đã thanh toán</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-red-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Cần Đáo
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{cardStats.need_payment_cards || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Thẻ cần thanh toán</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Tổng Hạn Mức
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{formatCurrency(cardStats.total_credit_limit || 0)}</div>
+            <p className="text-xs text-gray-500 mt-1">Tổng hạn mức tín dụng</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Tìm kiếm theo tên khách hàng, chủ thẻ, ngân hàng..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
+      {/* Visual Credit Cards Gallery */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Thẻ Tín Dụng</h2>
+        {filteredCards.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredCards.slice(0, 8).map((card) => (
+              <div key={card.id} className="relative">
+                {/* Credit Card Visual */}
+                <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+                     onClick={() => setSelectedCard(card)}>
+                  
+                  {/* Card Type Icon */}
+                  <div className="flex justify-between items-start mb-8">
+                    <div className="text-2xl">{getCardTypeIcon(card.card_type)}</div>
+                    <div className="text-right">
+                      <p className="text-xs opacity-80">{card.bank_name}</p>
+                      <p className="text-xs opacity-60">{card.card_type}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Card Number */}
+                  <div className="mb-6">
+                    <p className="text-lg font-mono tracking-wider">
+                      {maskCardNumber(card.card_number)}
+                    </p>
+                  </div>
+                  
+                  {/* Card Info */}
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-xs opacity-60 mb-1">CARDHOLDER NAME</p>
+                      <p className="font-semibold text-sm uppercase tracking-wide">
+                        {card.cardholder_name}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs opacity-60 mb-1">VALID THRU</p>
+                      <p className="font-mono text-sm">{card.expiry_date}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Status Badge */}
+                  <div className="absolute top-4 left-4">
+                    <Badge className={`${getStatusColor(card.status)} border-0`}>
+                      {card.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <CreditCard className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có thẻ nào</h3>
+            <p className="text-gray-500 mb-4">Bắt đầu bằng cách thêm thẻ tín dụng đầu tiên</p>
+            <Button onClick={() => setShowAddModal(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm Thẻ Đầu Tiên
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Credit Cards Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Danh Sách Chi Tiết</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredCards.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Khách Hàng</TableHead>
+                  <TableHead>Chủ Thẻ</TableHead>
+                  <TableHead>Số Thẻ</TableHead>
+                  <TableHead>Ngân Hàng</TableHead>
+                  <TableHead>Loại Thẻ</TableHead>
+                  <TableHead>Hạn Mức</TableHead>
+                  <TableHead>Ngày SK</TableHead>
+                  <TableHead>Hạn TT</TableHead>
+                  <TableHead>Trạng Thái</TableHead>
+                  <TableHead>Thao Tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCards.map((card) => (
+                  <TableRow key={card.id}>
+                    <TableCell className="font-medium">{card.customer_name}</TableCell>
+                    <TableCell>{card.cardholder_name}</TableCell>
+                    <TableCell className="font-mono">{maskCardNumber(card.card_number)}</TableCell>
+                    <TableCell>{card.bank_name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{card.card_type}</Badge>
+                    </TableCell>
+                    <TableCell>{formatCurrency(card.credit_limit)}</TableCell>
+                    <TableCell>{card.statement_date}</TableCell>
+                    <TableCell>{card.payment_due_date}</TableCell>
+                    <TableCell>
+                      <Badge className={`${getStatusColor(card.status)} border-0`}>
+                        {card.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setSelectedCard(card)}>
+                          Xem
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-red-600">
+                          Xóa
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Không tìm thấy thẻ nào
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add Card Modal - Will implement next */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Thêm Thẻ Mới</h3>
+            <p className="text-gray-500 mb-4">Modal will be implemented next...</p>
+            <Button onClick={() => setShowAddModal(false)}>Đóng</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Main App Component  
 function App() {
   return (
