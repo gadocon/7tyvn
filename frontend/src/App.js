@@ -219,6 +219,8 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [selectedCustomerDetail, setSelectedCustomerDetail] = useState(null);
 
   useEffect(() => {
     fetchDashboardStats();
