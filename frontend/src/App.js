@@ -957,7 +957,7 @@ const CheckBill = () => {
                           Hợp lệ
                         </Badge>
                       ) : bill.status === "ADDED_TO_INVENTORY" ? (
-                        <Badge className="bg-blue-100 text-blue-800">
+                        <Badge className="bg-green-100 text-blue-800">
                           <Package className="h-3 w-3 mr-1" />
                           Đã thêm vào kho
                         </Badge>
@@ -2714,7 +2714,7 @@ const Transactions = () => {
       case "BILL_SALE":
         return `${baseClasses} bg-green-100 text-green-800`;
       case "CREDIT_DAO_POS":
-        return `${baseClasses} bg-blue-100 text-blue-800`;
+        return `${baseClasses} bg-green-100 text-blue-800`;
       case "CREDIT_DAO_BILL":
         return `${baseClasses} bg-purple-100 text-purple-800`;
       default:
@@ -3550,7 +3550,7 @@ const ImportModal = ({ show, onClose, onImportComplete, onDownloadTemplate }) =>
             <Button
               variant="outline"
               onClick={onDownloadTemplate}
-              className="border-blue-200 text-blue-700 hover:bg-blue-100"
+              className="border-blue-200 text-blue-700 hover:bg-green-100"
             >
               <Download className="h-4 w-4 mr-2" />
               Tải Template
@@ -6303,7 +6303,7 @@ const Reports = () => {
               <div className="text-sm text-green-600">Tỷ trọng Bills</div>
             </div>
 
-            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-blue-100 rounded-lg">
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
               <CreditCard className="h-8 w-8 mx-auto text-blue-600 mb-2" />
               <div className="text-lg font-bold text-blue-700">
                 {((dashboardStats?.breakdown?.credit_dao?.revenue || 0) / (dashboardStats?.total_revenue || 1) * 100).toFixed(1)}%
@@ -6978,7 +6978,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
       case 'Cần đáo':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'Chưa đến hạn':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-green-100 text-blue-800 border-blue-200';
       case 'Quá hạn':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'Hết hạn':
@@ -7870,7 +7870,7 @@ const CustomerAnalyticsTab = ({ customer, formatCurrency }) => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <UserPlus className="h-8 w-8 text-blue-600" />
               </div>
               <h4 className="font-medium text-gray-900 mb-1">Khách Hàng Mới</h4>
