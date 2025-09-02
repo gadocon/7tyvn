@@ -1971,12 +1971,20 @@ async def update_credit_card(card_id: str, card_data: CreditCardUpdate):
 
 @api_router.delete("/credit-cards/{card_id}")
 async def delete_credit_card(card_id: str):
-    """Delete credit card"""
+    """Delete credit card with transaction validation"""
     try:
         # Get card to find customer_id
         card = await db.credit_cards.find_one({"id": card_id})
         if not card:
             raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+        
+        # Check for existing transactions
+        transaction_count = await db.credit_card_transactions.count_documents({"card_id": card_id})
+        if transaction_count > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Không thể xóa thẻ có {transaction_count} giao dịch liên quan. Xóa thẻ sẽ làm mất dữ liệu lịch sử giao dịch và ảnh hưởng đến báo cáo tài chính."
+            )
         
         # Delete card
         result = await db.credit_cards.delete_one({"id": card_id})
