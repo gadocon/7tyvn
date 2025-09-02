@@ -311,7 +311,7 @@ const Dashboard = ({ customerDetail, setCustomerDetail }) => {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Tổng quan hệ thống quản lý bill điện</p>
+        <p className="text-gray-600 mt-1">Tổng quan hệ thống CRM quản lý khách hàng</p>
       </div>
 
       {/* Stats Cards */}
