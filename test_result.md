@@ -249,11 +249,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Transaction Type Bug Fix - Customer Transaction History"
+    - "Activity Dashboard Integration"
   stuck_tasks:
     - "Real-time Status Calculation Functions"
   test_all: false
-  test_priority: "bug_fix_verification"
+  test_priority: "activity_dashboard_integration"
 
   - task: "Real-time Status Calculation Functions"
     implemented: true
