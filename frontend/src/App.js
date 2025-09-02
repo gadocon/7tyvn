@@ -7871,6 +7871,9 @@ const CustomerAnalyticsTab = ({ customer, formatCurrency }) => {
 
 // Main App with Authentication Wrapper
 const MainApp = () => {
+  // Shared state for customer modal
+  const [customerDetail, setCustomerDetail] = useState(null);
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -7886,10 +7889,10 @@ const MainApp = () => {
                 <main className="lg:ml-64 pt-16">
                   <div className="p-4 sm:p-6 lg:p-8">
                     <Routes>
-                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/" element={<Dashboard customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
                       <Route path="/check-bill" element={<CheckBill />} />
                       <Route path="/inventory" element={<Inventory />} />
-                      <Route path="/customers" element={<Customers />} />
+                      <Route path="/customers" element={<Customers customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
                       <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
                       <Route path="/credit-cards" element={<CreditCards />} />
                       <Route path="/transactions" element={<Transactions />} />
@@ -7898,6 +7901,14 @@ const MainApp = () => {
                     </Routes>
                   </div>
                 </main>
+                
+                {/* Global Customer Detail Modal */}
+                <CustomerDetailModal
+                  customerDetail={customerDetail}
+                  onClose={() => setCustomerDetail(null)}
+                />
+                
+                <Toaster />
               </div>
             </ProtectedRoute>
           } />
