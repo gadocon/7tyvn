@@ -6574,11 +6574,7 @@ const CustomerDetailPage = () => {
           <CustomerOverviewTab customer={customer} metrics={metrics} credit_cards={credit_cards} recent_activities={recent_activities} />
         )}
         {activeTab === 'cards' && (
-          <div className="text-center py-12">
-            <CreditCard className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Thẻ Tín Dụng</h3>
-            <p className="text-gray-500">Tab này sẽ được triển khai trong phase tiếp theo</p>
-          </div>
+          <CustomerCreditCardsTab customer={customer} credit_cards={credit_cards} formatCurrency={formatCurrency} />
         )}
         {activeTab === 'transactions' && (
           <div className="text-center py-12">
