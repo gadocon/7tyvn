@@ -5976,24 +5976,161 @@ const Reports = () => {
         </CardContent>
       </Card>
 
-      {/* Future: Charts Section */}
+      {/* Charts Section - REAL DATA CHARTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue Trend Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <TrendingUp className="h-5 w-5 mr-2" />
+              Xu Hướng Doanh Thu
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <LineChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month_display" />
+                  <YAxis tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      formatCurrency(value), 
+                      name === 'total_revenue' ? 'Tổng Doanh Thu' :
+                      name === 'sales_revenue' ? 'Doanh Thu Bills' : 'Doanh Thu ĐÁO'
+                    ]}
+                    labelFormatter={(label) => `Tháng ${label}`}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="total_revenue" stroke="#10B981" strokeWidth={3} name="Tổng Doanh Thu" />
+                  <Line type="monotone" dataKey="sales_revenue" stroke="#059669" strokeWidth={2} name="Bills" />
+                  <Line type="monotone" dataKey="dao_revenue" stroke="#3B82F6" strokeWidth={2} name="ĐÁO" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Transaction Distribution Pie Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <BarChart3 className="h-5 w-5 mr-2" />
+              Phân Bố Giao Dịch
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={distributionData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({name, percentage}) => `${name}: ${percentage}%`}
+                  >
+                    {distributionData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value, name, props) => [
+                      formatCurrency(value),
+                      `${props.payload.name} (${props.payload.count} GD)`
+                    ]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Legend for Pie Chart */}
+            <div className="mt-4 flex flex-wrap justify-center gap-4">
+              {distributionData.map((item, index) => (
+                <div key={index} className="flex items-center">
+                  <div 
+                    className="w-3 h-3 rounded-full mr-2" 
+                    style={{ backgroundColor: item.color }}
+                  ></div>
+                  <span className="text-sm text-gray-600">
+                    {item.name} ({item.count} GD)
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Top Customers Bar Chart */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <BarChart3 className="h-5 w-5 mr-2" />
-            Biểu Đồ Phân Tích
+            <Users className="h-5 w-5 mr-2" />
+            Top 10 Khách Hàng VIP
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-12">
-            <BarChart3 className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Biểu Đồ Đang Phát Triển</h3>
-            <p className="text-gray-500 mb-4">
-              Charts và visualizations sẽ được thêm vào phiên bản tiếp theo
-            </p>
-            <p className="text-sm text-gray-400">
-              Revenue Trend • Customer Analytics • Transaction Distribution
-            </p>
+          <div style={{ width: '100%', height: 400 }}>
+            <ResponsiveContainer>
+              <BarChart data={topCustomersData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={100}
+                  interval={0}
+                  fontSize={12}
+                />
+                <YAxis tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} />
+                <Tooltip 
+                  formatter={(value, name) => [
+                    formatCurrency(value),
+                    name === 'total_revenue' ? 'Tổng Doanh Thu' :
+                    name === 'sales_revenue' ? 'Doanh Thu Bills' : 'Doanh Thu ĐÁO'
+                  ]}
+                  labelFormatter={(label) => `${label}`}
+                />
+                <Legend />
+                <Bar dataKey="total_revenue" fill="#10B981" name="Tổng Doanh Thu" />
+                <Bar dataKey="sales_revenue" fill="#059669" name="Bills" />
+                <Bar dataKey="dao_revenue" fill="#3B82F6" name="ĐÁO" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {/* Top Customers Summary */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {topCustomersData.slice(0, 3).map((customer, index) => (
+              <div key={index} className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center mb-2">
+                  <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-2">
+                    {customer.rank}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{customer.name}</p>
+                    <p className="text-xs text-gray-500">{customer.phone}</p>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Doanh thu:</span>
+                    <span className="font-medium text-green-600">{formatCurrency(customer.total_revenue)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Giao dịch:</span>
+                    <span className="font-medium">{customer.total_transactions}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Margin:</span>
+                    <span className="font-medium text-blue-600">{customer.profit_margin}%</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
