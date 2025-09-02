@@ -2947,6 +2947,7 @@ class FPTBillManagerAPITester:
         # Create BILL payment
         print(f"\n🧾 Step 3: Creating BILL payment with multiple bills...")
         bill_payment_data = {
+            "card_id": card_id,
             "payment_method": "BILL",
             "bill_ids": test_bills,
             "profit_pct": 4.0,
