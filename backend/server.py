@@ -70,6 +70,7 @@ class CardStatus(str, Enum):
     PAID_OFF = "Đã đáo"  # Đã đáo
     NEED_PAYMENT = "Cần đáo"  # Cần đáo  
     NOT_DUE = "Chưa đến hạn"  # Chưa đến hạn
+    OVERDUE = "Quá Hạn"  # Quá hạn (red alert)
 
 # Models
 class Bill(BaseModel):
