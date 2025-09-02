@@ -7902,8 +7902,8 @@ const MainApp = () => {
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected Routes */}
-          <Route path="/*" element={
+          {/* Protected Routes - All under one parent route */}
+          <Route path="*" element={
             <ProtectedRoute>
               <div className="min-h-screen bg-gray-50">
                 <Navigation />
