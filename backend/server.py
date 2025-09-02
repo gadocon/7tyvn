@@ -2129,6 +2129,22 @@ async def create_credit_card(card_data: CreditCardCreate):
             {"$inc": {"total_cards": 1}}
         )
         
+        # Log activity
+        await log_activity(ActivityCreate(
+            type=ActivityType.CARD_CREATE,
+            title=f"Thêm thẻ ****{card_data.card_number[-4:]}",
+            description=f"Thẻ {card_data.card_type.value} - {card_data.bank_name}",
+            customer_id=card_data.customer_id,
+            customer_name=customer["name"],
+            amount=card_data.credit_limit,
+            status="SUCCESS",
+            metadata={
+                "card_type": card_data.card_type.value,
+                "bank_name": card_data.bank_name,
+                "credit_limit": card_data.credit_limit
+            }
+        ))
+        
         return card
         
     except HTTPException:
