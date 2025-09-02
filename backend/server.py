@@ -3173,6 +3173,325 @@ async def get_transactions_stats():
         logger.error(f"Error getting transaction stats: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# =============================================================================
+# REPORTS & ANALYTICS API - TRANG BÁO CÁO
+# =============================================================================
+
+@api_router.get("/reports/dashboard-stats")
+async def get_dashboard_stats(period: str = "monthly"):
+    """Get comprehensive dashboard statistics for reports"""
+    try:
+        # Calculate date ranges based on period
+        now = datetime.now(timezone.utc)
+        
+        if period == "daily":
+            current_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            previous_start = current_start - timedelta(days=1)
+            previous_end = current_start
+            current_end = now
+        elif period == "weekly":
+            days_since_monday = now.weekday()
+            current_start = (now - timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
+            previous_start = current_start - timedelta(weeks=1)
+            previous_end = current_start
+            current_end = now
+        elif period == "monthly":
+            current_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if current_start.month == 1:
+                previous_start = current_start.replace(year=current_start.year-1, month=12)
+            else:
+                previous_start = current_start.replace(month=current_start.month-1)
+            previous_end = current_start
+            current_end = now
+        else:  # yearly
+            current_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            previous_start = current_start.replace(year=current_start.year-1)
+            previous_end = current_start
+            current_end = now
+
+        # Current period stats
+        current_filter = {"created_at": {"$gte": current_start, "$lt": current_end}}
+        previous_filter = {"created_at": {"$gte": previous_start, "$lt": previous_end}}
+
+        # Bill Sales Current Period
+        current_bill_pipeline = [
+            {"$match": current_filter},
+            {
+                "$group": {
+                    "_id": None,
+                    "total_revenue": {"$sum": "$total"},
+                    "total_profit": {"$sum": "$profit_value"},
+                    "transaction_count": {"$sum": 1},
+                    "avg_transaction": {"$avg": "$total"}
+                }
+            }
+        ]
+        
+        current_bill_stats = await db.sales.aggregate(current_bill_pipeline).to_list(1)
+        current_bills = current_bill_stats[0] if current_bill_stats else {
+            "total_revenue": 0, "total_profit": 0, "transaction_count": 0, "avg_transaction": 0
+        }
+
+        # Credit DAO Current Period
+        current_dao_pipeline = [
+            {"$match": current_filter},
+            {
+                "$group": {
+                    "_id": None,
+                    "total_revenue": {"$sum": "$total_amount"},
+                    "total_profit": {"$sum": "$profit_value"},
+                    "transaction_count": {"$sum": 1},
+                    "avg_transaction": {"$avg": "$total_amount"}
+                }
+            }
+        ]
+        
+        current_dao_stats = await db.credit_card_transactions.aggregate(current_dao_pipeline).to_list(1)
+        current_dao = current_dao_stats[0] if current_dao_stats else {
+            "total_revenue": 0, "total_profit": 0, "transaction_count": 0, "avg_transaction": 0
+        }
+
+        # Previous period stats for comparison
+        previous_bill_stats = await db.sales.aggregate([
+            {"$match": previous_filter},
+            {"$group": {"_id": None, "total_revenue": {"$sum": "$total"}, "total_profit": {"$sum": "$profit_value"}}}
+        ]).to_list(1)
+        previous_bills = previous_bill_stats[0] if previous_bill_stats else {"total_revenue": 0, "total_profit": 0}
+
+        previous_dao_stats = await db.credit_card_transactions.aggregate([
+            {"$match": previous_filter},
+            {"$group": {"_id": None, "total_revenue": {"$sum": "$total_amount"}, "total_profit": {"$sum": "$profit_value"}}}
+        ]).to_list(1)
+        previous_dao = previous_dao_stats[0] if previous_dao_stats else {"total_revenue": 0, "total_profit": 0}
+
+        # Calculate totals and growth
+        current_total_revenue = current_bills["total_revenue"] + current_dao["total_revenue"]
+        current_total_profit = current_bills["total_profit"] + current_dao["total_profit"]
+        current_total_transactions = current_bills["transaction_count"] + current_dao["transaction_count"]
+        
+        previous_total_revenue = previous_bills["total_revenue"] + previous_dao["total_revenue"]
+        previous_total_profit = previous_bills["total_profit"] + previous_dao["total_profit"]
+
+        # Calculate growth percentages
+        revenue_growth = ((current_total_revenue - previous_total_revenue) / previous_total_revenue * 100) if previous_total_revenue > 0 else 0
+        profit_growth = ((current_total_profit - previous_total_profit) / previous_total_profit * 100) if previous_total_profit > 0 else 0
+
+        # Customer stats
+        total_customers = await db.customers.count_documents({})
+        active_customers = await db.customers.count_documents({"is_active": True})
+        new_customers = await db.customers.count_documents({"created_at": {"$gte": current_start}})
+
+        # Calculate average transaction value
+        avg_transaction_value = (current_bills["avg_transaction"] + current_dao["avg_transaction"]) / 2 if (current_bills["transaction_count"] + current_dao["transaction_count"]) > 0 else 0
+
+        return {
+            "period": period,
+            "current_period": {
+                "start": current_start.isoformat(),
+                "end": current_end.isoformat()
+            },
+            "total_revenue": current_total_revenue,
+            "total_profit": current_total_profit,
+            "total_transactions": current_total_transactions,
+            "revenue_growth": round(revenue_growth, 1),
+            "profit_growth": round(profit_growth, 1),
+            "avg_transaction_value": avg_transaction_value,
+            "customer_stats": {
+                "total_customers": total_customers,
+                "active_customers": active_customers,
+                "new_customers": new_customers
+            },
+            "breakdown": {
+                "bill_sales": {
+                    "revenue": current_bills["total_revenue"],
+                    "profit": current_bills["total_profit"],
+                    "transactions": current_bills["transaction_count"]
+                },
+                "credit_dao": {
+                    "revenue": current_dao["total_revenue"],
+                    "profit": current_dao["total_profit"],
+                    "transactions": current_dao["transaction_count"]
+                }
+            },
+            "previous_period": {
+                "revenue": previous_total_revenue,
+                "profit": previous_total_profit
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting dashboard stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/reports/revenue-trend")
+async def get_revenue_trend(months: int = 6):
+    """Get revenue trend data for charts - real data only"""
+    try:
+        # Calculate date range for the specified months
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(days=months * 30)  # Approximate months to days
+        
+        # Create monthly buckets
+        monthly_data = []
+        current_date = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        while current_date < end_date:
+            # Calculate next month
+            if current_date.month == 12:
+                next_month = current_date.replace(year=current_date.year + 1, month=1)
+            else:
+                next_month = current_date.replace(month=current_date.month + 1)
+            
+            month_filter = {
+                "created_at": {
+                    "$gte": current_date,
+                    "$lt": next_month
+                }
+            }
+            
+            # Bill sales for this month
+            bill_pipeline = [
+                {"$match": month_filter},
+                {
+                    "$group": {
+                        "_id": None,
+                        "revenue": {"$sum": "$total"},
+                        "profit": {"$sum": "$profit_value"},
+                        "count": {"$sum": 1}
+                    }
+                }
+            ]
+            
+            bill_result = await db.sales.aggregate(bill_pipeline).to_list(1)
+            bill_data = bill_result[0] if bill_result else {"revenue": 0, "profit": 0, "count": 0}
+            
+            # Credit DAO for this month
+            dao_pipeline = [
+                {"$match": month_filter},
+                {
+                    "$group": {
+                        "_id": None,
+                        "revenue": {"$sum": "$total_amount"},
+                        "profit": {"$sum": "$profit_value"},
+                        "count": {"$sum": 1}
+                    }
+                }
+            ]
+            
+            dao_result = await db.credit_card_transactions.aggregate(dao_pipeline).to_list(1)
+            dao_data = dao_result[0] if dao_result else {"revenue": 0, "profit": 0, "count": 0}
+            
+            monthly_data.append({
+                "month": current_date.strftime("%Y-%m"),
+                "month_name": current_date.strftime("%m/%Y"),
+                "total_revenue": bill_data["revenue"] + dao_data["revenue"],
+                "total_profit": bill_data["profit"] + dao_data["profit"],
+                "total_transactions": bill_data["count"] + dao_data["count"],
+                "bill_sales_revenue": bill_data["revenue"],
+                "dao_revenue": dao_data["revenue"],
+                "bill_sales_count": bill_data["count"],
+                "dao_count": dao_data["count"]
+            })
+            
+            current_date = next_month
+        
+        return {
+            "period": f"{months} months",
+            "data": monthly_data
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting revenue trend: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/reports/customer-analytics")
+async def get_customer_analytics():
+    """Get customer analytics - real data from database"""
+    try:
+        # Customer distribution by type
+        customer_type_pipeline = [
+            {
+                "$group": {
+                    "_id": "$type",
+                    "count": {"$sum": 1}
+                }
+            }
+        ]
+        
+        customer_types = await db.customers.aggregate(customer_type_pipeline).to_list(10)
+        
+        # Top customers by transaction value
+        top_customers_pipeline = [
+            {
+                "$lookup": {
+                    "from": "sales",
+                    "localField": "id",
+                    "foreignField": "customer_id",
+                    "as": "sales"
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "credit_card_transactions",
+                    "localField": "id",
+                    "foreignField": "customer_id", 
+                    "as": "dao_transactions"
+                }
+            },
+            {
+                "$addFields": {
+                    "total_sales_value": {"$sum": "$sales.total"},
+                    "total_dao_value": {"$sum": "$dao_transactions.total_amount"},
+                    "sales_count": {"$size": "$sales"},
+                    "dao_count": {"$size": "$dao_transactions"}
+                }
+            },
+            {
+                "$addFields": {
+                    "total_value": {"$add": ["$total_sales_value", "$total_dao_value"]},
+                    "total_transactions": {"$add": ["$sales_count", "$dao_count"]}
+                }
+            },
+            {"$sort": {"total_value": -1}},
+            {"$limit": 10},
+            {
+                "$project": {
+                    "name": 1,
+                    "phone": 1,
+                    "type": 1,
+                    "total_value": 1,
+                    "total_transactions": 1,
+                    "total_sales_value": 1,
+                    "total_dao_value": 1
+                }
+            }
+        ]
+        
+        top_customers = await db.customers.aggregate(top_customers_pipeline).to_list(10)
+        
+        # Customer activity distribution
+        customer_activity_pipeline = [
+            {
+                "$group": {
+                    "_id": "$is_active",
+                    "count": {"$sum": 1}
+                }
+            }
+        ]
+        
+        customer_activity = await db.customers.aggregate(customer_activity_pipeline).to_list(10)
+        
+        return {
+            "customer_distribution": customer_types,
+            "top_customers": top_customers,
+            "activity_distribution": customer_activity,
+            "total_customers": await db.customers.count_documents({})
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting customer analytics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
