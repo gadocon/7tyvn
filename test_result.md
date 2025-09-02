@@ -247,11 +247,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Customer Detail Page Backend API Testing"
-  stuck_tasks:
-    - "Real-time Status Calculation Functions"
+    - "Delete Bill Error Investigation"
+  stuck_tasks: []
   test_all: false
-  test_priority: "customer_detail_api_testing_completed"
+  test_priority: "high_first"
 
   - task: "Customer Detail Page Backend API Testing"
     implemented: true
