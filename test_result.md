@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Fix duplicate modal bug in Dashboard where clicking customer names in activity log opens a separate modal instead of reusing the existing CustomerDetailModal from Khách Hàng page. Also change app name from 'FPT Bill Manager' to '7ty.vn CRM' throughout the application."
+user_problem_statement: "Fix UI overflow issue in Customers page - filter dropdowns and table overflowing screen on mobile devices and illogical arrangement, optimize for both desktop and mobile."
 
 backend:
   - task: "DAO Card API Endpoint"
