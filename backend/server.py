@@ -1,11 +1,12 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Header, File, UploadFile
+from fastapi import FastAPI, APIRouter, HTTPException, Header, File, UploadFile, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -13,6 +14,9 @@ from dateutil.relativedelta import relativedelta
 from enum import Enum
 import re
 import json
+import jwt
+from passlib.context import CryptContext
+from passlib.hash import bcrypt
 
 # Configure logging
 logging.basicConfig(
