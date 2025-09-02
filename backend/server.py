@@ -2498,15 +2498,40 @@ async def get_recent_activities(days: int = 3, limit: int = 50):
     try:
         # Calculate date range (3 days ago)
         since_date = datetime.now(timezone.utc) - timedelta(days=days)
+        print(f"[DEBUG] Looking for activities since: {since_date}")
         
         # Get activities
         activities = await db.activities.find({
             "created_at": {"$gte": since_date}
         }).sort("created_at", -1).limit(limit).to_list(limit)
         
-        return [Activity(**parse_from_mongo(activity)) for activity in activities]
+        print(f"[DEBUG] Found {len(activities)} activities from database")
+        
+        # Return raw activities without parsing for now to avoid errors
+        result = []
+        for activity in activities:
+            try:
+                # Don't use parse_from_mongo to avoid ObjectId issues
+                result.append({
+                    "id": activity.get("id"),
+                    "type": activity.get("type"),
+                    "title": activity.get("title"),
+                    "description": activity.get("description"),
+                    "customer_id": activity.get("customer_id"),
+                    "customer_name": activity.get("customer_name"),
+                    "amount": activity.get("amount"),
+                    "status": activity.get("status"),
+                    "metadata": activity.get("metadata"),
+                    "created_at": activity.get("created_at")
+                })
+            except Exception as e:
+                print(f"[ERROR] Error parsing activity: {e}")
+        
+        print(f"[DEBUG] Returning {len(result)} parsed activities")
+        return result
         
     except Exception as e:
+        print(f"[ERROR] Error in get_recent_activities: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/credit-cards/initialize-cycles")
