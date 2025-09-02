@@ -52,6 +52,7 @@ const Navigation = () => {
     { path: "/check-bill", label: "Kiểm Tra Mã Điện", icon: FileCheck },
     { path: "/inventory", label: "Kho Bill", icon: Package },
     { path: "/customers", label: "Khách Hàng", icon: Users },
+    { path: "/credit-cards", label: "Quản Lý Thẻ", icon: CreditCard },
     { path: "/sales", label: "Bán Bill", icon: ShoppingCart }
   ];
 
