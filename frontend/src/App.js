@@ -46,7 +46,9 @@ import {
   Eye,
   Printer,
   Mail,
-  Phone
+  Phone,
+  Building,
+  Edit
 } from "lucide-react";
 import { 
   LineChart, 
