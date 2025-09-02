@@ -3594,10 +3594,13 @@ const CreditCards = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setSelectedCard(card)}>
+                        <Button size="sm" variant="outline" onClick={() => handleViewCard(card)}>
                           Xem
                         </Button>
-                        <Button size="sm" variant="outline" className="text-red-600">
+                        <Button size="sm" variant="outline" onClick={() => handleEditCard(card)}>
+                          Sửa
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleDeleteCard(card)} className="text-red-600">
                           Xóa
                         </Button>
                       </div>
