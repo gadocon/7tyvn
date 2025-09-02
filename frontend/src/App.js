@@ -1686,7 +1686,7 @@ const Inventory = () => {
 };
 
 // Customers/Khách Hàng Page
-const Customers = () => {
+const Customers = ({ customerDetail, setCustomerDetail }) => {
   const [customers, setCustomers] = useState([]);
   const [customerStats, setCustomerStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1695,7 +1695,6 @@ const Customers = () => {
   const [isActive, setIsActive] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
-  const [customerDetail, setCustomerDetail] = useState(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState(null);
