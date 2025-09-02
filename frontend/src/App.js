@@ -38,7 +38,14 @@ import {
   CreditCard,
   Menu,
   X,
-  User
+  User,
+  Activity,
+  Receipt,
+  Zap,
+  FileText,
+  Eye,
+  Printer,
+  Mail
 } from "lucide-react";
 import axios from "axios";
 
