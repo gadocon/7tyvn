@@ -3484,12 +3484,12 @@ const CreditCards = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản Lý Thẻ Tín Dụng</h1>
-          <p className="text-gray-600 mt-1">Quản lý thẻ tín dụng và theo dõi thanh toán</p>
+          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Thẻ Tín Dụng</h1>
+          <p className="text-gray-600 mt-1">Quản lý thông tin thẻ tín dụng của khách hàng</p>
         </div>
         <Button 
           onClick={() => setShowAddModal(true)} 
