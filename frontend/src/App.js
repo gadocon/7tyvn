@@ -3391,11 +3391,15 @@ const CreditCards = () => {
   };
 
   const handleViewCard = async (card) => {
+    console.log("handleViewCard called with card:", card);
     try {
+      console.log("Making API call to:", `${API}/credit-cards/${card.id}/detail`);
       const response = await axios.get(`${API}/credit-cards/${card.id}/detail`);
+      console.log("API response:", response.data);
       setCardDetail(response.data);
       setSelectedCard(card);
       setShowInfoModal(true);
+      console.log("Modal should open now");
     } catch (error) {
       console.error("Error getting card detail:", error);
       toast.error("Không thể tải thông tin chi tiết thẻ");
