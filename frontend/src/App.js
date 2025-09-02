@@ -6355,4 +6355,454 @@ const Reports = () => {
   );
 };
 
+// Customer Detail Page - 360° Customer View
+const CustomerDetailPage = () => {
+  const { customerId } = useParams();
+  const [customerData, setCustomerData] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (customerId) {
+      fetchCustomerDetail();
+    }
+  }, [customerId]);
+
+  const fetchCustomerDetail = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch comprehensive customer profile
+      const response = await axios.get(`${API}/customers/${customerId}/detailed-profile`);
+      setCustomerData(response.data);
+      
+    } catch (error) {
+      console.error("Error fetching customer detail:", error);
+      toast.error("Không thể tải thông tin khách hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getTierColor = (tier) => {
+    switch (tier) {
+      case 'VIP':
+        return 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white';
+      case 'Premium':
+        return 'bg-gradient-to-r from-purple-400 to-purple-600 text-white';
+      case 'Regular':
+        return 'bg-gradient-to-r from-blue-400 to-blue-600 text-white';
+      default:
+        return 'bg-gradient-to-r from-gray-400 to-gray-600 text-white';
+    }
+  };
+
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case 'BILL_SALE':
+        return <Receipt className="h-4 w-4 text-green-600" />;
+      case 'CREDIT_DAO_POS':
+        return <CreditCard className="h-4 w-4 text-blue-600" />;
+      case 'CREDIT_DAO_BILL':
+        return <Zap className="h-4 w-4 text-purple-600" />;
+      default:
+        return <Activity className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const getActivityLabel = (type) => {
+    switch (type) {
+      case 'BILL_SALE':
+        return 'Bán Bill';
+      case 'CREDIT_DAO_POS':
+        return 'Đáo Thẻ POS';
+      case 'CREDIT_DAO_BILL':
+        return 'Đáo Thẻ BILL';
+      default:
+        return 'Giao Dịch';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!customerData) {
+    return (
+      <div className="text-center py-12">
+        <AlertTriangle className="h-16 w-16 mx-auto text-yellow-500 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy khách hàng</h3>
+        <p className="text-gray-500">Khách hàng không tồn tại hoặc đã bị xóa</p>
+      </div>
+    );
+  }
+
+  const { customer, metrics, credit_cards, recent_activities } = customerData;
+
+  return (
+    <div className="space-y-6">
+      {/* Customer Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* Customer Info */}
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+              <User className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">{customer.name}</h1>
+              <div className="flex flex-wrap items-center gap-3 mt-1">
+                <span className="text-gray-600 flex items-center">
+                  <Phone className="h-4 w-4 mr-1" />
+                  {customer.phone || 'Chưa cập nhật'}
+                </span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getTierColor(customer.tier)}`}>
+                  {customer.tier} Customer
+                </span>
+                <span className="px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800">
+                  {customer.type === 'INDIVIDUAL' ? 'Cá Nhân' : 'Đại Lý'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm">
+              <Phone className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Gọi</span>
+            </Button>
+            <Button variant="outline" size="sm">
+              <Mail className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Email</span>
+            </Button>
+            <Button variant="outline" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Thêm Thẻ</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Key Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-6">
+          <div className="bg-white rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(metrics.total_transaction_value)}</div>
+            <div className="text-sm text-gray-600">Tổng Giao Dịch</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{formatCurrency(metrics.total_profit)}</div>
+            <div className="text-sm text-gray-600">Lợi Nhuận</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-purple-600">{metrics.total_transactions}</div>
+            <div className="text-sm text-gray-600">Giao Dịch</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-orange-600">{credit_cards.total_cards}</div>
+            <div className="text-sm text-gray-600">Thẻ Tín Dụng</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-indigo-600">{metrics.profit_margin}%</div>
+            <div className="text-sm text-gray-600">Margin</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 text-center">
+            <div className="text-2xl font-bold text-pink-600">{formatCurrency(metrics.avg_transaction_value)}</div>
+            <div className="text-sm text-gray-600">TB/Giao Dịch</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="flex space-x-8">
+          {[
+            { id: 'overview', label: 'Tổng Quan', icon: BarChart3 },
+            { id: 'cards', label: 'Thẻ Tín Dụng', icon: CreditCard },
+            { id: 'transactions', label: 'Giao Dịch', icon: Activity },
+            { id: 'analytics', label: 'Phân Tích', icon: TrendingUp }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center py-3 px-1 border-b-2 font-medium text-sm ${
+                activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <tab.icon className="h-4 w-4 mr-2" />
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      <div className="min-h-[400px]">
+        {activeTab === 'overview' && (
+          <CustomerOverviewTab customer={customer} metrics={metrics} credit_cards={credit_cards} recent_activities={recent_activities} />
+        )}
+        {activeTab === 'cards' && (
+          <div className="text-center py-12">
+            <CreditCard className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Thẻ Tín Dụng</h3>
+            <p className="text-gray-500">Tab này sẽ được triển khai trong phase tiếp theo</p>
+          </div>
+        )}
+        {activeTab === 'transactions' && (
+          <div className="text-center py-12">
+            <Activity className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Lịch Sử Giao Dịch</h3>
+            <p className="text-gray-500">Tab này sẽ được triển khai trong phase tiếp theo</p>
+          </div>
+        )}
+        {activeTab === 'analytics' && (
+          <div className="text-center py-12">
+            <TrendingUp className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Phân Tích Nâng Cao</h3>
+            <p className="text-gray-500">Tab này sẽ được triển khai trong phase tiếp theo</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Customer Overview Tab Component
+const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activities }) => {
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case 'BILL_SALE':
+        return <Receipt className="h-4 w-4 text-green-600" />;
+      case 'CREDIT_DAO_POS':
+        return <CreditCard className="h-4 w-4 text-blue-600" />;
+      case 'CREDIT_DAO_BILL':
+        return <Zap className="h-4 w-4 text-purple-600" />;
+      default:
+        return <Activity className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Customer Profile Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <User className="h-5 w-5 mr-2" />
+            Thông Tin Khách Hàng
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Tên khách hàng:</span>
+              <span className="font-medium">{customer.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Điện thoại:</span>
+              <span className="font-medium">{customer.phone || 'Chưa cập nhật'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Loại KH:</span>
+              <span className="font-medium">{customer.type === 'INDIVIDUAL' ? 'Cá Nhân' : 'Đại Lý'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Trạng thái:</span>
+              <Badge className={customer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                {customer.is_active ? 'Hoạt động' : 'Ngưng'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Ngày tạo:</span>
+              <span className="font-medium">{formatDateTime(customer.created_at)}</span>
+            </div>
+          </div>
+
+          {customer.notes && (
+            <div className="pt-3 border-t">
+              <span className="text-sm text-gray-600">Ghi chú:</span>
+              <p className="text-sm mt-1">{customer.notes}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Performance Metrics */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <BarChart3 className="h-5 w-5 mr-2" />
+            Hiệu Suất Giao Dịch
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-3 bg-green-50 rounded-lg">
+              <div className="text-lg font-bold text-green-600">{metrics.sales_transactions}</div>
+              <div className="text-xs text-green-700">Bills</div>
+            </div>
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <div className="text-lg font-bold text-blue-600">{metrics.dao_transactions}</div>
+              <div className="text-xs text-blue-700">ĐÁO</div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Doanh thu Bills:</span>
+              <span className="font-medium text-green-600">{formatCurrency(metrics.sales_value)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Doanh thu ĐÁO:</span>
+              <span className="font-medium text-blue-600">{formatCurrency(metrics.dao_value)}</span>
+            </div>
+            <div className="flex justify-between border-t pt-2">
+              <span className="text-sm font-medium">Tổng doanh thu:</span>
+              <span className="font-bold">{formatCurrency(metrics.total_transaction_value)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Credit Cards Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <CreditCard className="h-5 w-5 mr-2" />
+            Thẻ Tín Dụng ({credit_cards.total_cards})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-3 bg-purple-50 rounded-lg">
+              <div className="text-lg font-bold text-purple-600">{credit_cards.total_cards}</div>
+              <div className="text-xs text-purple-700">Tổng thẻ</div>
+            </div>
+            <div className="text-center p-3 bg-indigo-50 rounded-lg">
+              <div className="text-lg font-bold text-indigo-600">{credit_cards.active_cards}</div>
+              <div className="text-xs text-indigo-700">Hoạt động</div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Tổng hạn mức:</span>
+              <span className="font-medium">{formatCurrency(credit_cards.total_credit_limit)}</span>
+            </div>
+          </div>
+
+          {credit_cards.cards.slice(0, 3).map((card, index) => (
+            <div key={card.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-5 bg-gradient-to-r from-blue-400 to-blue-600 rounded text-xs text-white flex items-center justify-center">
+                  {card.card_type}
+                </div>
+                <div>
+                  <div className="font-medium text-sm">{card.bank_name}</div>
+                  <div className="text-xs text-gray-500">{card.card_number}</div>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {card.status}
+              </Badge>
+            </div>
+          ))}
+
+          {credit_cards.cards.length > 3 && (
+            <div className="text-center text-sm text-gray-500">
+              +{credit_cards.cards.length - 3} thẻ khác
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent Activities - Full Width */}
+      <Card className="lg:col-span-3">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Activity className="h-5 w-5 mr-2" />
+            Hoạt Động Gần Đây ({recent_activities.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recent_activities.length > 0 ? (
+            <div className="space-y-3">
+              {recent_activities.map((activity, index) => (
+                <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">{activity.description}</div>
+                      <div className="text-xs text-gray-500">{formatDateTime(activity.created_at)}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium">{formatCurrency(activity.amount)}</div>
+                    <div className="text-xs text-green-600">+{formatCurrency(activity.profit)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Activity className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500">Chưa có hoạt động gần đây</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 export default App;
