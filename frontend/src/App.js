@@ -3660,6 +3660,76 @@ const CreditCards = () => {
           fetchCardStats();
         }}
       />
+
+      {/* Info Card Modal */}
+      <CreditCardInfoModal 
+        show={showInfoModal}
+        cardDetail={cardDetail}
+        onClose={() => {
+          setShowInfoModal(false);
+          setCardDetail(null);
+          setSelectedCard(null);
+        }}
+        onDao={() => {
+          setShowInfoModal(false);
+          setShowDaoModal(true);
+        }}
+        onEdit={() => {
+          setShowInfoModal(false);
+          setShowEditModal(true);
+        }}
+        onDelete={() => {
+          setShowInfoModal(false);
+          setShowDeleteModal(true);
+        }}
+      />
+
+      {/* Đáo Card Modal */}
+      <DaoCardModal 
+        show={showDaoModal}
+        card={selectedCard}
+        onClose={() => {
+          setShowDaoModal(false);
+          setSelectedCard(null);
+        }}
+        onSuccess={() => {
+          setShowDaoModal(false);
+          setSelectedCard(null);
+          fetchCreditCards();
+          fetchCardStats();
+        }}
+      />
+
+      {/* Edit Card Modal */}
+      <EditCreditCardModal 
+        show={showEditModal}
+        card={selectedCard}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedCard(null);
+        }}
+        onSuccess={() => {
+          setShowEditModal(false);
+          setSelectedCard(null);
+          fetchCreditCards();
+        }}
+      />
+
+      {/* Delete Card Modal */}
+      <DeleteCreditCardModal 
+        show={showDeleteModal}
+        card={selectedCard}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedCard(null);
+        }}
+        onSuccess={() => {
+          setShowDeleteModal(false);
+          setSelectedCard(null);
+          fetchCreditCards();
+          fetchCardStats();
+        }}
+      />
     </div>
   );
 };
