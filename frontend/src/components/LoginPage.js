@@ -36,13 +36,14 @@ const LoginPage = ({ onLogin }) => {
   };
 
   const getPlaceholder = () => {
-    switch (loginMode) {
+    const type = detectLoginType(formData.login);
+    switch (type) {
       case 'email':
-        return 'example@7ty.vn';
+        return 'Nhập email (ví dụ: admin@7ty.vn)';
       case 'phone':
-        return '0901234567';
+        return 'Nhập số điện thoại (ví dụ: 0901234567)';
       default:
-        return 'Tên đăng nhập';
+        return 'Nhập tên đăng nhập (ví dụ: admin)';
     }
   };
 
