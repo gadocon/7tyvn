@@ -985,15 +985,18 @@ frontend:
 
   - task: "Customer Information Section"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Customer information section implemented showing ONLY name and phone number as specified. Clean card format with customer.name and customer.phone fields. No other customer fields shown (email, address, etc.). Needs testing."
+        - working: true
+          agent: "testing"
+          comment: "✅ CUSTOMER INFORMATION SECTION PERFECT: 'Thông Tin Khách Hàng' section displays correctly with clean card format. Shows ONLY name ('Validation Test Customer 1756778221') and phone number ('0111222333') as specified. Verified no other customer fields are shown (no email, address, etc.). Customer info is displayed in clean, professional format exactly as required."
 
   - task: "Action Buttons"
     implemented: true
