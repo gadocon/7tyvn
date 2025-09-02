@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the newly implemented DAO CARD MODAL with comprehensive 2-method payment system (POS/BILL)."
+user_problem_statement: "Test the TRANSACTION TYPE BUG FIX that was just implemented - Fixed customer transaction history displaying incorrect 'Loại' = 'Bán Bill' for credit card payments. Now should display 'Đáo Thẻ' for credit card payments and 'Bán Bill' for regular bill sales."
 
 backend:
   - task: "DAO Card API Endpoint"
