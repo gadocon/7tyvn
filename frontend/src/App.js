@@ -4284,95 +4284,352 @@ const CreditCardInfoModal = ({ show, cardDetail, onClose, onDao, onEdit, onDelet
 };
 
 // Dao Card Modal Component
-const DaoCardModal = ({ show, card, onClose, onConfirm }) => {
-  const [paymentMethod, setPaymentMethod] = useState("POS");
-  const [amount, setAmount] = useState("");
-  const [profit, setProfit] = useState("");
+const DaoCardModal = ({ show, card, onClose, onSuccess }) => {
+  const [activeTab, setActiveTab] = useState("POS");
   const [loading, setLoading] = useState(false);
+  
+  // POS method states
+  const [posAmount, setPosAmount] = useState("");
+  const [profitPct, setProfitPct] = useState("");
+  const [notes, setNotes] = useState("");
+  
+  // BILL method states
+  const [availableBills, setAvailableBills] = useState([]);
+  const [selectedBills, setSelectedBills] = useState([]);
+  const [billsLoading, setBillsLoading] = useState(false);
 
-  if (!show || !card) return null;
+  useEffect(() => {
+    if (show && activeTab === "BILL") {
+      fetchAvailableBills();
+    }
+  }, [show, activeTab]);
+
+  const fetchAvailableBills = async () => {
+    setBillsLoading(true);
+    try {
+      const response = await axios.get(`${API}/bills?status=AVAILABLE&limit=100`);
+      setAvailableBills(response.data || []);
+    } catch (error) {
+      console.error("Error fetching available bills:", error);
+      toast.error("Không thể tải danh sách bill");
+    } finally {
+      setBillsLoading(false);
+    }
+  };
+
+  const handleBillSelection = (bill, isSelected) => {
+    if (isSelected) {
+      setSelectedBills(prev => [...prev, bill]);
+    } else {
+      setSelectedBills(prev => prev.filter(b => b.id !== bill.id));
+    }
+  };
+
+  const calculateTotals = () => {
+    if (activeTab === "POS") {
+      const amount = parseFloat(posAmount) || 0;
+      const profit = parseFloat(profitPct) || 0;
+      const profitValue = Math.round(amount * profit / 100);
+      const payback = amount - profitValue;
+      return { total: amount, profitValue, payback };
+    } else {
+      const total = selectedBills.reduce((sum, bill) => sum + (bill.amount || 0), 0);
+      const profit = parseFloat(profitPct) || 0;
+      const profitValue = Math.round(total * profit / 100);
+      const payback = total - profitValue;
+      return { total, profitValue, payback };
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!amount || !profit) {
-      toast.error("Vui lòng nhập đầy đủ thông tin");
+    
+    // Validation
+    if (!profitPct) {
+      toast.error("Vui lòng nhập % lợi nhuận");
+      return;
+    }
+
+    if (activeTab === "POS" && !posAmount) {
+      toast.error("Vui lòng nhập số tiền đáo");
+      return;
+    }
+
+    if (activeTab === "BILL" && selectedBills.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một bill điện");
       return;
     }
 
     setLoading(true);
+    
     try {
-      await onConfirm({
-        payment_method: paymentMethod,
-        total_amount: parseFloat(amount),
-        profit: parseFloat(profit)
-      });
-      onClose();
+      const paymentData = {
+        payment_method: activeTab,
+        profit_pct: parseFloat(profitPct),
+        notes: notes || undefined
+      };
+
+      if (activeTab === "POS") {
+        paymentData.total_amount = parseFloat(posAmount);
+      } else {
+        paymentData.bill_ids = selectedBills.map(bill => bill.id);
+      }
+
+      const response = await axios.post(`${API}/credit-cards/${card.id}/dao`, paymentData);
+      
+      toast.success(response.data.message || "Đáo thẻ thành công!");
+      
+      // Reset form
+      setPosAmount("");
+      setProfitPct("");
+      setNotes("");
+      setSelectedBills([]);
+      
+      onSuccess();
+      
     } catch (error) {
       console.error("Error processing dao:", error);
+      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi đáo thẻ");
     } finally {
       setLoading(false);
     }
   };
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const { total, profitValue, payback } = calculateTotals();
+
+  if (!show || !card) return null;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Đáo Thẻ Tín Dụng</h3>
+      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[95vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h3 className="text-xl font-semibold">Đáo Thẻ Tín Dụng</h3>
+            <p className="text-gray-600 text-sm">****{card.card_number?.slice(-4)} - {card.cardholder_name}</p>
+          </div>
           <Button variant="outline" onClick={onClose}>
             <XCircle className="h-4 w-4" />
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Thẻ: {card.card_number?.slice(-4)}</Label>
-          </div>
+        {/* Tab Navigation */}
+        <div className="flex mb-6 border-b">
+          <button
+            className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+              activeTab === "POS" 
+                ? "border-green-500 text-green-600 bg-green-50" 
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("POS")}
+          >
+            💳 Thanh Toán POS
+          </button>
+          <button
+            className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+              activeTab === "BILL" 
+                ? "border-green-500 text-green-600 bg-green-50" 
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("BILL")}
+          >
+            ⚡ Thanh Toán Bill Điện
+          </button>
+        </div>
 
-          <div>
-            <Label htmlFor="paymentMethod">Phương Thức</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="POS">POS</SelectItem>
-                <SelectItem value="BILL">BILL</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Side - Payment Method */}
+            <div className="lg:col-span-2">
+              {activeTab === "POS" ? (
+                // POS Method
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-green-600">💳 Thanh Toán POS</CardTitle>
+                    <p className="text-sm text-gray-600">Nhập số tiền và % lợi nhuận để đáo thẻ qua POS</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="posAmount">Số Tiền Đáo (VND) *</Label>
+                      <Input
+                        id="posAmount"
+                        type="number"
+                        value={posAmount}
+                        onChange={(e) => setPosAmount(e.target.value)}
+                        placeholder="5000000"
+                        className="text-lg"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="profitPct">% Lợi Nhuận *</Label>
+                      <Input
+                        id="profitPct"
+                        type="number"
+                        step="0.1"
+                        value={profitPct}
+                        onChange={(e) => setProfitPct(e.target.value)}
+                        placeholder="3.5"
+                        className="text-lg"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="notes">Ghi Chú</Label>
+                      <Textarea
+                        id="notes"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Ghi chú thêm về giao dịch..."
+                        rows={3}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                // BILL Method
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-green-600">⚡ Thanh Toán Bill Điện</CardTitle>
+                    <p className="text-sm text-gray-600">Chọn nhiều bill điện có sẵn trong kho để đáo thẻ</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="profitPctBill">% Lợi Nhuận *</Label>
+                        <Input
+                          id="profitPctBill"
+                          type="number"
+                          step="0.1"
+                          value={profitPct}
+                          onChange={(e) => setProfitPct(e.target.value)}
+                          placeholder="3.5"
+                          className="text-lg"
+                        />
+                      </div>
 
-          <div>
-            <Label htmlFor="amount">Số Tiền</Label>
-            <Input
-              id="amount"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Nhập số tiền"
-              required
-            />
-          </div>
+                      {/* Bill Selection */}
+                      <div>
+                        <Label>Chọn Bill Điện ({selectedBills.length} đã chọn)</Label>
+                        <div className="border rounded-lg max-h-60 overflow-y-auto mt-2">
+                          {billsLoading ? (
+                            <div className="p-4 text-center">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto"></div>
+                              <p className="text-sm text-gray-600 mt-2">Đang tải bill...</p>
+                            </div>
+                          ) : availableBills.length > 0 ? (
+                            <div className="p-2 space-y-1">
+                              {availableBills.map((bill) => {
+                                const isSelected = selectedBills.some(b => b.id === bill.id);
+                                return (
+                                  <div
+                                    key={bill.id}
+                                    className={`p-3 border rounded cursor-pointer transition-colors ${
+                                      isSelected 
+                                        ? "bg-green-50 border-green-300" 
+                                        : "bg-white border-gray-200 hover:bg-gray-50"
+                                    }`}
+                                    onClick={() => handleBillSelection(bill, !isSelected)}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <div>
+                                        <p className="font-medium text-sm">{bill.customer_code}</p>
+                                        <p className="text-xs text-gray-600">{bill.full_name}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="font-medium text-green-600">{formatCurrency(bill.amount || 0)}</p>
+                                        <div className="flex items-center">
+                                          {isSelected && <CheckCircle className="h-4 w-4 text-green-600 mr-1" />}
+                                          <span className="text-xs text-gray-500">{bill.billing_cycle}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="p-4 text-center text-gray-500">
+                              <Package className="h-8 w-8 mx-auto mb-2" />
+                              <p className="text-sm">Không có bill điện khả dụng</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
-          <div>
-            <Label htmlFor="profit">Lợi Nhuận</Label>
-            <Input
-              id="profit"
-              type="number"
-              value={profit}
-              onChange={(e) => setProfit(e.target.value)}
-              placeholder="Nhập lợi nhuận"
-              required
-            />
-          </div>
+                      <div>
+                        <Label htmlFor="notesBill">Ghi Chú</Label>
+                        <Textarea
+                          id="notesBill"
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="Ghi chú thêm về giao dịch..."
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
 
-          <div className="flex gap-3">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-              Hủy
-            </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? "Đang xử lý..." : "Xác Nhận"}
-            </Button>
+            {/* Right Side - Summary */}
+            <div>
+              <Card className="sticky top-4">
+                <CardHeader>
+                  <CardTitle className="text-sm">Tóm Tắt Giao Dịch</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {activeTab === "BILL" && (
+                    <div className="pb-3 border-b">
+                      <p className="text-xs text-gray-600 mb-2">Bills đã chọn:</p>
+                      <p className="text-sm font-medium">{selectedBills.length} bill(s)</p>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Tổng tiền:</span>
+                      <span className="font-medium">{formatCurrency(total)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Lợi nhuận ({profitPct || 0}%):</span>
+                      <span className="font-medium text-green-600">+{formatCurrency(profitValue)}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-gray-900 font-medium">Trả khách:</span>
+                      <span className="font-bold text-blue-600">{formatCurrency(payback)}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 space-y-3">
+                    <Button
+                      type="submit"
+                      disabled={loading || (activeTab === "POS" && (!posAmount || !profitPct)) || (activeTab === "BILL" && (selectedBills.length === 0 || !profitPct))}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Đang xử lý...
+                        </>
+                      ) : (
+                        `Xác Nhận Đáo ${formatCurrency(total)}`
+                      )}
+                    </Button>
+                    
+                    <Button type="button" variant="outline" onClick={onClose} className="w-full">
+                      Hủy Bỏ
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </form>
       </div>
