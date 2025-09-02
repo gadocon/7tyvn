@@ -48,7 +48,10 @@ import {
   Mail,
   Phone,
   Building,
-  Edit
+  Edit,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw
 } from "lucide-react";
 import { 
   LineChart, 
