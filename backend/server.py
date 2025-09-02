@@ -229,6 +229,40 @@ class CreditCardTransactionCreate(BaseModel):
     bill_ids: Optional[List[str]] = []  # For BILL method
     notes: Optional[str] = None
 
+class ActivityType(str, Enum):
+    CUSTOMER_CREATE = "CUSTOMER_CREATE"      # Thêm khách hàng
+    CUSTOMER_DELETE = "CUSTOMER_DELETE"      # Xóa khách hàng
+    BILL_CREATE = "BILL_CREATE"              # Thêm bill
+    BILL_SALE = "BILL_SALE"                  # Bán bill
+    BILL_DELETE = "BILL_DELETE"              # Xóa bill
+    CARD_CREATE = "CARD_CREATE"              # Thêm thẻ
+    CARD_DELETE = "CARD_DELETE"              # Xóa thẻ
+    CARD_PAYMENT_POS = "CARD_PAYMENT_POS"    # Đáo thẻ POS
+    CARD_PAYMENT_BILL = "CARD_PAYMENT_BILL"  # Đáo thẻ BILL
+    SYSTEM_ERROR = "SYSTEM_ERROR"            # Lỗi hệ thống
+
+class Activity(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: ActivityType
+    title: str                               # "Đáo thẻ ****1234 - 5M VND"
+    description: Optional[str] = None        # Details
+    customer_id: Optional[str] = None        # Link to customer
+    customer_name: Optional[str] = None      # For display
+    amount: Optional[float] = None           # Transaction amount
+    status: str = "SUCCESS"                  # SUCCESS, ERROR, WARNING
+    metadata: Optional[Dict[str, Any]] = None # Additional data
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ActivityCreate(BaseModel):
+    type: ActivityType
+    title: str
+    description: Optional[str] = None
+    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    amount: Optional[float] = None
+    status: str = "SUCCESS"
+    metadata: Optional[Dict[str, Any]] = None
+
 class Sale(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     customer_id: str
