@@ -205,7 +205,7 @@ const Navigation = () => {
               <span className="text-sm text-gray-600">Hệ thống đang hoạt động</span>
             </div>
             <div className="px-4 py-2">
-              <p className="text-xs text-gray-500">© 2025 FPT Bill Manager</p>
+              <p className="text-xs text-gray-500">© 2025 7ty.vn CRM</p>
             </div>
           </div>
         </div>
