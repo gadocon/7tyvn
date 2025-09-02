@@ -5353,6 +5353,257 @@ const DeleteCreditCardModal = ({ show, card, onClose, onConfirm }) => {
   );
 };
 
+// Transaction Export Modal Component
+const TransactionExportModal = ({ show, onClose, onExport }) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 className="text-lg font-semibold mb-4">Export Giao Dịch Tổng Hợp</h3>
+        
+        <div className="space-y-4">
+          <div className="text-center py-6">
+            <Download className="h-12 w-12 mx-auto text-blue-600 mb-3" />
+            <p className="text-gray-600 mb-4">
+              Xuất toàn bộ giao dịch (Bán Bill + Đáo Thẻ) ra file Excel
+            </p>
+            <p className="text-sm text-gray-500">
+              File sẽ bao gồm: Loại GD, khách hàng, mã bill/thẻ, số tiền, lợi nhuận, thời gian
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={onExport}
+            className="flex-1 bg-blue-600 hover:bg-blue-700"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Transaction Detail Modal Component
+const TransactionDetailModal = ({ show, transaction, onClose }) => {
+  if (!show || !transaction) return null;
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const getTransactionTypeIcon = (type) => {
+    switch (type) {
+      case "BILL_SALE":
+        return <Receipt className="h-5 w-5 text-green-600" />;
+      case "CREDIT_DAO_POS":
+        return <CreditCard className="h-5 w-5 text-blue-600" />;
+      case "CREDIT_DAO_BILL":
+        return <Zap className="h-5 w-5 text-purple-600" />;
+      default:
+        return <FileText className="h-5 w-5 text-gray-600" />;
+    }
+  };
+
+  const getTransactionTypeLabel = (type) => {
+    switch (type) {
+      case "BILL_SALE":
+        return "Bán Bill";
+      case "CREDIT_DAO_POS":
+        return "Đáo Thẻ POS";
+      case "CREDIT_DAO_BILL":
+        return "Đáo Thẻ BILL";
+      default:
+        return "N/A";
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-semibold text-gray-900">Chi Tiết Giao Dịch</h3>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Transaction Info */}
+          <div className="space-y-4">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-semibold text-gray-700 mb-3">Thông Tin Giao Dịch</h4>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">ID Giao Dịch:</span>
+                  <span className="font-mono text-sm">{transaction.id}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Loại Giao Dịch:</span>
+                  <div className="flex items-center gap-2">
+                    {getTransactionTypeIcon(transaction.type)}
+                    <span className="font-medium">{getTransactionTypeLabel(transaction.type)}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Thời Gian:</span>
+                  <span className="font-medium">{formatDateTime(transaction.created_at)}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Trạng Thái:</span>
+                  <Badge className="bg-green-100 text-green-800">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    {transaction.status === "COMPLETED" ? "Hoàn thành" : transaction.status}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Customer Info */}
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h4 className="font-semibold text-gray-700 mb-3">Thông Tin Khách Hàng</h4>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Tên KH:</span>
+                  <span className="font-medium">{transaction.customer_name}</span>
+                </div>
+                
+                {transaction.customer_phone && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">SĐT:</span>
+                    <span className="font-medium">{transaction.customer_phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Financial Info */}
+          <div className="space-y-4">
+            <div className="bg-green-50 rounded-lg p-4">
+              <h4 className="font-semibold text-gray-700 mb-3">Thông Tin Tài Chính</h4>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Tổng Số Tiền:</span>
+                  <span className="font-bold text-lg">{formatCurrency(transaction.total_amount)}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Lợi Nhuận:</span>
+                  <div className="text-right">
+                    <div className="font-bold text-green-600">{formatCurrency(transaction.profit_amount)}</div>
+                    <div className="text-xs text-gray-500">({transaction.profit_percentage}%)</div>
+                  </div>
+                </div>
+                
+                {transaction.payback && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Trả Khách:</span>
+                    <span className="font-medium">{formatCurrency(transaction.payback)}</span>
+                  </div>
+                )}
+                
+                {transaction.payment_method && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Phương Thức:</span>
+                    <span className="font-medium">{transaction.payment_method}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Items Info */}
+            <div className="bg-purple-50 rounded-lg p-4">
+              <h4 className="font-semibold text-gray-700 mb-3">Thông Tin Items</h4>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Mã/Thẻ:</span>
+                  <span className="font-mono text-sm">{transaction.item_display}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Số Lượng:</span>
+                  <span className="font-medium">{transaction.items.length} item(s)</span>
+                </div>
+              </div>
+              
+              {/* Items List */}
+              {transaction.items.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-purple-200">
+                  <h5 className="text-xs font-medium text-gray-600 mb-2">Chi tiết items:</h5>
+                  <div className="space-y-1">
+                    {transaction.items.map((item, index) => (
+                      <div key={index} className="flex justify-between text-xs">
+                        <span className="font-mono">{item.code}</span>
+                        <span className="text-gray-500">{item.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Notes */}
+        {transaction.notes && (
+          <div className="mt-6 bg-yellow-50 rounded-lg p-4">
+            <h4 className="font-semibold text-gray-700 mb-2">Ghi Chú</h4>
+            <p className="text-sm text-gray-600">{transaction.notes}</p>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 mt-6">
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            Đóng
+          </Button>
+          <Button variant="outline" className="flex-1">
+            <Printer className="h-4 w-4 mr-2" />
+            In Hóa Đơn
+          </Button>
+          <Button variant="outline" className="flex-1">
+            <Mail className="h-4 w-4 mr-2" />
+            Gửi Email
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component  
 function App() {
   // Shared state for customer modal
