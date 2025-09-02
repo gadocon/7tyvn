@@ -136,7 +136,21 @@ backend:
           comment: "✅ BILL SELLING ACTIVITY LOGGING SYSTEM FULLY FUNCTIONAL: Complete workflow testing successful! Fixed missing activity logging in POST /api/sales endpoint by adding log_activity() call with proper ActivityType.BILL_SALE. VERIFIED WORKFLOW: 1) ✅ Recent activities API working (GET /api/activities/recent), 2) ✅ Sales data API working (GET /api/sales), 3) ✅ Inventory API working (GET /api/inventory), 4) ✅ Bill sale creation working (POST /api/sales), 5) ✅ Bill status updated to SOLD automatically, 6) ✅ Activity log entry created with proper Vietnamese title 'Bán Bill CCTEST17567782461 - 1.5M VND', 7) ✅ Activity appears in Dashboard stats. Activity logging includes customer info, bill codes, amounts, and metadata. System ready for production use."
 
 frontend:
-  - task: "DAO Modal Access & Basic UI"
+  - task: "Customers Page Responsive UI Fix"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Fixed UI overflow issues in Customers page. 1) Header: Made buttons responsive with flex-wrap and shortened text on mobile ('Export' vs 'Export Excel'). 2) Filters: Changed from rigid horizontal layout to responsive with flex-col lg:flex-row, allowing filters to stack on mobile. 3) Table: Added overflow-x-auto wrapper with whitespace-nowrap for horizontal scrolling. All elements now properly responsive for both desktop and mobile."
+
+agent_communication:
+    - agent: "main"
+      message: "🎯 CUSTOMERS PAGE UI OVERFLOW FIX COMPLETED: Successfully fixed all mobile layout issues. Header buttons now responsive with shortened text, filter dropdowns properly visible and stacked on mobile, search box full-width, table has horizontal scroll. Desktop layout maintained. Ready for backend testing to ensure no API breaks, then frontend testing if user desires."
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
