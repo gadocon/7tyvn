@@ -2338,10 +2338,23 @@ async def process_card_payment(card_id: str, payment_data: CreditCardTransaction
             # Remove bills from inventory
             await db.inventory_items.delete_many({"bill_id": {"$in": payment_data.bill_ids}})
         
-        # Update card status to PAID_OFF
+        # Update card cycle tracking and status
+        current_date = datetime.now(timezone.utc)
+        current_cycle_month = get_current_cycle_month(current_date)
+        
+        # Get current card data for cycle tracking
+        current_card = await db.credit_cards.find_one({"id": card_id})
+        cycle_payment_count = current_card.get("cycle_payment_count", 0) + 1
+        
         await db.credit_cards.update_one(
             {"id": card_id},
-            {"$set": {"status": CardStatus.PAID_OFF, "updated_at": datetime.now(timezone.utc)}}
+            {"$set": {
+                "status": CardStatus.PAID_OFF.value,
+                "current_cycle_month": current_cycle_month,
+                "last_payment_date": current_date,
+                "cycle_payment_count": cycle_payment_count,  # Track multiple payments
+                "updated_at": current_date
+            }}
         )
         
         # Update customer transaction count
