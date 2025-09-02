@@ -120,6 +120,21 @@ backend:
           agent: "testing"
           comment: "✅ DAO API FULLY FUNCTIONAL: Comprehensive testing completed successfully. POS METHOD: Successfully processed 5,000,000 VND with 3.5% profit = 175,000 VND profit, 4,825,000 VND payback. Response: {'success': true, 'message': 'Đã đáo thẻ thành công bằng phương thức POS', 'transaction_group_id': 'CC_1756780886', 'total_amount': 5000000.0, 'profit_value': 175000.0, 'payback': 4825000.0}. BILL METHOD: Successfully processed 2 bills (total 2,140,000 VND) with 3.5% profit = 74,900 VND profit, 2,065,100 VND payback. Both payment methods working perfectly with accurate calculations and proper Vietnamese response messages."
 
+  - task: "Bill Selling Activity Logging System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "🎯 BILL SELLING ACTIVITY LOGGING SYSTEM TESTING: Comprehensive testing of the complete bill selling activity logging workflow as requested in review. Testing includes: 1) GET /api/activities/recent?days=3&limit=20 to check baseline activities, 2) GET /api/sales to verify existing sales data, 3) GET /api/inventory to check available bills, 4) POST /api/sales to create bill sale transaction, 5) Verification that bill status updates to SOLD, 6) Verification that activity log entry is created, 7) Verification that activity appears in Dashboard. Initial test revealed missing activity logging in sales endpoint."
+        - working: true
+          agent: "testing"
+          comment: "✅ BILL SELLING ACTIVITY LOGGING SYSTEM FULLY FUNCTIONAL: Complete workflow testing successful! Fixed missing activity logging in POST /api/sales endpoint by adding log_activity() call with proper ActivityType.BILL_SALE. VERIFIED WORKFLOW: 1) ✅ Recent activities API working (GET /api/activities/recent), 2) ✅ Sales data API working (GET /api/sales), 3) ✅ Inventory API working (GET /api/inventory), 4) ✅ Bill sale creation working (POST /api/sales), 5) ✅ Bill status updated to SOLD automatically, 6) ✅ Activity log entry created with proper Vietnamese title 'Bán Bill CCTEST17567782461 - 1.5M VND', 7) ✅ Activity appears in Dashboard stats. Activity logging includes customer info, bill codes, amounts, and metadata. System ready for production use."
+
 frontend:
   - task: "DAO Modal Access & Basic UI"
     implemented: true
