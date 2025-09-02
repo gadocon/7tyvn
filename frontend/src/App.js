@@ -1447,7 +1447,7 @@ const Inventory = () => {
 
           {/* Bulk Actions */}
           {selectedItems.length > 0 && (
-            <div className="mb-4 p-3 bg-green-50 border border-blue-200 rounded-lg flex justify-between items-center">
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex justify-between items-center">
               <span className="text-blue-800">
                 Đã chọn {selectedItems.length} item(s)
               </span>
@@ -3550,7 +3550,7 @@ const ImportModal = ({ show, onClose, onImportComplete, onDownloadTemplate }) =>
             <Button
               variant="outline"
               onClick={onDownloadTemplate}
-              className="border-blue-200 text-blue-700 hover:bg-green-100"
+              className="border-green-200 text-blue-700 hover:bg-green-100"
             >
               <Download className="h-4 w-4 mr-2" />
               Tải Template
@@ -6978,7 +6978,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
       case 'Cần đáo':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'Chưa đến hạn':
-        return 'bg-green-100 text-blue-800 border-blue-200';
+        return 'bg-green-100 text-blue-800 border-green-200';
       case 'Quá hạn':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'Hết hạn':
