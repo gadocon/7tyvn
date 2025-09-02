@@ -1911,36 +1911,38 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
       {/* Filters and Search */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col gap-4">
             <CardTitle>Danh Sách Khách Hàng</CardTitle>
-            <div className="flex items-center space-x-4">
-              <select 
-                value={customerType || ""} 
-                onChange={(e) => setCustomerType(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-2 text-sm w-40"
-              >
-                <option value="">Tất cả loại</option>
-                <option value="INDIVIDUAL">Cá nhân</option>
-                <option value="AGENT">Đại lý</option>
-              </select>
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-2 flex-1">
+                <select 
+                  value={customerType || ""} 
+                  onChange={(e) => setCustomerType(e.target.value)}
+                  className="flex-1 sm:flex-none border border-gray-300 rounded px-3 py-2 text-sm sm:w-40"
+                >
+                  <option value="">Tất cả loại</option>
+                  <option value="INDIVIDUAL">Cá nhân</option>
+                  <option value="AGENT">Đại lý</option>
+                </select>
 
-              <select 
-                value={isActive || ""} 
-                onChange={(e) => setIsActive(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-2 text-sm w-40"
-              >
-                <option value="">Tất cả trạng thái</option>
-                <option value="true">Hoạt động</option>
-                <option value="false">Ngưng</option>
-              </select>
+                <select 
+                  value={isActive || ""} 
+                  onChange={(e) => setIsActive(e.target.value)}
+                  className="flex-1 sm:flex-none border border-gray-300 rounded px-3 py-2 text-sm sm:w-40"
+                >
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="true">Hoạt động</option>
+                  <option value="false">Ngưng</option>
+                </select>
+              </div>
 
-              <div className="relative">
+              <div className="relative flex-1 lg:flex-none lg:w-64">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Tìm kiếm khách hàng..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
+                  className="pl-10 w-full"
                 />
               </div>
             </div>
