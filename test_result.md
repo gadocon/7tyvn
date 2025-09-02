@@ -831,6 +831,6 @@ backend:
 
 metadata:
   created_by: "testing_agent"
-  version: "7.0"
-  test_sequence: 8
+  version: "8.0"
+  test_sequence: 9
   run_ui: false
