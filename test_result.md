@@ -250,11 +250,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Customers Page Responsive UI Fix"
+    - "Customer Detail Page Backend API Testing"
   stuck_tasks:
     - "Real-time Status Calculation Functions"
   test_all: false
-  test_priority: "customer_api_testing_completed"
+  test_priority: "customer_detail_api_testing_completed"
 
   - task: "Real-time Status Calculation Functions"
     implemented: true
