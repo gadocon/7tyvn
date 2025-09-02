@@ -143,6 +143,58 @@ class CustomerStats(BaseModel):
     active_customers: int
     total_customer_value: float
 
+class CreditCard(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    customer_id: str  # Link to customer who owns this card
+    customer_name: str  # Customer name for easy access
+    card_number: str  # Full card number (will be masked in display)
+    cardholder_name: str  # Name on the card
+    bank_name: str
+    card_type: CardType
+    expiry_date: str  # MM/YY format
+    ccv: str  # 3-4 digits
+    statement_date: int  # Day of month (1-31)
+    payment_due_date: int  # Day of month (1-31)
+    credit_limit: float  # Hạng mức
+    status: CardStatus
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CreditCardCreate(BaseModel):
+    customer_id: str
+    card_number: str
+    cardholder_name: str
+    bank_name: str
+    card_type: CardType
+    expiry_date: str  # MM/YY
+    ccv: str
+    statement_date: int
+    payment_due_date: int
+    credit_limit: float
+    status: CardStatus = CardStatus.NOT_DUE
+    notes: Optional[str] = None
+
+class CreditCardUpdate(BaseModel):
+    card_number: Optional[str] = None
+    cardholder_name: Optional[str] = None
+    bank_name: Optional[str] = None
+    card_type: Optional[CardType] = None
+    expiry_date: Optional[str] = None
+    ccv: Optional[str] = None
+    statement_date: Optional[int] = None
+    payment_due_date: Optional[int] = None
+    credit_limit: Optional[float] = None
+    status: Optional[CardStatus] = None
+    notes: Optional[str] = None
+
+class CreditCardStats(BaseModel):
+    total_cards: int
+    paid_off_cards: int
+    need_payment_cards: int
+    not_due_cards: int
+    total_credit_limit: float
+
 class Sale(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     customer_id: str
