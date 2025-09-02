@@ -4380,6 +4380,240 @@ const DaoCardModal = ({ show, card, onClose, onConfirm }) => {
   );
 };
 
+// Edit Credit Card Modal Component
+const EditCreditCardModal = ({ show, card, customers, onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    customer_id: "",
+    card_number: "",
+    cardholder_name: "",
+    bank_name: "",
+    card_type: "VISA",
+    expiry_date: "",
+    ccv: "",
+    statement_date: "",
+    payment_due_date: "",
+    credit_limit: "",
+    status: "Chưa đến hạn",
+    notes: ""
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (card) {
+      setFormData({
+        customer_id: card.customer_id || "",
+        card_number: card.card_number || "",
+        cardholder_name: card.cardholder_name || "",
+        bank_name: card.bank_name || "",
+        card_type: card.card_type || "VISA",
+        expiry_date: card.expiry_date || "",
+        ccv: card.ccv || "",
+        statement_date: card.statement_date || "",
+        payment_due_date: card.payment_due_date || "",
+        credit_limit: card.credit_limit || "",
+        status: card.status || "Chưa đến hạn",
+        notes: card.notes || ""
+      });
+    }
+  }, [card]);
+
+  if (!show) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await onSubmit(formData);
+      onClose();
+    } catch (error) {
+      console.error("Error updating card:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Chỉnh Sửa Thẻ Tín Dụng</h3>
+          <Button variant="outline" onClick={onClose}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="customer_id">Khách Hàng</Label>
+              <Select value={formData.customer_id} onValueChange={(value) => handleChange("customer_id", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn khách hàng" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers?.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="card_number">Số Thẻ</Label>
+              <Input
+                id="card_number"
+                value={formData.card_number}
+                onChange={(e) => handleChange("card_number", e.target.value)}
+                placeholder="1234 5678 9012 3456"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="cardholder_name">Tên Chủ Thẻ</Label>
+              <Input
+                id="cardholder_name"
+                value={formData.cardholder_name}
+                onChange={(e) => handleChange("cardholder_name", e.target.value)}
+                placeholder="NGUYEN VAN A"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="bank_name">Ngân Hàng</Label>
+              <Input
+                id="bank_name"
+                value={formData.bank_name}
+                onChange={(e) => handleChange("bank_name", e.target.value)}
+                placeholder="Vietcombank"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="card_type">Loại Thẻ</Label>
+              <Select value={formData.card_type} onValueChange={(value) => handleChange("card_type", value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="VISA">VISA</SelectItem>
+                  <SelectItem value="MASTERCARD">MASTERCARD</SelectItem>
+                  <SelectItem value="JCB">JCB</SelectItem>
+                  <SelectItem value="AMEX">AMEX</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="expiry_date">Ngày Hết Hạn</Label>
+              <Input
+                id="expiry_date"
+                value={formData.expiry_date}
+                onChange={(e) => handleChange("expiry_date", e.target.value)}
+                placeholder="MM/YY"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="ccv">CCV</Label>
+              <Input
+                id="ccv"
+                value={formData.ccv}
+                onChange={(e) => handleChange("ccv", e.target.value)}
+                placeholder="123"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="statement_date">Ngày Sao Kê</Label>
+              <Input
+                id="statement_date"
+                value={formData.statement_date}
+                onChange={(e) => handleChange("statement_date", e.target.value)}
+                placeholder="15"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="payment_due_date">Hạn Thanh Toán</Label>
+              <Input
+                id="payment_due_date"
+                value={formData.payment_due_date}
+                onChange={(e) => handleChange("payment_due_date", e.target.value)}
+                placeholder="05"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="credit_limit">Hạn Mức</Label>
+              <Input
+                id="credit_limit"
+                type="number"
+                value={formData.credit_limit}
+                onChange={(e) => handleChange("credit_limit", e.target.value)}
+                placeholder="50000000"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="status">Trạng Thái</Label>
+              <Select value={formData.status} onValueChange={(value) => handleChange("status", value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Đã đáo">Đã đáo</SelectItem>
+                  <SelectItem value="Cần đáo">Cần đáo</SelectItem>
+                  <SelectItem value="Chưa đến hạn">Chưa đến hạn</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="notes">Ghi Chú</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => handleChange("notes", e.target.value)}
+              placeholder="Ghi chú thêm..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              Hủy
+            </Button>
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? "Đang cập nhật..." : "Cập Nhật"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component  
 function App() {
   return (
