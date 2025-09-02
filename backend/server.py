@@ -159,6 +159,11 @@ class CreditCard(BaseModel):
     credit_limit: float  # Hạng mức
     status: CardStatus
     notes: Optional[str] = None
+    # Cycle tracking fields
+    current_cycle_month: Optional[str] = None  # MM/YYYY format
+    last_payment_date: Optional[datetime] = None  # Ngày đáo gần nhất trong chu kỳ hiện tại
+    cycle_payment_count: int = 0  # Số lần đáo trong chu kỳ hiện tại
+    total_cycles: int = 0  # Tổng số chu kỳ đã trải qua
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
