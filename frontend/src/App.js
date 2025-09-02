@@ -3865,7 +3865,8 @@ const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
           {/* Live Card Preview */}
           <div>
             <h4 className="font-medium text-gray-900 mb-4">Xem Trước Thẻ</h4>
-            <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-6 text-white shadow-xl max-w-sm">
+            <div className="w-full max-w-sm mx-auto">
+              <div className="aspect-[1.586/1] bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-4 sm:p-6 text-white shadow-xl relative">
               
               {/* Card Type Icon */}
               <div className="flex justify-between items-start mb-8">
