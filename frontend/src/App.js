@@ -217,10 +217,12 @@ const Navigation = () => {
 // Dashboard Page
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardStats();
+    fetchRecentActivities();
   }, []);
 
   const fetchDashboardStats = async () => {
@@ -232,6 +234,16 @@ const Dashboard = () => {
       toast.error("Không thể tải dữ liệu dashboard");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecentActivities = async () => {
+    try {
+      const response = await axios.get(`${API}/activities/recent?days=3&limit=20`);
+      setActivities(response.data);
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+      // Don't show error toast for activities as it's not critical
     }
   };
 
