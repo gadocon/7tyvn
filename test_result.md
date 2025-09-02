@@ -249,12 +249,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Credit Card Cycle Business Logic Testing Complete"
-    - "Real-time Status Calculation Cycle Data Initialization"
+    - "Transaction Type Bug Fix - Customer Transaction History"
   stuck_tasks:
     - "Real-time Status Calculation Functions"
   test_all: false
-  test_priority: "cycle_logic_complete"
+  test_priority: "bug_fix_verification"
 
   - task: "Real-time Status Calculation Functions"
     implemented: true
