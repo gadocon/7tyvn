@@ -3451,7 +3451,13 @@ async def get_revenue_trend_chart(months: int = 12):
         # Process sales data
         for sale in sales_data:
             if sale.get("created_at"):
-                month_key = sale["created_at"].strftime("%Y-%m")
+                try:
+                    # Parse datetime string
+                    dt = datetime.fromisoformat(sale["created_at"].replace('Z', '+00:00'))
+                    month_key = dt.strftime("%Y-%m")
+                except:
+                    continue
+                    
                 if month_key not in months_data:
                     months_data[month_key] = {
                         "month": month_key,
@@ -3469,7 +3475,13 @@ async def get_revenue_trend_chart(months: int = 12):
         # Process DAO data
         for dao in dao_data:
             if dao.get("created_at"):
-                month_key = dao["created_at"].strftime("%Y-%m")
+                try:
+                    # Parse datetime string
+                    dt = datetime.fromisoformat(dao["created_at"].replace('Z', '+00:00'))
+                    month_key = dt.strftime("%Y-%m")
+                except:
+                    continue
+                    
                 if month_key not in months_data:
                     months_data[month_key] = {
                         "month": month_key,
