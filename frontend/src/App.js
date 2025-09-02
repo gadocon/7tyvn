@@ -5021,15 +5021,17 @@ function App() {
     <div className="App min-h-screen bg-gray-50">
       <BrowserRouter>
         <Navigation />
-        <main className="min-h-screen pt-20">
-          <Routes>
-            <Route path="/" element={<Dashboard customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
-            <Route path="/check-bill" element={<CheckBill />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/customers" element={<Customers customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
-            <Route path="/credit-cards" element={<CreditCards />} />
-            <Route path="/sales" element={<Sales />} />
-          </Routes>
+        <main className="pt-16 lg:pl-64 min-h-screen transition-all duration-300">
+          <div className="p-4 lg:p-6">
+            <Routes>
+              <Route path="/" element={<Dashboard customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
+              <Route path="/check-bill" element={<CheckBill />} />
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/customers" element={<Customers customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
+              <Route path="/credit-cards" element={<CreditCards />} />
+              <Route path="/sales" element={<Sales />} />
+            </Routes>
+          </div>
         </main>
         
         {/* Global Customer Detail Modal */}
