@@ -5040,22 +5040,32 @@ const DeleteCreditCardModal = ({ show, card, onClose, onConfirm }) => {
 
 // Main App Component  
 function App() {
+  // Shared state for customer modal
+  const [customerDetail, setCustomerDetail] = useState(null);
+
   return (
     <div className="App min-h-screen bg-gray-50">
       <BrowserRouter>
         <Navigation />
         <main className="min-h-screen pt-20">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Dashboard customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
             <Route path="/check-bill" element={<CheckBill />} />
             <Route path="/inventory" element={<Inventory />} />
-            <Route path="/customers" element={<Customers />} />
+            <Route path="/customers" element={<Customers customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
             <Route path="/credit-cards" element={<CreditCards />} />
             <Route path="/sales" element={<Sales />} />
           </Routes>
         </main>
+        
+        {/* Global Customer Detail Modal */}
+        <CustomerDetailModal
+          customerDetail={customerDetail}
+          onClose={() => setCustomerDetail(null)}
+        />
+        
+        <Toaster />
       </BrowserRouter>
-      <Toaster />
     </div>
   );
 }
