@@ -1197,32 +1197,43 @@ async def delete_bill(bill_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.put("/bills/{bill_id}")
-async def update_bill(bill_id: str, bill_data: BillCreate):
+async def update_bill(bill_id: str, bill_data: dict):
     """Update bill information - used for recheck functionality"""
     try:
-        print(f"PUT /bills/{bill_id} called")
+        print(f"PUT /bills/{bill_id} called with data keys: {list(bill_data.keys())}")
         
         # Check if bill exists
         existing_bill = await db.bills.find_one({"id": bill_id})
         if not existing_bill:
+            print(f"Bill {bill_id} not found in database")
             raise HTTPException(status_code=404, detail="Không tìm thấy bill")
         
         print(f"Found existing bill: {existing_bill.get('id')}")
         
-        # Prepare update data - convert enums to strings
-        update_data = prepare_for_mongo({
-            "customer_code": bill_data.customer_code,
-            "provider_region": bill_data.provider_region.value,
-            "full_name": bill_data.full_name,
-            "address": bill_data.address,
-            "amount": bill_data.amount,
-            "billing_cycle": bill_data.billing_cycle,
-            "status": bill_data.status.value,
-            "updated_at": datetime.now(timezone.utc),
-            "last_checked": datetime.now(timezone.utc)
-        })
+        # Prepare update data - only update fields that are provided and allowed
+        update_data = {
+            "updated_at": datetime.now(timezone.utc)
+        }
         
-        print(f"Update data prepared")
+        # Update allowed fields if provided
+        allowed_fields = [
+            "customer_code", "provider_region", "full_name", "address", 
+            "amount", "billing_cycle", "status", "raw_status", 
+            "error_code", "error_message", "meta", "note", "last_checked"
+        ]
+        
+        for field in allowed_fields:
+            if field in bill_data and bill_data[field] is not None:
+                if field == "last_checked" and isinstance(bill_data[field], str):
+                    # Parse ISO string to datetime
+                    try:
+                        update_data[field] = datetime.fromisoformat(bill_data[field].replace('Z', '+00:00'))
+                    except:
+                        update_data[field] = datetime.now(timezone.utc)
+                else:
+                    update_data[field] = bill_data[field]
+        
+        print(f"Update data prepared with fields: {list(update_data.keys())}")
         
         # Update bill in database
         result = await db.bills.update_one(
@@ -1230,52 +1241,29 @@ async def update_bill(bill_id: str, bill_data: BillCreate):
             {"$set": update_data}
         )
         
-        print(f"Update result: matched={result.matched_count}")
+        print(f"Update result: matched={result.matched_count}, modified={result.modified_count}")
         
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Không tìm thấy bill để cập nhật")
         
         # Get updated bill
         updated_bill = await db.bills.find_one({"id": bill_id})
-        print(f"Retrieved updated bill: {type(updated_bill)}")
+        print(f"Retrieved updated bill successfully")
         
-        # If status changed to CROSSED, remove from inventory (if exists)
-        if bill_data.status == BillStatus.CROSSED:
-            inventory_result = await db.inventory_items.delete_many({"bill_id": bill_id})
-            print(f"Removed {inventory_result.deleted_count} items from inventory")
-        
-        # Parse the bill data
-        parsed_bill = parse_from_mongo(updated_bill)
-        print(f"Parsed bill successfully")
-        
-        # Create response with proper serialization
-        response_data = {
-            "success": True,
-            "message": "Đã cập nhật bill thành công",
-            "bill": {
-                "id": parsed_bill.get("id"),
-                "status": parsed_bill.get("status"),
-                "updated_at": parsed_bill.get("updated_at"),
-                "last_checked": parsed_bill.get("last_checked"),
-                "customer_code": parsed_bill.get("customer_code"),
-                "provider_region": parsed_bill.get("provider_region"),
-                "full_name": parsed_bill.get("full_name"),
-                "address": parsed_bill.get("address"),
-                "amount": parsed_bill.get("amount"),
-                "billing_cycle": parsed_bill.get("billing_cycle")
-            }
+        return {
+            "id": updated_bill["id"],
+            "customer_code": updated_bill["customer_code"],
+            "status": updated_bill["status"],
+            "last_checked": updated_bill.get("last_checked"),
+            "updated_at": updated_bill["updated_at"]
         }
-        print(f"Response data prepared")
-        
-        return response_data
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in update_bill: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error updating bill: {str(e)}")
+        logger.error(f"Error updating bill {bill_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lỗi cập nhật bill: {str(e)}")
 
 @api_router.delete("/customers/{customer_id}")
 async def delete_customer(customer_id: str):
