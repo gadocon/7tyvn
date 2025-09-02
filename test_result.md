@@ -125,7 +125,7 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src/App.js"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
@@ -135,6 +135,9 @@ frontend:
         - working: false
           agent: "testing"
           comment: "❌ FRONTEND ROUTING ISSUE PREVENTS UI TESTING: Unable to access Credit Cards page for UI testing. The /credit-cards URL redirects to dashboard, preventing access to the DAO modal functionality. BACKEND VERIFICATION: Credit cards exist (32 cards with various statuses: Đã đáo, Cần đáo, Chưa đến hạn), API endpoints working perfectly. ISSUE: Frontend routing problem prevents testing of modal access, tab navigation, form validation, and UI interactions. Main agent needs to fix routing issue to enable comprehensive UI testing."
+        - working: false
+          agent: "testing"
+          comment: "🔄 PARTIAL SUCCESS WITH MODAL ACCESS ISSUE: ✅ ROUTING FIXED: Successfully accessed Credit Cards page (/credit-cards) via navigation. Page displays 32 credit cards with proper UI layout including green card visuals and table with 'Xem' buttons. ❌ MODAL FUNCTIONALITY BROKEN: InfoCard modal does not open when clicking 'Xem' buttons in table. Tested multiple approaches (force click, JavaScript click, row click) but modal remains closed. ISSUE: Modal event handlers not working properly. Need to fix modal opening mechanism for 'Xem' buttons to enable DAO modal testing."
 
   - task: "Tab Navigation System"
     implemented: true
@@ -150,6 +153,9 @@ frontend:
         - working: "NA"
           agent: "testing"
           comment: "⚠️ UNABLE TO TEST DUE TO ROUTING ISSUE: Tab navigation system cannot be tested because Credit Cards page is inaccessible due to frontend routing redirecting to dashboard. Code implementation appears correct based on backend API functionality."
+        - working: "NA"
+          agent: "testing"
+          comment: "⚠️ UNABLE TO TEST DUE TO MODAL ISSUE: Credit Cards page is now accessible, but InfoCard modal does not open when clicking 'Xem' buttons, preventing access to DAO modal and tab navigation testing. Modal opening mechanism needs to be fixed first."
 
   - task: "POS Payment Method"
     implemented: true
@@ -165,6 +171,9 @@ frontend:
         - working: "NA"
           agent: "testing"
           comment: "⚠️ UNABLE TO TEST UI DUE TO ROUTING ISSUE: POS payment method cannot be tested via UI because Credit Cards page is inaccessible. BACKEND VERIFICATION: POS API method working perfectly - successfully processed test transaction with accurate calculations (5M VND, 3.5% profit = 175K profit, 4.825M payback)."
+        - working: "NA"
+          agent: "testing"
+          comment: "⚠️ UNABLE TO TEST DUE TO MODAL ISSUE: Credit Cards page accessible but InfoCard modal not opening. Cannot access DAO modal to test POS payment method form fields, validation, and calculations. Modal opening mechanism needs repair."
 
   - task: "BILL Payment Method"
     implemented: true
@@ -180,6 +189,9 @@ frontend:
         - working: "NA"
           agent: "testing"
           comment: "⚠️ UNABLE TO TEST UI DUE TO ROUTING ISSUE: BILL payment method cannot be tested via UI because Credit Cards page is inaccessible. BACKEND VERIFICATION: BILL API method working perfectly - successfully processed 2 bills (2.14M VND total) with 3.5% profit = 74.9K profit, 2.065M payback. Available bills exist in system for selection."
+        - working: "NA"
+          agent: "testing"
+          comment: "⚠️ UNABLE TO TEST DUE TO MODAL ISSUE: Credit Cards page accessible but InfoCard modal not opening. Cannot access DAO modal to test BILL payment method, bill selection, and multi-bill calculations. Modal opening mechanism needs repair."
 
   - task: "Summary Panel & Calculations"
     implemented: true
@@ -195,6 +207,9 @@ frontend:
         - working: "NA"
           agent: "testing"
           comment: "⚠️ UNABLE TO TEST UI DUE TO ROUTING ISSUE: Summary panel calculations cannot be tested via UI. BACKEND VERIFICATION: Calculation logic working perfectly - accurate profit calculations and Vietnamese currency formatting confirmed through API testing."
+        - working: "NA"
+          agent: "testing"
+          comment: "⚠️ UNABLE TO TEST DUE TO MODAL ISSUE: Credit Cards page accessible but InfoCard modal not opening. Cannot access DAO modal to test summary panel real-time calculations and Vietnamese currency formatting. Modal opening mechanism needs repair."
 
   - task: "Form Submission & API Integration"
     implemented: true
