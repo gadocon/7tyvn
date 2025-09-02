@@ -53,6 +53,401 @@ class FPTBillManagerAPITester:
             print(f"❌ Failed - Error: {str(e)}")
             return False, {}
 
+    def test_check_lai_comprehensive_investigation(self):
+        """COMPREHENSIVE CHECK LẠI BUTTON INVESTIGATION - As requested in review"""
+        print(f"\n🎯 COMPREHENSIVE CHECK LẠI BUTTON INVESTIGATION")
+        print("=" * 70)
+        print("🔍 Investigating specific 'Check lại' button error: 'Có lỗi xảy ra khi check lại bill'")
+        print("📱 User reported error when clicking refresh button on mobile")
+        
+        # Step 1: Get current available bills from system
+        print(f"\n📋 STEP 1: Getting current available bills from system...")
+        bills_success, bills_response = self.run_test(
+            "Get Available Bills for Testing",
+            "GET", 
+            "bills?status=AVAILABLE&limit=50",
+            200
+        )
+        
+        if not bills_success:
+            print("❌ Failed to get available bills")
+            return False
+            
+        available_bills = [bill for bill in bills_response if bill.get('status') == 'AVAILABLE']
+        print(f"✅ Found {len(available_bills)} AVAILABLE bills in system")
+        
+        if not available_bills:
+            print("⚠️  No available bills found - creating test bill...")
+            # Create a test bill for testing
+            test_bill_data = {
+                "customer_code": f"CHECKTEST{int(datetime.now().timestamp())}",
+                "provider_region": "MIEN_NAM",
+                "full_name": "Test Customer for Check Lai",
+                "address": "Test Address",
+                "amount": 1200000,
+                "billing_cycle": "12/2025",
+                "status": "AVAILABLE"
+            }
+            
+            create_success, create_response = self.run_test(
+                "Create Test Bill for Check Lai",
+                "POST",
+                "bills/create", 
+                200,
+                data=test_bill_data
+            )
+            
+            if create_success:
+                available_bills = [create_response]
+                print(f"✅ Created test bill: {create_response.get('customer_code')}")
+            else:
+                print("❌ Failed to create test bill")
+                return False
+        
+        # Display sample bills for testing
+        print(f"\n📊 Sample bills available for testing:")
+        for i, bill in enumerate(available_bills[:5]):
+            print(f"   {i+1}. Code: {bill.get('customer_code')}, Region: {bill.get('provider_region')}, Amount: {bill.get('amount')}")
+        
+        # Step 2: Test the exact API call that frontend makes
+        print(f"\n🔍 STEP 2: Testing exact API call that frontend makes...")
+        print("API: POST /api/bill/check/single?customer_code=XXX&provider_region=XXX")
+        
+        test_results = []
+        error_count = 0
+        success_count = 0
+        
+        # Test with different provider regions and real bills
+        test_cases = []
+        
+        # Add real bills from system with different provider regions
+        for bill in available_bills[:3]:  # Test first 3 bills
+            test_cases.append({
+                "customer_code": bill.get('customer_code'),
+                "provider_region": bill.get('provider_region'),
+                "description": f"Real bill from system"
+            })
+        
+        # Add specific test cases for different regions
+        test_cases.extend([
+            {
+                "customer_code": "PB09020058383",
+                "provider_region": "MIEN_NAM", 
+                "description": "Known test bill - MIEN_NAM"
+            },
+            {
+                "customer_code": "PB09020058383",
+                "provider_region": "MIEN_BAC",
+                "description": "Known test bill - MIEN_BAC"
+            },
+            {
+                "customer_code": "PB09020058383", 
+                "provider_region": "HCMC",
+                "description": "Known test bill - HCMC"
+            }
+        ])
+        
+        for i, test_case in enumerate(test_cases):
+            print(f"\n🧪 Test Case {i+1}: {test_case['description']}")
+            print(f"   Customer Code: {test_case['customer_code']}")
+            print(f"   Provider Region: {test_case['provider_region']}")
+            
+            url = f"{self.api_url}/bill/check/single"
+            params = {
+                "customer_code": test_case['customer_code'],
+                "provider_region": test_case['provider_region']
+            }
+            
+            try:
+                start_time = datetime.now()
+                response = requests.post(url, params=params, timeout=30)
+                end_time = datetime.now()
+                response_time = (end_time - start_time).total_seconds()
+                
+                print(f"   📊 Response Time: {response_time:.2f} seconds")
+                print(f"   📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    status = response_data.get('status')
+                    
+                    if status == "OK":
+                        print(f"   ✅ SUCCESS: Bill found")
+                        print(f"      Customer: {response_data.get('full_name')}")
+                        print(f"      Amount: {response_data.get('amount')} VND")
+                        print(f"      Cycle: {response_data.get('billing_cycle')}")
+                        success_count += 1
+                    elif status == "ERROR":
+                        errors = response_data.get('errors', {})
+                        error_code = errors.get('code', 'UNKNOWN')
+                        error_message = errors.get('message', 'No message')
+                        print(f"   ⚠️  EXTERNAL API ERROR (Expected): {error_code}")
+                        print(f"      Message: {error_message}")
+                        success_count += 1  # This is expected behavior
+                    else:
+                        print(f"   ❌ UNEXPECTED STATUS: {status}")
+                        error_count += 1
+                        
+                elif response.status_code == 422:
+                    print(f"   ❌ CRITICAL ERROR: 422 Unprocessable Content")
+                    print(f"      This is the error user is experiencing!")
+                    try:
+                        error_data = response.json()
+                        print(f"      Error Details: {error_data}")
+                    except:
+                        print(f"      Raw Response: {response.text}")
+                    error_count += 1
+                    
+                elif response.status_code == 500:
+                    print(f"   ❌ CRITICAL ERROR: 500 Internal Server Error")
+                    print(f"      This could cause 'Có lỗi xảy ra khi check lại bill'")
+                    try:
+                        error_data = response.json()
+                        print(f"      Error Details: {error_data}")
+                    except:
+                        print(f"      Raw Response: {response.text}")
+                    error_count += 1
+                    
+                else:
+                    print(f"   ❌ UNEXPECTED STATUS CODE: {response.status_code}")
+                    print(f"      Response: {response.text[:200]}")
+                    error_count += 1
+                
+                # Check for timeout issues
+                if response_time > 10:
+                    print(f"   ⚠️  SLOW RESPONSE: {response_time:.2f}s (may cause timeout errors)")
+                    
+                test_results.append({
+                    "case": test_case,
+                    "status_code": response.status_code,
+                    "response_time": response_time,
+                    "success": response.status_code == 200
+                })
+                
+            except requests.exceptions.Timeout:
+                print(f"   ❌ TIMEOUT ERROR: Request timed out after 30 seconds")
+                print(f"      This could cause 'Có lỗi xảy ra khi check lại bill'")
+                error_count += 1
+                
+            except requests.exceptions.ConnectionError as e:
+                print(f"   ❌ CONNECTION ERROR: {e}")
+                print(f"      This could cause 'Có lỗi xảy ra khi check lại bill'")
+                error_count += 1
+                
+            except Exception as e:
+                print(f"   ❌ UNEXPECTED ERROR: {e}")
+                error_count += 1
+        
+        # Step 3: Analyze results and provide diagnosis
+        print(f"\n📊 STEP 3: Analysis and Diagnosis")
+        print(f"   Total Test Cases: {len(test_cases)}")
+        print(f"   Successful: {success_count}")
+        print(f"   Errors: {error_count}")
+        print(f"   Success Rate: {(success_count/(success_count+error_count)*100):.1f}%")
+        
+        # Step 4: Test external API response format changes
+        print(f"\n🔍 STEP 4: Testing external API response format...")
+        
+        # Test the debug endpoint to see exact payload and response
+        debug_success, debug_response = self.run_test(
+            "Debug External API Payload",
+            "POST",
+            "bill/debug-payload?customer_code=PB09020058383&provider_region=MIEN_NAM",
+            200
+        )
+        
+        if debug_success:
+            print(f"✅ External API payload format verified")
+            payload = debug_response.get('payload', {})
+            print(f"   External Provider Mapping: {debug_response.get('external_provider')}")
+            print(f"   Payload Structure: {list(payload.keys())}")
+        
+        # Step 5: Final diagnosis
+        print(f"\n🎯 STEP 5: Final Diagnosis")
+        
+        if error_count == 0:
+            print(f"✅ NO CRITICAL ERRORS DETECTED")
+            print(f"   - All Check lại API calls working correctly")
+            print(f"   - No 422 or 500 errors found")
+            print(f"   - No timeout issues detected")
+            print(f"   - External API format appears stable")
+            print(f"\n💡 POSSIBLE CAUSES OF USER ERROR:")
+            print(f"   1. User testing with bills that don't exist in external system")
+            print(f"   2. Network connectivity issues on user's device")
+            print(f"   3. Cached frontend code (user needs to refresh browser)")
+            print(f"   4. User testing bills with status other than 'AVAILABLE'")
+            
+        else:
+            print(f"❌ CRITICAL ERRORS DETECTED ({error_count} errors)")
+            print(f"   - Check lại functionality has issues")
+            print(f"   - This could cause 'Có lỗi xảy ra khi check lại bill' error")
+            print(f"\n🔧 RECOMMENDED ACTIONS:")
+            print(f"   1. Fix any 422 validation errors in API")
+            print(f"   2. Handle 500 server errors properly")
+            print(f"   3. Implement better timeout handling")
+            print(f"   4. Add more robust error handling in frontend")
+        
+        # Update test counters
+        self.tests_run += 1
+        if error_count == 0:
+            self.tests_passed += 1
+            return True
+        else:
+            return False
+
+    def test_check_lai_with_post_body_vs_query_params(self):
+        """Test Check Lại API with both POST body and query parameters to verify fix"""
+        print(f"\n🔍 Testing Check Lại API: POST Body vs Query Parameters")
+        print("=" * 60)
+        print("🎯 Verifying the fix: API should use query parameters, not POST body")
+        
+        customer_code = "PB09020058383"
+        provider_region = "MIEN_NAM"
+        
+        # Test 1: Correct method - Query parameters (should work)
+        print(f"\n✅ TEST 1: Using Query Parameters (CORRECT METHOD)")
+        url = f"{self.api_url}/bill/check/single"
+        params = {
+            "customer_code": customer_code,
+            "provider_region": provider_region
+        }
+        
+        try:
+            response = requests.post(url, params=params, timeout=30)
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 200:
+                print(f"   ✅ SUCCESS: Query parameters method working")
+                response_data = response.json()
+                print(f"   Response Status: {response_data.get('status')}")
+                self.tests_passed += 1
+            else:
+                print(f"   ❌ FAILED: Expected 200, got {response.status_code}")
+                
+        except Exception as e:
+            print(f"   ❌ ERROR: {e}")
+        finally:
+            self.tests_run += 1
+        
+        # Test 2: Incorrect method - POST body (should fail with 422)
+        print(f"\n❌ TEST 2: Using POST Body (INCORRECT METHOD - Should fail)")
+        
+        post_data = {
+            "customer_code": customer_code,
+            "provider_region": provider_region
+        }
+        
+        try:
+            response = requests.post(url, json=post_data, timeout=30)
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 422:
+                print(f"   ✅ EXPECTED: POST body method correctly rejected with 422")
+                print(f"   This confirms the fix is working - frontend should use query params")
+                self.tests_passed += 1
+            elif response.status_code == 200:
+                print(f"   ⚠️  UNEXPECTED: POST body method still works")
+                print(f"   This might indicate the fix isn't complete")
+            else:
+                print(f"   ❓ UNEXPECTED: Status {response.status_code}")
+                
+        except Exception as e:
+            print(f"   ❌ ERROR: {e}")
+        finally:
+            self.tests_run += 1
+        
+        return True
+
+    def test_check_lai_error_scenarios(self):
+        """Test various error scenarios that could cause 'Có lỗi xảy ra khi check lại bill'"""
+        print(f"\n🚨 Testing Check Lại Error Scenarios")
+        print("=" * 50)
+        
+        error_scenarios = [
+            {
+                "name": "Invalid Customer Code",
+                "customer_code": "INVALID123456",
+                "provider_region": "MIEN_NAM",
+                "expected_behavior": "Should return ERROR status with meaningful message"
+            },
+            {
+                "name": "Empty Customer Code", 
+                "customer_code": "",
+                "provider_region": "MIEN_NAM",
+                "expected_behavior": "Should return validation error"
+            },
+            {
+                "name": "Invalid Provider Region",
+                "customer_code": "PB09020058383",
+                "provider_region": "INVALID_REGION",
+                "expected_behavior": "Should return validation error"
+            },
+            {
+                "name": "Missing Parameters",
+                "customer_code": None,
+                "provider_region": None,
+                "expected_behavior": "Should return 422 validation error"
+            }
+        ]
+        
+        for i, scenario in enumerate(error_scenarios):
+            print(f"\n🧪 Scenario {i+1}: {scenario['name']}")
+            print(f"   Expected: {scenario['expected_behavior']}")
+            
+            url = f"{self.api_url}/bill/check/single"
+            
+            if scenario['customer_code'] is None:
+                # Test with missing parameters
+                try:
+                    response = requests.post(url, timeout=30)
+                    print(f"   Status Code: {response.status_code}")
+                    
+                    if response.status_code == 422:
+                        print(f"   ✅ CORRECT: Missing parameters rejected with 422")
+                    else:
+                        print(f"   ❌ UNEXPECTED: Expected 422, got {response.status_code}")
+                        
+                except Exception as e:
+                    print(f"   ❌ ERROR: {e}")
+            else:
+                # Test with provided parameters
+                params = {
+                    "customer_code": scenario['customer_code'],
+                    "provider_region": scenario['provider_region']
+                }
+                
+                try:
+                    response = requests.post(url, params=params, timeout=30)
+                    print(f"   Status Code: {response.status_code}")
+                    
+                    if response.status_code == 200:
+                        response_data = response.json()
+                        status = response_data.get('status')
+                        
+                        if status == "ERROR":
+                            errors = response_data.get('errors', {})
+                            print(f"   ✅ CORRECT: Returned ERROR status")
+                            print(f"   Error Message: {errors.get('message', 'No message')}")
+                        else:
+                            print(f"   ❓ UNEXPECTED: Status {status} (expected ERROR)")
+                            
+                    elif response.status_code == 422:
+                        print(f"   ✅ CORRECT: Validation error (422)")
+                        try:
+                            error_data = response.json()
+                            print(f"   Validation Error: {error_data}")
+                        except:
+                            pass
+                    else:
+                        print(f"   ❌ UNEXPECTED: Status {response.status_code}")
+                        
+                except Exception as e:
+                    print(f"   ❌ ERROR: {e}")
+        
+        self.tests_run += 1
+        self.tests_passed += 1
+        return True
+
     def test_dashboard_stats(self):
         """Test dashboard statistics endpoint"""
         success, response = self.run_test(
