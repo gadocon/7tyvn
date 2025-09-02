@@ -148,7 +148,7 @@ class ActivityLoggingTester:
             "statement_date": 15,
             "payment_due_date": 10,
             "credit_limit": 50000000,
-            "status": "NOT_DUE",
+            "status": "Chưa đến hạn",
             "notes": "Test card for activity logging"
         }
         
