@@ -1997,6 +1997,175 @@ async def delete_credit_card(card_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Credit Card Transaction APIs
+@api_router.get("/credit-cards/{card_id}/transactions")
+async def get_card_transactions(card_id: str, page: int = 1, page_size: int = 3):
+    """Get credit card transactions with pagination"""
+    try:
+        # Verify card exists
+        card = await db.credit_cards.find_one({"id": card_id})
+        if not card:
+            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+        
+        # Get transactions for this card
+        skip = (page - 1) * page_size
+        transactions = await db.credit_card_transactions.find(
+            {"card_id": card_id}
+        ).sort("created_at", -1).skip(skip).limit(page_size).to_list(page_size)
+        
+        # Get total count
+        total_count = await db.credit_card_transactions.count_documents({"card_id": card_id})
+        
+        return {
+            "transactions": [CreditCardTransaction(**parse_from_mongo(t)) for t in transactions],
+            "total_count": total_count,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total_count + page_size - 1) // page_size
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/credit-cards/{card_id}/dao")
+async def process_card_payment(card_id: str, payment_data: CreditCardTransactionCreate):
+    """Process credit card payment (Đáo thẻ) - POS or BILL method"""
+    try:
+        # Validate card exists
+        card = await db.credit_cards.find_one({"id": card_id})
+        if not card:
+            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+        
+        # Validate customer exists  
+        customer = await db.customers.find_one({"id": card["customer_id"]})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        # Generate transaction group ID
+        transaction_group_id = f"CC_{int(datetime.now().timestamp())}"
+        
+        if payment_data.payment_method == CreditCardPaymentMethod.POS:
+            # POS method - single transaction
+            if not payment_data.total_amount or payment_data.total_amount <= 0:
+                raise HTTPException(status_code=400, detail="Số tiền đáo không hợp lệ")
+            
+            total_amount = payment_data.total_amount
+            profit_value = round(total_amount * payment_data.profit_pct / 100, 0)
+            payback = total_amount - profit_value
+            
+            # Create single transaction
+            transaction = CreditCardTransaction(
+                card_id=card_id,
+                customer_id=card["customer_id"],
+                transaction_group_id=transaction_group_id,
+                payment_method=CreditCardPaymentMethod.POS,
+                total_amount=total_amount,
+                profit_pct=payment_data.profit_pct,
+                profit_value=profit_value,
+                payback=payback,
+                notes=payment_data.notes or f"Đáo thẻ POS - ****{card['card_number'][-4:]}"
+            )
+            
+            # Save transaction
+            transaction_dict = prepare_for_mongo(transaction.dict())
+            await db.credit_card_transactions.insert_one(transaction_dict)
+            
+        elif payment_data.payment_method == CreditCardPaymentMethod.BILL:
+            # BILL method - multiple transactions from bills
+            if not payment_data.bill_ids:
+                raise HTTPException(status_code=400, detail="Cần chọn ít nhất một bill điện")
+            
+            # Get bills and validate they're available
+            bill_filter = {"id": {"$in": payment_data.bill_ids}, "status": BillStatus.AVAILABLE}
+            bills = await db.bills.find(bill_filter).to_list(None)
+            
+            if len(bills) != len(payment_data.bill_ids):
+                raise HTTPException(status_code=400, detail="Một số bill không khả dụng hoặc không tồn tại")
+            
+            # Calculate totals
+            total_amount = sum(bill.get("amount", 0) for bill in bills)
+            profit_value = round(total_amount * payment_data.profit_pct / 100, 0)
+            payback = total_amount - profit_value
+            
+            # Create transactions for each bill (with -1, -2, etc.)
+            transactions_created = []
+            for i, bill in enumerate(bills):
+                bill_transaction_id = f"{transaction_group_id}-{i+1}"
+                
+                transaction = CreditCardTransaction(
+                    id=bill_transaction_id,
+                    card_id=card_id,
+                    customer_id=card["customer_id"],
+                    transaction_group_id=transaction_group_id,
+                    payment_method=CreditCardPaymentMethod.BILL,
+                    total_amount=bill.get("amount", 0),
+                    profit_pct=payment_data.profit_pct,
+                    profit_value=round(bill.get("amount", 0) * payment_data.profit_pct / 100, 0),
+                    payback=bill.get("amount", 0) - round(bill.get("amount", 0) * payment_data.profit_pct / 100, 0),
+                    bill_ids=[bill["id"]],
+                    notes=payment_data.notes or f"Đáo thẻ BILL - ****{card['card_number'][-4:]} - {bill.get('customer_code', '')}"
+                )
+                
+                # Save transaction
+                transaction_dict = prepare_for_mongo(transaction.dict())
+                await db.credit_card_transactions.insert_one(transaction_dict)
+                transactions_created.append(transaction)
+                
+                # Update bill status to SOLD
+                await db.bills.update_one(
+                    {"id": bill["id"]},
+                    {"$set": {"status": BillStatus.SOLD, "updated_at": datetime.now(timezone.utc)}}
+                )
+            
+            # Remove bills from inventory
+            await db.inventory_items.delete_many({"bill_id": {"$in": payment_data.bill_ids}})
+        
+        # Update card status to PAID_OFF
+        await db.credit_cards.update_one(
+            {"id": card_id},
+            {"$set": {"status": CardStatus.PAID_OFF, "updated_at": datetime.now(timezone.utc)}}
+        )
+        
+        # Update customer transaction count
+        await db.customers.update_one(
+            {"id": card["customer_id"]},
+            {"$inc": {"total_transactions": 1}}
+        )
+        
+        # Create corresponding Sale record for customer transaction history
+        sale = Sale(
+            customer_id=card["customer_id"],
+            transaction_type="CREDIT_CARD",
+            total=total_amount,
+            profit_pct=payment_data.profit_pct,
+            profit_value=profit_value,
+            payback=payback,
+            method=PaymentMethod.OTHER,
+            status="COMPLETED",
+            notes=f"Đáo thẻ ****{card['card_number'][-4:]} - {payment_data.payment_method.value}",
+            bill_ids=payment_data.bill_ids or []
+        )
+        
+        # Save sale record
+        sale_dict = prepare_for_mongo(sale.dict())
+        await db.sales.insert_one(sale_dict)
+        
+        return {
+            "success": True,
+            "message": f"Đã đáo thẻ thành công bằng phương thức {payment_data.payment_method.value}",
+            "transaction_group_id": transaction_group_id,
+            "total_amount": total_amount,
+            "profit_value": profit_value,
+            "payback": payback
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Sales/Transaction APIs
 @api_router.post("/sales", response_model=Sale)
 async def create_sale(sale_data: SaleCreate):
