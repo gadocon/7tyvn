@@ -35,7 +35,10 @@ import {
   ArrowDown,
   Trash2,
   RefreshCw,
-  CreditCard
+  CreditCard,
+  Menu,
+  X,
+  User
 } from "lucide-react";
 import axios from "axios";
 
