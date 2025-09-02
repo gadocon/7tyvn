@@ -5863,6 +5863,7 @@ function App() {
               <Route path="/check-bill" element={<CheckBill />} />
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/customers" element={<Customers customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
+              <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
               <Route path="/credit-cards" element={<CreditCards />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/reports" element={<Reports />} />
