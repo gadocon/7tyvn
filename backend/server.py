@@ -322,6 +322,129 @@ class BillCreate(BaseModel):
     billing_cycle: Optional[str] = None  # Format: MM/YYYY
     status: BillStatus = BillStatus.AVAILABLE
 
+# Credit Card Cycle Business Logic Functions
+def get_current_cycle_month(current_date: datetime = None) -> str:
+    """Get current cycle month in MM/YYYY format"""
+    if not current_date:
+        current_date = datetime.now(timezone.utc)
+    return current_date.strftime("%m/%Y")
+
+def get_next_cycle_date(statement_date: int, current_date: datetime = None) -> datetime:
+    """Get next cycle statement date"""
+    if not current_date:
+        current_date = datetime.now(timezone.utc)
+    
+    # Create next statement date
+    if current_date.day < statement_date:
+        # Statement date hasn't passed this month
+        next_cycle = current_date.replace(day=statement_date, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        # Statement date passed, go to next month
+        next_month = current_date + relativedelta(months=1)
+        next_cycle = next_month.replace(day=statement_date, hour=0, minute=0, second=0, microsecond=0)
+    
+    return next_cycle
+
+def get_payment_due_date(statement_date: int, payment_due_date: int, current_date: datetime = None) -> datetime:
+    """Get payment due date for current cycle"""
+    if not current_date:
+        current_date = datetime.now(timezone.utc)
+    
+    # Determine current cycle statement date
+    if current_date.day >= statement_date:
+        # We're in current cycle
+        cycle_month = current_date
+    else:
+        # We're in previous cycle
+        cycle_month = current_date - relativedelta(months=1)
+    
+    # Payment due is usually next month
+    due_month = cycle_month + relativedelta(months=1)
+    
+    try:
+        due_date = due_month.replace(day=payment_due_date, hour=23, minute=59, second=59, microsecond=0)
+    except ValueError:
+        # Handle month with fewer days
+        due_date = due_month.replace(day=28, hour=23, minute=59, second=59, microsecond=0)
+    
+    return due_date
+
+def calculate_card_status_realtime(card: dict, current_date: datetime = None) -> CardStatus:
+    """Calculate real-time card status based on cycle logic"""
+    if not current_date:
+        current_date = datetime.now(timezone.utc)
+    
+    statement_date = card.get("statement_date", 1)
+    payment_due_date = card.get("payment_due_date", 15)
+    current_cycle_month = get_current_cycle_month(current_date)
+    
+    # Get key dates
+    next_statement = get_next_cycle_date(statement_date, current_date)
+    payment_due = get_payment_due_date(statement_date, payment_due_date, current_date)
+    
+    # Check if we're in current cycle
+    card_cycle_month = card.get("current_cycle_month")
+    last_payment_date = card.get("last_payment_date")
+    
+    # Determine current status
+    if current_date < next_statement:
+        # Before next statement date
+        if card_cycle_month == current_cycle_month and last_payment_date:
+            return CardStatus.PAID_OFF  # Đã đáo trong chu kỳ này
+        elif current_date > payment_due + timedelta(days=7):
+            return CardStatus.NOT_DUE  # Reset to next cycle after grace period
+        elif current_date > payment_due:
+            return CardStatus.OVERDUE  # Quá hạn (grace period)
+        else:
+            return CardStatus.NEED_PAYMENT  # Cần đáo
+    else:
+        # After statement date - new cycle begins
+        if card_cycle_month == current_cycle_month and last_payment_date:
+            return CardStatus.PAID_OFF  # Already paid this cycle
+        else:
+            return CardStatus.NEED_PAYMENT  # New cycle, needs payment
+
+async def update_card_cycle_status(card_id: str, current_date: datetime = None):
+    """Update card cycle status and tracking fields"""
+    if not current_date:
+        current_date = datetime.now(timezone.utc)
+    
+    card = await db.credit_cards.find_one({"id": card_id})
+    if not card:
+        return None
+    
+    current_cycle_month = get_current_cycle_month(current_date)
+    new_status = calculate_card_status_realtime(card, current_date)
+    
+    # Check if we've entered a new cycle
+    if card.get("current_cycle_month") != current_cycle_month:
+        # New cycle detected - reset cycle fields
+        update_fields = {
+            "status": new_status.value,
+            "current_cycle_month": current_cycle_month,
+            "cycle_payment_count": 0,
+            "total_cycles": card.get("total_cycles", 0) + 1,
+            "updated_at": current_date
+        }
+        
+        # Only reset last_payment_date if it's from previous cycle
+        if card.get("current_cycle_month") and card.get("current_cycle_month") != current_cycle_month:
+            update_fields["last_payment_date"] = None
+    else:
+        # Same cycle - just update status
+        update_fields = {
+            "status": new_status.value,
+            "updated_at": current_date
+        }
+    
+    # Update card
+    await db.credit_cards.update_one(
+        {"id": card_id},
+        {"$set": update_fields}
+    )
+    
+    return new_status
+
 # Utility functions
 def clean_customer_code(code: str) -> str:
     """Clean customer code by removing fees and extra characters"""
