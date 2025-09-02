@@ -45,174 +45,145 @@ import axios from "axios";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Navigation Component
+// Navigation Component with Responsive Sidebar
 const Navigation = () => {
-  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  const navItems = [
-    { path: "/", label: "Dashboard", icon: Home },
-    { path: "/check-bill", label: "Kiểm Tra Mã Điện", icon: FileCheck },
-    { path: "/inventory", label: "Kho Bill", icon: Package },
-    { path: "/customers", label: "Khách Hàng", icon: Users },
-    { path: "/credit-cards", label: "Quản Lý Thẻ", icon: CreditCard },
-    { path: "/sales", label: "Bán Bill", icon: ShoppingCart }
+  const location = useLocation();
+
+  // Navigation items
+  const navigationItems = [
+    { path: '/', icon: Home, label: 'Dashboard' },
+    { path: '/check-bill', icon: Search, label: 'Kiểm Tra Mã Điện' },
+    { path: '/inventory', icon: Package, label: 'Kho Bill' },
+    { path: '/customers', icon: Users, label: 'Khách Hàng' },
+    { path: '/credit-cards', icon: CreditCard, label: 'Quản Lý Thẻ' },
+    { path: '/sales', icon: ShoppingCart, label: 'Bán Bill' }
   ];
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+  // Close sidebar when clicking outside (mobile)
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sidebarOpen && !event.target.closest('.sidebar-container') && !event.target.closest('.sidebar-toggle')) {
+        setSidebarOpen(false);
+      }
+    };
 
-  const closeSidebar = () => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [sidebarOpen]);
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
     setSidebarOpen(false);
-  };
+  }, [location.pathname]);
 
   return (
     <>
-      {/* Top Navigation Bar */}
-      <nav className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4 fixed top-0 left-0 right-0 z-40">
-        <div className="flex items-center justify-between">
-          {/* Mobile Menu Button */}
+      {/* Top Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-50 lg:z-40">
+        <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
+          {/* Mobile/Desktop Toggle + Logo */}
           <div className="flex items-center space-x-4">
+            {/* Hamburger Menu Button */}
             <button
-              onClick={toggleSidebar}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="sidebar-toggle p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              aria-label="Toggle sidebar"
             >
-              <svg
-                className="w-6 h-6 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
+              {sidebarOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </button>
 
             {/* Logo */}
-            <div className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-3">
               <BarChart3 className="h-8 w-8 text-blue-600" />
               <span className="text-xl font-bold text-gray-900 hidden sm:block">7ty.vn CRM</span>
               <span className="text-lg font-bold text-gray-900 sm:hidden">7ty.vn</span>
-            </div>
+            </Link>
           </div>
-          
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive 
-                      ? "bg-blue-100 text-blue-700" 
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </NavLink>
-              );
-            })}
-          </div>
-          
-          {/* Status Badge */}
+
+          {/* Header Right Actions */}
           <div className="flex items-center space-x-4">
-            <Badge variant="outline" className="text-green-600 border-green-200 hidden sm:flex">
-              Đang hoạt động
-            </Badge>
+            <span className="text-sm text-gray-500 hidden sm:block">Đang hoạt động</span>
+            {/* Future: User profile dropdown will go here */}
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile Backdrop Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
-          onClick={closeSidebar}
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Mobile Sidebar */}
-      <div className={`fixed top-0 left-0 h-full w-80 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      {/* Sidebar */}
+      <aside className={`
+        sidebar-container fixed top-0 left-0 h-full bg-white shadow-xl z-50 lg:z-30 transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        w-80 lg:w-64
+      `}>
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 lg:hidden">
           <div className="flex items-center space-x-3">
             <BarChart3 className="h-8 w-8 text-blue-600" />
             <span className="text-xl font-bold text-gray-900">7ty.vn CRM</span>
           </div>
           <button
-            onClick={closeSidebar}
-            className="p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={() => setSidebarOpen(false)}
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
-            <svg
-              className="w-6 h-6 text-gray-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Sidebar Navigation */}
-        <div className="p-4">
-          <div className="space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={closeSidebar}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors w-full ${
-                    isActive 
-                      ? "bg-blue-100 text-blue-700 border-r-4 border-blue-700" 
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                  {isActive && (
-                    <div className="ml-auto">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                    </div>
-                  )}
-                </NavLink>
-              );
-            })}
-          </div>
+        {/* Navigation Menu */}
+        <nav className="flex-1 px-4 py-6 space-y-2 lg:pt-20">
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`
+                  flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200
+                  ${isActive 
+                    ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }
+                `}
+              >
+                <Icon className={`h-5 w-5 ${isActive ? 'text-blue-600' : ''}`} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
-          {/* Sidebar Footer */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="flex items-center space-x-3 px-4 py-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-gray-600">Hệ thống đang hoạt động</span>
-            </div>
-            <div className="px-4 py-2">
-              <p className="text-xs text-gray-500">© 2025 7ty.vn CRM</p>
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-gray-200">
+          {/* Future: User profile section will go here */}
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <User className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">Admin User</p>
+                <p className="text-xs text-gray-500 truncate">admin@7ty.vn</p>
+              </div>
             </div>
           </div>
+          
+          <p className="text-xs text-gray-500 text-center">© 2025 7ty.vn CRM</p>
         </div>
-      </div>
+      </aside>
     </>
   );
 };
