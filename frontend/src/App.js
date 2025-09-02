@@ -1951,75 +1951,77 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
         <CardContent>
           {/* Customer Table */}
           {customers.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tên</TableHead>
-                  <TableHead>Loại</TableHead>
-                  <TableHead>Điện Thoại</TableHead>
-                  <TableHead>Số GD</TableHead>
-                  <TableHead>Tổng Giá Trị</TableHead>
-                  <TableHead>Lợi Nhuận</TableHead>
-                  <TableHead>Trạng Thái</TableHead>
-                  <TableHead>Thao Tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {customers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {customer.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{customer.phone || "-"}</TableCell>
-                    <TableCell>{customer.total_transactions}</TableCell>
-                    <TableCell>{formatCurrency(customer.total_value)}</TableCell>
-                    <TableCell>{formatCurrency(customer.total_profit_generated)}</TableCell>
-                    <TableCell>
-                      {customer.is_active ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Hoạt động
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">
-                          <XCircle className="h-3 w-3 mr-1" />
-                          Ngưng
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewCustomerDetail(customer.id)}
-                        >
-                          Xem
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingCustomer(customer)}
-                        >
-                          Sửa
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteCustomer(customer)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          Xóa
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table className="min-w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">Tên</TableHead>
+                    <TableHead className="whitespace-nowrap">Loại</TableHead>
+                    <TableHead className="whitespace-nowrap">Điện Thoại</TableHead>
+                    <TableHead className="whitespace-nowrap">Số GD</TableHead>
+                    <TableHead className="whitespace-nowrap">Tổng Giá Trị</TableHead>
+                    <TableHead className="whitespace-nowrap">Lợi Nhuận</TableHead>
+                    <TableHead className="whitespace-nowrap">Trạng Thái</TableHead>
+                    <TableHead className="whitespace-nowrap">Thao Tác</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {customers.map((customer) => (
+                    <TableRow key={customer.id}>
+                      <TableCell className="font-medium whitespace-nowrap">{customer.name}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge variant="outline">
+                          {customer.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{customer.phone || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{customer.total_transactions}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(customer.total_value)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(customer.total_profit_generated)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {customer.is_active ? (
+                          <Badge className="bg-green-100 text-green-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Hoạt động
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Ngưng
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2 whitespace-nowrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewCustomerDetail(customer.id)}
+                          >
+                            Xem
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingCustomer(customer)}
+                          >
+                            Sửa
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteCustomer(customer)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Xóa
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="text-center py-12">
               <Users className="h-16 w-16 mx-auto text-gray-300 mb-4" />
