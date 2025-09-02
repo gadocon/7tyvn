@@ -2008,16 +2008,13 @@ async def get_credit_cards(
     page: int = 1,
     page_size: int = 20
 ):
-    """Get credit cards with filtering and pagination"""
+    """Get credit cards with filtering and pagination (with real-time status)"""
     try:
         # Build query
         query = {}
         
         if customer_id:
             query["customer_id"] = customer_id
-            
-        if status:
-            query["status"] = status
             
         if search:
             query["$or"] = [
@@ -2033,7 +2030,26 @@ async def get_credit_cards(
         # Get credit cards
         cards = await db.credit_cards.find(query).skip(skip).limit(page_size).sort("created_at", -1).to_list(page_size)
         
-        return [CreditCard(**parse_from_mongo(card)) for card in cards]
+        # Update real-time status for each card
+        current_date = datetime.now(timezone.utc)
+        updated_cards = []
+        
+        for card in cards:
+            # Calculate real-time status
+            real_time_status = calculate_card_status_realtime(card, current_date)
+            
+            # Update status if changed
+            if card.get("status") != real_time_status.value:
+                await update_card_cycle_status(card["id"], current_date)
+                card["status"] = real_time_status.value
+            
+            updated_cards.append(card)
+        
+        # Apply status filter after real-time calculation
+        if status:
+            updated_cards = [card for card in updated_cards if card.get("status") == status.value]
+        
+        return [CreditCard(**parse_from_mongo(card)) for card in updated_cards]
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
