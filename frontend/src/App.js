@@ -6083,73 +6083,65 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Overview Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Tổng Doanh Thu
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(dashboardStats?.total_revenue || 0)}
+      {/* Overview Stats Cards - Reports */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <DollarSign className="h-6 w-6 text-green-800" />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {formatNumber(dashboardStats?.total_transactions || 0)} giao dịch
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">
+            {formatCurrency(dashboardStats?.total_revenue || 0)}
+          </div>
+          <div className="text-yellow-100 text-sm opacity-90">Tổng Doanh Thu</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">
+            {formatNumber(dashboardStats?.total_transactions || 0)} giao dịch
+          </div>
+        </div>
 
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Tổng Lợi Nhuận
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(dashboardStats?.total_profit || 0)}
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-green-800" />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {dashboardStats?.profit_margin || 0}% margin
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">
+            {formatCurrency(dashboardStats?.total_profit || 0)}
+          </div>
+          <div className="text-yellow-100 text-sm opacity-90">Tổng Lợi Nhuận</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">
+            {dashboardStats?.profit_margin || 0}% margin
+          </div>
+        </div>
 
-        <Card className="border-l-4 border-l-purple-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Activity className="h-4 w-4 mr-2" />
-              Trung Bình/GD
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {formatCurrency(dashboardStats?.avg_transaction_value || 0)}
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <Activity className="h-6 w-6 text-green-800" />
             </div>
-            <p className="text-xs text-gray-500 mt-1">Giá trị TB mỗi GD</p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">
+            {formatCurrency(dashboardStats?.avg_transaction_value || 0)}
+          </div>
+          <div className="text-yellow-100 text-sm opacity-90">Trung Bình/GD</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Giá trị TB mỗi GD</div>
+        </div>
 
-        <Card className="border-l-4 border-l-orange-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Users className="h-4 w-4 mr-2" />
-              Khách Hàng
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {formatNumber(dashboardStats?.customer_stats?.active_customers || 0)}
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <Users className="h-6 w-6 text-green-800" />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {formatNumber(dashboardStats?.customer_stats?.total_customers || 0)} tổng cộng
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">
+            {formatNumber(dashboardStats?.customer_stats?.active_customers || 0)}
+          </div>
+          <div className="text-yellow-100 text-sm opacity-90">Khách Hàng</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">
+            {formatNumber(dashboardStats?.customer_stats?.total_customers || 0)} tổng cộng
+          </div>
+        </div>
       </div>
 
       {/* Breakdown Analysis */}
