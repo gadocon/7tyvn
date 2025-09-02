@@ -413,6 +413,83 @@ class BillCreate(BaseModel):
     billing_cycle: Optional[str] = None  # Format: MM/YYYY
     status: BillStatus = BillStatus.AVAILABLE
 
+# Authentication Utility Functions
+def hash_password(password: str) -> str:
+    """Hash password using bcrypt"""
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify password against hash"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Create JWT access token"""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_token(token: str) -> Optional[dict]:
+    """Verify JWT token and return payload"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.PyJWTError:
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Get current user from JWT token"""
+    token = credentials.credentials
+    payload = verify_token(token)
+    
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id: str = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Get user from database
+    user = await db.users.find_one({"id": user_id})
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return user
+
+async def require_role(required_roles: List[UserRole]):
+    """Dependency to require specific user roles"""
+    def role_checker(current_user: dict = Depends(get_current_user)):
+        user_role = current_user.get("role")
+        if user_role not in required_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions"
+            )
+        return current_user
+    return role_checker
+
+# Specific role dependencies
+admin_required = Depends(require_role([UserRole.ADMIN]))
+manager_or_admin_required = Depends(require_role([UserRole.ADMIN, UserRole.MANAGER]))
+authenticated_user = Depends(get_current_user)
+
 # Credit Card Cycle Business Logic Functions
 def get_current_cycle_month(current_date: datetime = None) -> str:
     """Get current cycle month in MM/YYYY format"""
