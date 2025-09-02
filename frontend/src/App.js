@@ -204,7 +204,7 @@ const Navigation = () => {
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-medium">
                     {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
                   </span>
