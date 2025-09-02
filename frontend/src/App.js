@@ -376,7 +376,7 @@ const Dashboard = ({ customerDetail, setCustomerDetail }) => {
             </Button>
             <Button variant="outline" className="h-24 flex flex-col items-center justify-center space-y-2">
               <ShoppingCart className="h-6 w-6" />
-              <span className="text-sm">Bán Bill</span>
+              <span className="text-sm">Giao Dịch</span>
             </Button>
           </div>
         </CardContent>
