@@ -4086,6 +4086,203 @@ const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
   );
 };
 
+// Credit Card Info Modal Component
+const CreditCardInfoModal = ({ show, cardDetail, onClose, onDao, onEdit, onDelete }) => {
+  if (!show || !cardDetail) return null;
+
+  const { card, customer, recent_transactions, total_transactions } = cardDetail;
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Đã đáo":
+        return "bg-green-100 text-green-800";
+      case "Cần đáo":
+        return "bg-red-100 text-red-800";
+      case "Chưa đến hạn":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[95vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-semibold">Chi Tiết Thẻ Tín Dụng</h3>
+          <Button variant="outline" onClick={onClose}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Side - Card Visual & Info */}
+          <div>
+            {/* Visual Credit Card */}
+            <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-6 text-white shadow-xl mb-6">
+              
+              {/* Card Type Icon */}
+              <div className="flex justify-between items-start mb-8">
+                <div className="text-2xl">💳</div>
+                <div className="text-right">
+                  <p className="text-xs opacity-80">{card.bank_name}</p>
+                  <p className="text-xs opacity-60">{card.card_type}</p>
+                </div>
+              </div>
+              
+              {/* Card Number - FULL NUMBER SHOWN */}
+              <div className="mb-6">
+                <p className="text-lg font-mono tracking-wider">
+                  {card.card_number?.replace(/(.{4})/g, '$1 ').trim()}
+                </p>
+              </div>
+              
+              {/* Card Info */}
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-xs opacity-60 mb-1">CARDHOLDER NAME</p>
+                  <p className="font-semibold text-sm uppercase tracking-wide">
+                    {card.cardholder_name}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs opacity-60 mb-1">VALID THRU</p>
+                  <p className="font-mono text-sm">{card.expiry_date}</p>
+                </div>
+              </div>
+              
+              {/* Status Badge */}
+              <div className="absolute top-4 left-4">
+                <Badge className={`${getStatusColor(card.status)} border-0`}>
+                  {card.status}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Customer Info */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-sm">Thông Tin Khách Hàng</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tên:</span>
+                    <span className="font-medium">{customer.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Số ĐT:</span>
+                    <span className="font-medium">{customer.phone || "N/A"}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-3 gap-3">
+              <Button 
+                onClick={onDao} 
+                className="bg-green-600 hover:bg-green-700"
+                disabled={card.status === "Đã đáo"}
+              >
+                Đáo
+              </Button>
+              <Button onClick={onEdit} variant="outline">
+                Sửa
+              </Button>
+              <Button onClick={onDelete} variant="outline" className="text-red-600 hover:text-red-700">
+                Xóa
+              </Button>
+            </div>
+          </div>
+
+          {/* Right Side - Card Details & Transactions */}
+          <div>
+            {/* Card Details */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-sm">Chi Tiết Thẻ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Hạn Mức:</span>
+                    <div className="font-medium">{formatCurrency(card.credit_limit)}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">CCV:</span>
+                    <div className="font-mono">{card.ccv}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Ngày Sao Kê:</span>
+                    <div className="font-medium">{card.statement_date}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Hạn Thanh Toán:</span>
+                    <div className="font-medium">{card.payment_due_date}</div>
+                  </div>
+                </div>
+                {card.notes && (
+                  <div className="mt-4 pt-4 border-t">
+                    <span className="text-gray-600 text-sm">Ghi Chú:</span>
+                    <p className="text-sm mt-1">{card.notes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Transactions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Giao Dịch Gần Đây ({total_transactions} tổng)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recent_transactions && recent_transactions.length > 0 ? (
+                  <div className="space-y-3">
+                    {recent_transactions.map((transaction, index) => (
+                      <div key={transaction.id} className="border rounded-lg p-3 bg-gray-50">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="text-xs text-gray-500">
+                              {new Date(transaction.created_at).toLocaleDateString('vi-VN')}
+                            </span>
+                            <p className="font-medium text-sm">
+                              {transaction.payment_method} - {formatCurrency(transaction.total_amount)}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {transaction.profit_pct}% lợi nhuận
+                          </Badge>
+                        </div>
+                        {transaction.notes && (
+                          <p className="text-xs text-gray-600">{transaction.notes}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-gray-500">
+                    <CreditCard className="h-8 w-8 mx-auto mb-2" />
+                    <p className="text-sm">Chưa có giao dịch nào</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component  
 function App() {
   return (
