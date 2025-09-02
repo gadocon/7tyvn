@@ -2416,6 +2416,26 @@ async def process_card_payment(card_id: str, payment_data: CreditCardTransaction
         sale_dict = prepare_for_mongo(sale.dict())
         await db.sales.insert_one(sale_dict)
         
+        # Log activity for dashboard
+        activity_type = ActivityType.CARD_PAYMENT_POS if payment_data.payment_method == CreditCardPaymentMethod.POS else ActivityType.CARD_PAYMENT_BILL
+        activity_title = f"Đáo thẻ ****{card['card_number'][-4:]} - {format_currency_short(total_amount)} VND"
+        
+        await log_activity(ActivityCreate(
+            type=activity_type,
+            title=activity_title,
+            description=f"Phương thức: {payment_data.payment_method.value}, Lợi nhuận: {payment_data.profit_pct}%",
+            customer_id=card["customer_id"],
+            customer_name=customer["name"],
+            amount=total_amount,
+            status="SUCCESS",
+            metadata={
+                "card_id": card_id,
+                "transaction_group_id": transaction_group_id,
+                "method": payment_data.payment_method.value,
+                "profit_pct": payment_data.profit_pct
+            }
+        ))
+        
         return {
             "success": True,
             "message": f"Đã đáo thẻ thành công bằng phương thức {payment_data.payment_method.value}",
