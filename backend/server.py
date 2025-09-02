@@ -60,6 +60,17 @@ class PaymentMethod(str, Enum):
     BANK_TRANSFER = "BANK_TRANSFER"
     OTHER = "OTHER"
 
+class CardType(str, Enum):
+    VISA = "VISA"
+    MASTERCARD = "MASTERCARD"
+    JCB = "JCB"
+    AMEX = "AMEX"
+
+class CardStatus(str, Enum):
+    PAID_OFF = "Đã đáo"  # Đã đáo
+    NEED_PAYMENT = "Cần đáo"  # Cần đáo  
+    NOT_DUE = "Chưa đến hạn"  # Chưa đến hạn
+
 # Models
 class Bill(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
