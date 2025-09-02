@@ -4016,14 +4016,17 @@ const CreditCards = () => {
               <div key={card.id} className="relative">
                 {/* Credit Card Visual - Fixed Aspect Ratio */}
                 <div className="w-full max-w-sm mx-auto">
-                  <div className="aspect-[1.586/1] bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-4 sm:p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105 relative"
+                  <div className={`aspect-[1.586/1] ${getCardStyle(card.card_type).gradient} rounded-xl p-4 sm:p-6 ${getCardStyle(card.card_type).textColor} shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105 relative`}
                        onClick={() => setSelectedCard(card)}>
                   
-                  {/* Card Type Icon */}
+                  {/* Card Type & Bank Icons */}
                   <div className="flex justify-between items-start mb-8">
-                    <div className="text-2xl">{getCardTypeIcon(card.card_type)}</div>
+                    <div className="flex items-center space-x-2">
+                      <div className="text-2xl">{getBankIcon(card.bank_name)}</div>
+                      <div className="text-xs font-bold opacity-90">{card.bank_name}</div>
+                    </div>
                     <div className="text-right">
-                      <p className="text-xs opacity-80">{card.bank_name}</p>
+                      <div className="text-lg font-bold">{getCardStyle(card.card_type).logo}</div>
                       <p className="text-xs opacity-60">{card.card_type}</p>
                     </div>
                   </div>
