@@ -3385,6 +3385,8 @@ const CreditCards = () => {
         return "bg-red-100 text-red-800";
       case "Chưa đến hạn":
         return "bg-yellow-100 text-yellow-800";
+      case "Quá Hạn":
+        return "bg-red-500 text-white font-bold animate-pulse"; // Red alert for overdue
       default:
         return "bg-gray-100 text-gray-800";
     }
