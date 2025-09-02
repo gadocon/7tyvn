@@ -335,8 +335,19 @@ const Dashboard = ({ customerDetail, setCustomerDetail }) => {
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await axios.get(`${API}/dashboard/stats`);
-      setStats(response.data);
+      // Fetch dashboard stats and credit cards stats concurrently
+      const [dashboardResponse, creditCardsResponse] = await Promise.all([
+        axios.get(`${API}/dashboard/stats`),
+        axios.get(`${API}/credit-cards/stats`)
+      ]);
+      
+      // Combine both datasets
+      const combinedStats = {
+        ...dashboardResponse.data,
+        total_cards: creditCardsResponse.data.total_cards || 0
+      };
+      
+      setStats(combinedStats);
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
       toast.error("Không thể tải dữ liệu dashboard");
