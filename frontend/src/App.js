@@ -869,7 +869,7 @@ const CheckBill = () => {
                               style={{ width: `${(processedCount / totalCount) * 100}%` }}
                             ></div>
                           </div>
-                          <p className="text-xs text-blue-700 mt-1">
+                          <p className="text-xs text-green-700 mt-1">
                             {processedCount}/{totalCount} mã đã xử lý
                             {(okCount > 0 || errorCount > 0) && (
                               <span className="ml-2">
@@ -1352,7 +1352,7 @@ const Inventory = () => {
             Export Excel
           </Button>
           <Button 
-            className="bg-green-600 hover:bg-blue-700"
+            className="bg-green-600 hover:bg-green-700"
             onClick={() => setShowAddBillModal(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -1630,7 +1630,7 @@ const Inventory = () => {
                               variant="outline"
                               onClick={() => handleRecheckBill(item)}
                               disabled={recheckingBillId === item.id}
-                              className="text-green-600 hover:text-blue-700"
+                              className="text-green-600 hover:text-green-700"
                               title="Check lại mã điện"
                             >
                               <RefreshCw className={`h-3 w-3 ${recheckingBillId === item.id ? 'animate-spin' : ''}`} />
@@ -1981,7 +1981,7 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
             <span className="hidden sm:inline">Export Excel</span>
             <span className="sm:hidden">Export</span>
           </Button>
-          <Button onClick={() => setShowAddModal(true)} className="bg-green-600 hover:bg-blue-700 flex-1 sm:flex-none">
+          <Button onClick={() => setShowAddModal(true)} className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none">
             <Plus className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Thêm Khách Hàng</span>
             <span className="sm:hidden">Thêm</span>
@@ -2579,7 +2579,7 @@ const CustomerExportModal = ({ show, onClose, onExport }) => {
 
           <div className="border rounded-lg p-4 bg-green-50">
             <h3 className="font-medium text-blue-900 mb-2">File Excel</h3>
-            <p className="text-blue-700 text-sm">
+            <p className="text-green-700 text-sm">
               File sẽ có 2 sheets: "Khách Hàng" và "Giao Dịch" với đầy đủ thông tin và định dạng chuyên nghiệp.
             </p>
           </div>
@@ -3442,7 +3442,7 @@ const AddBillModal = ({ show, onClose, onSubmit }) => {
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-green-600 hover:bg-blue-700"
+              className="flex-1 bg-green-600 hover:bg-green-700"
               disabled={loading}
             >
               {loading ? "Đang thêm..." : "Thêm Bill"}
@@ -3544,13 +3544,13 @@ const ImportModal = ({ show, onClose, onImportComplete, onDownloadTemplate }) =>
           {/* Download Template */}
           <div className="border rounded-lg p-4 bg-green-50">
             <h3 className="font-medium text-blue-900 mb-2">1. Tải Template Excel</h3>
-            <p className="text-blue-700 text-sm mb-3">
+            <p className="text-green-700 text-sm mb-3">
               Tải file mẫu để đảm bảo định dạng dữ liệu chính xác
             </p>
             <Button
               variant="outline"
               onClick={onDownloadTemplate}
-              className="border-green-200 text-blue-700 hover:bg-green-100"
+              className="border-green-200 text-green-700 hover:bg-green-100"
             >
               <Download className="h-4 w-4 mr-2" />
               Tải Template
@@ -3636,7 +3636,7 @@ const ImportModal = ({ show, onClose, onImportComplete, onDownloadTemplate }) =>
                 <Button
                   onClick={handleConfirmImport}
                   disabled={loading || errors.length > 0}
-                  className="bg-green-600 hover:bg-blue-700"
+                  className="bg-green-600 hover:bg-green-700"
                 >
                   {loading ? "Đang import..." : `Import ${previewData.total_rows} Bills`}
                 </Button>
@@ -3868,7 +3868,7 @@ const CreditCards = () => {
         };
       case 'VISA':
         return {
-          gradient: 'bg-gradient-to-br from-green-600 via-blue-700 to-gray-900',
+          gradient: 'bg-gradient-to-br from-green-600 via-green-700 to-gray-900',
           logo: 'VISA',
           textColor: 'text-white'
         };
@@ -4392,7 +4392,7 @@ const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
         };
       case 'VISA':
         return {
-          gradient: 'bg-gradient-to-br from-green-600 via-blue-700 to-gray-900',
+          gradient: 'bg-gradient-to-br from-green-600 via-green-700 to-gray-900',
           logo: 'VISA',
           textColor: 'text-white'
         };
@@ -4811,7 +4811,7 @@ const CreditCardInfoModal = ({ show, cardDetail, onClose, onDao, onEdit, onDelet
         };
       case 'VISA':
         return {
-          gradient: 'bg-gradient-to-br from-green-600 via-blue-700 to-gray-900',
+          gradient: 'bg-gradient-to-br from-green-600 via-green-700 to-gray-900',
           logo: 'VISA',
           textColor: 'text-white'
         };
@@ -5755,7 +5755,7 @@ const TransactionExportModal = ({ show, onClose, onExport }) => {
           </Button>
           <Button
             onClick={onExport}
-            className="flex-1 bg-green-600 hover:bg-blue-700"
+            className="flex-1 bg-green-600 hover:bg-green-700"
           >
             <Download className="h-4 w-4 mr-2" />
             Export Excel
@@ -6253,7 +6253,7 @@ const Reports = () => {
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <span className="text-sm font-medium">Doanh Thu ĐÁO</span>
               </div>
-              <span className="font-bold text-blue-700">
+              <span className="font-bold text-green-700">
                 {formatCurrency(dashboardStats?.breakdown?.credit_dao?.revenue || 0)}
               </span>
             </div>
@@ -6305,7 +6305,7 @@ const Reports = () => {
 
             <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
               <CreditCard className="h-8 w-8 mx-auto text-green-600 mb-2" />
-              <div className="text-lg font-bold text-blue-700">
+              <div className="text-lg font-bold text-green-700">
                 {((dashboardStats?.breakdown?.credit_dao?.revenue || 0) / (dashboardStats?.total_revenue || 1) * 100).toFixed(1)}%
               </div>
               <div className="text-sm text-green-600">Tỷ trọng ĐÁO</div>
@@ -6810,7 +6810,7 @@ const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activitie
             </div>
             <div className="text-center p-3 bg-green-50 rounded-lg">
               <div className="text-lg font-bold text-green-600">{metrics.dao_transactions}</div>
-              <div className="text-xs text-blue-700">ĐÁO</div>
+              <div className="text-xs text-green-700">ĐÁO</div>
             </div>
           </div>
 
@@ -7104,7 +7104,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
                   <Button 
                     size="sm" 
                     variant="secondary"
-                    className="bg-green-600 text-white hover:bg-blue-700"
+                    className="bg-green-600 text-white hover:bg-green-700"
                     onClick={(e) => {
                       e.stopPropagation();
                       // Handle DAO action
