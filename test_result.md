@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the ACTIVITY DASHBOARD INTEGRATION that was just implemented - the final piece of our comprehensive activity logging system! Dashboard now fetches real activities from /api/activities/recent?days=3&limit=20 with enhanced activity display including icons, customer links, and error highlighting. Activity format: '10:30 - Đáo thẻ ****1234 - 5M VND - tên khách (hyperlink)' with 3-day activity history and proper Vietnamese formatting."
+user_problem_statement: "Fix duplicate modal bug in Dashboard where clicking customer names in activity log opens a separate modal instead of reusing the existing CustomerDetailModal from Khách Hàng page. Also change app name from 'FPT Bill Manager' to '7ty.vn CRM' throughout the application."
 
 backend:
   - task: "DAO Card API Endpoint"
