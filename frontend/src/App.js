@@ -957,7 +957,7 @@ const CheckBill = () => {
                           Hợp lệ
                         </Badge>
                       ) : bill.status === "ADDED_TO_INVENTORY" ? (
-                        <Badge className="bg-green-100 text-blue-800">
+                        <Badge className="bg-green-100 text-green-800">
                           <Package className="h-3 w-3 mr-1" />
                           Đã thêm vào kho
                         </Badge>
@@ -1448,7 +1448,7 @@ const Inventory = () => {
           {/* Bulk Actions */}
           {selectedItems.length > 0 && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex justify-between items-center">
-              <span className="text-blue-800">
+              <span className="text-green-800">
                 Đã chọn {selectedItems.length} item(s)
               </span>
               <Button
@@ -2714,7 +2714,7 @@ const Transactions = () => {
       case "BILL_SALE":
         return `${baseClasses} bg-green-100 text-green-800`;
       case "CREDIT_DAO_POS":
-        return `${baseClasses} bg-green-100 text-blue-800`;
+        return `${baseClasses} bg-green-100 text-green-800`;
       case "CREDIT_DAO_BILL":
         return `${baseClasses} bg-purple-100 text-purple-800`;
       default:
@@ -6978,7 +6978,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
       case 'Cần đáo':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'Chưa đến hạn':
-        return 'bg-green-100 text-blue-800 border-green-200';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'Quá hạn':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'Hết hạn':
