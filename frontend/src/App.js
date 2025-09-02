@@ -4283,6 +4283,103 @@ const CreditCardInfoModal = ({ show, cardDetail, onClose, onDao, onEdit, onDelet
   );
 };
 
+// Dao Card Modal Component
+const DaoCardModal = ({ show, card, onClose, onConfirm }) => {
+  const [paymentMethod, setPaymentMethod] = useState("POS");
+  const [amount, setAmount] = useState("");
+  const [profit, setProfit] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  if (!show || !card) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!amount || !profit) {
+      toast.error("Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onConfirm({
+        payment_method: paymentMethod,
+        total_amount: parseFloat(amount),
+        profit: parseFloat(profit)
+      });
+      onClose();
+    } catch (error) {
+      console.error("Error processing dao:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Đáo Thẻ Tín Dụng</h3>
+          <Button variant="outline" onClick={onClose}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Thẻ: {card.card_number?.slice(-4)}</Label>
+          </div>
+
+          <div>
+            <Label htmlFor="paymentMethod">Phương Thức</Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="POS">POS</SelectItem>
+                <SelectItem value="BILL">BILL</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="amount">Số Tiền</Label>
+            <Input
+              id="amount"
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Nhập số tiền"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="profit">Lợi Nhuận</Label>
+            <Input
+              id="profit"
+              type="number"
+              value={profit}
+              onChange={(e) => setProfit(e.target.value)}
+              placeholder="Nhập lợi nhuận"
+              required
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              Hủy
+            </Button>
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? "Đang xử lý..." : "Xác Nhận"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component  
 function App() {
   return (
