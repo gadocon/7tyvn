@@ -141,7 +141,7 @@ const LoginPage = ({ onLogin }) => {
 
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Login Input */}
+              {/* Smart Login Input - Auto-detects Username/Email/Phone */}
               <div className="space-y-2">
                 <Label htmlFor="login" className="text-gray-700 font-medium">
                   {getInputLabel()}
@@ -161,6 +161,17 @@ const LoginPage = ({ onLogin }) => {
                     required
                   />
                 </div>
+                {/* Smart Detection Indicator */}
+                {formData.login && (
+                  <div className="text-xs text-gray-500 ml-1">
+                    <span className="inline-flex items-center">
+                      {getIcon()}
+                      <span className="ml-1">
+                        Phát hiện: {getInputLabel().toLowerCase()}
+                      </span>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Password Input */}
