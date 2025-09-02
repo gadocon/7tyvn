@@ -105,10 +105,7 @@ const LoginPage = ({ onLogin }) => {
     }
   };
 
-  const handleLoginModeChange = (mode) => {
-    setLoginMode(mode);
-    setFormData({ ...formData, login: '' });
-  };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
