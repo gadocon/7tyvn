@@ -116,7 +116,6 @@ class UserUpdate(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=6)
-    OTHER = "OTHER"
 
 class CardType(str, Enum):
     VISA = "VISA"
