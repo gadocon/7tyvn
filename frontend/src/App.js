@@ -5669,6 +5669,9 @@ function App() {
 // Reports Page - Comprehensive Analytics Dashboard  
 const Reports = () => {
   const [dashboardStats, setDashboardStats] = useState(null);
+  const [revenueData, setRevenueData] = useState([]);
+  const [distributionData, setDistributionData] = useState([]);
+  const [topCustomersData, setTopCustomersData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState("all");
 
@@ -5680,9 +5683,18 @@ const Reports = () => {
     try {
       setLoading(true);
       
-      // Fetch dashboard stats with real data
-      const statsResponse = await axios.get(`${API}/reports/dashboard-stats?period=${selectedPeriod}`);
+      // Fetch all reports data in parallel
+      const [statsResponse, revenueResponse, distributionResponse, customersResponse] = await Promise.all([
+        axios.get(`${API}/reports/dashboard-stats?period=${selectedPeriod}`),
+        axios.get(`${API}/reports/charts/revenue-trend?months=6`),
+        axios.get(`${API}/reports/charts/transaction-distribution`),
+        axios.get(`${API}/reports/charts/top-customers?limit=10`)
+      ]);
+      
       setDashboardStats(statsResponse.data);
+      setRevenueData(revenueResponse.data.data || []);
+      setDistributionData(distributionResponse.data.data || []);
+      setTopCustomersData(customersResponse.data.data || []);
       
     } catch (error) {
       console.error("Error fetching reports data:", error);
