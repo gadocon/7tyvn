@@ -77,25 +77,17 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API}/auth/login`, formData);
+      const result = await login(formData);
       
-      // Store token and user info
-      const { access_token, user } = response.data;
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Set axios default header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      
-      toast.success(`Chào mừng ${user.full_name}! Đăng nhập thành công.`);
-      
-      // Navigate to dashboard
-      navigate('/');
-      
+      if (result.success) {
+        toast.success(`Chào mừng ${result.user.full_name}! Đăng nhập thành công.`);
+        navigate('/');
+      } else {
+        toast.error(result.error);
+      }
     } catch (error) {
       console.error('Login error:', error);
-      const errorMessage = error.response?.data?.detail || 'Đăng nhập thất bại. Vui lòng thử lại.';
-      toast.error(errorMessage);
+      toast.error('Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
