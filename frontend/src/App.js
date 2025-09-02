@@ -1363,7 +1363,7 @@ const Inventory = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
               <Package className="h-4 w-4 mr-2" />
@@ -1447,7 +1447,7 @@ const Inventory = () => {
 
           {/* Bulk Actions */}
           {selectedItems.length > 0 && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center">
+            <div className="mb-4 p-3 bg-green-50 border border-blue-200 rounded-lg flex justify-between items-center">
               <span className="text-blue-800">
                 Đã chọn {selectedItems.length} item(s)
               </span>
@@ -1479,7 +1479,7 @@ const Inventory = () => {
                           console.log('Select all clicked:', shouldSelectAll);
                           handleSelectAll(shouldSelectAll);
                         }}
-                        className="w-4 h-4 border border-gray-300 rounded cursor-pointer flex items-center justify-center hover:bg-blue-50"
+                        className="w-4 h-4 border border-gray-300 rounded cursor-pointer flex items-center justify-center hover:bg-green-50"
                       >
                         {(currentItems.length > 0 && selectedItems.length === currentItems.length) && (
                           <CheckCircle className="h-3 w-3 text-blue-600" />
@@ -1569,7 +1569,7 @@ const Inventory = () => {
                             console.log('Is currently selected:', isCurrentlySelected);
                             handleSelectItem(item.id, !isCurrentlySelected);
                           }}
-                          className="w-4 h-4 border border-gray-300 rounded cursor-pointer flex items-center justify-center hover:bg-blue-50"
+                          className="w-4 h-4 border border-gray-300 rounded cursor-pointer flex items-center justify-center hover:bg-green-50"
                         >
                           {selectedItems.includes(item.id) && (
                             <CheckCircle className="h-3 w-3 text-blue-600" />
@@ -1991,7 +1991,7 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
               <Users className="h-4 w-4 mr-2" />
@@ -2577,7 +2577,7 @@ const CustomerExportModal = ({ show, onClose, onExport }) => {
             </ul>
           </div>
 
-          <div className="border rounded-lg p-4 bg-blue-50">
+          <div className="border rounded-lg p-4 bg-green-50">
             <h3 className="font-medium text-blue-900 mb-2">File Excel</h3>
             <p className="text-blue-700 text-sm">
               File sẽ có 2 sheets: "Khách Hàng" và "Giao Dịch" với đầy đủ thông tin và định dạng chuyên nghiệp.
@@ -2802,7 +2802,7 @@ const Transactions = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
               <TrendingUp className="h-4 w-4 mr-2" />
@@ -3183,7 +3183,7 @@ const SellBillModal = ({ show, billItem, onClose, onComplete }) => {
           </div>
 
           {/* Calculation Summary */}
-          <div className="p-4 bg-blue-50 rounded-lg">
+          <div className="p-4 bg-green-50 rounded-lg">
             <h4 className="font-medium text-gray-900 mb-3">Tính Toán Giao Dịch</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex justify-between">
@@ -3542,7 +3542,7 @@ const ImportModal = ({ show, onClose, onImportComplete, onDownloadTemplate }) =>
 
         <div className="space-y-4">
           {/* Download Template */}
-          <div className="border rounded-lg p-4 bg-blue-50">
+          <div className="border rounded-lg p-4 bg-green-50">
             <h3 className="font-medium text-blue-900 mb-2">1. Tải Template Excel</h3>
             <p className="text-blue-700 text-sm mb-3">
               Tải file mẫu để đảm bảo định dạng dữ liệu chính xác
@@ -4067,7 +4067,7 @@ const CreditCards = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
               <CreditCard className="h-4 w-4 mr-2" />
@@ -5860,7 +5860,7 @@ const TransactionDetailModal = ({ show, transaction, onClose }) => {
             </div>
 
             {/* Customer Info */}
-            <div className="bg-blue-50 rounded-lg p-4">
+            <div className="bg-green-50 rounded-lg p-4">
               <h4 className="font-semibold text-gray-700 mb-3">Thông Tin Khách Hàng</h4>
               
               <div className="space-y-3">
@@ -6142,7 +6142,7 @@ const Reports = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
               <TrendingUp className="h-4 w-4 mr-2" />
@@ -6248,9 +6248,9 @@ const Reports = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
               <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <span className="text-sm font-medium">Doanh Thu ĐÁO</span>
               </div>
               <span className="font-bold text-blue-700">
@@ -6303,7 +6303,7 @@ const Reports = () => {
               <div className="text-sm text-green-600">Tỷ trọng Bills</div>
             </div>
 
-            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-blue-100 rounded-lg">
               <CreditCard className="h-8 w-8 mx-auto text-blue-600 mb-2" />
               <div className="text-lg font-bold text-blue-700">
                 {((dashboardStats?.breakdown?.credit_dao?.revenue || 0) / (dashboardStats?.total_revenue || 1) * 100).toFixed(1)}%
@@ -6574,7 +6574,7 @@ const CustomerDetailPage = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
+        <div className="bg-gradient-to-r from-green-50 to-indigo-50 rounded-lg p-6">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -6603,7 +6603,7 @@ const CustomerDetailPage = () => {
   return (
     <div className="space-y-6">
       {/* Customer Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
+      <div className="bg-gradient-to-r from-green-50 to-indigo-50 rounded-lg p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Customer Info */}
           <div className="flex items-center space-x-4">
@@ -6687,7 +6687,7 @@ const CustomerDetailPage = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center py-3 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-green-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -6808,7 +6808,7 @@ const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activitie
               <div className="text-lg font-bold text-green-600">{metrics.sales_transactions}</div>
               <div className="text-xs text-green-700">Bills</div>
             </div>
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
+            <div className="text-center p-3 bg-green-50 rounded-lg">
               <div className="text-lg font-bold text-blue-600">{metrics.dao_transactions}</div>
               <div className="text-xs text-blue-700">ĐÁO</div>
             </div>
@@ -6932,7 +6932,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
     switch (cardType?.toLowerCase()) {
       case 'visa':
         return {
-          gradient: 'bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600',
+          gradient: 'bg-gradient-to-br from-blue-400 via-green-500 to-blue-600',
           textColor: 'text-white',
           logo: '💳'
         };
@@ -7841,7 +7841,7 @@ const CustomerAnalyticsTab = ({ customer, formatCurrency }) => {
           <CardContent>
             <div className="space-y-3">
               {analyticsData.predictions.recommendedActions.map((action, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
+                <div key={index} className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
                   <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
                     {index + 1}
                   </div>
