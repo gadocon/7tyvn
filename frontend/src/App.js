@@ -4144,7 +4144,9 @@ const CreditCards = () => {
               <TableBody>
                 {filteredCards.map((card) => (
                   <TableRow key={card.id}>
-                    <TableCell className="font-medium">{card.customer_name}</TableCell>
+                    <TableCell className="font-medium">
+                      <CustomerNameLink customer={{id: card.customer_id, name: card.customer_name}} />
+                    </TableCell>
                     <TableCell>{card.cardholder_name}</TableCell>
                     <TableCell className="font-mono">{maskCardNumber(card.card_number)}</TableCell>
                     <TableCell>{card.bank_name}</TableCell>
