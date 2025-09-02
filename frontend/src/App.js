@@ -1178,12 +1178,12 @@ const Inventory = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Kho Bill</h1>
-          <p className="text-gray-600 mt-1">Quản lý hóa đơn điện trong kho</p>
+          <p className="text-gray-600 mt-1">Quản lý kho hàng hóa đơn điện</p>
         </div>
         <div className="flex gap-2">
           <Button 
