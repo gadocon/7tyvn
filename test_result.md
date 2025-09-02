@@ -1030,15 +1030,18 @@ frontend:
 
   - task: "Recent Transactions Section"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Recent transactions section implemented with transaction display: Date in Vietnamese format, Payment method (POS/BILL), Amount in Vietnamese currency format, Profit percentage badge, Transaction notes. Empty state 'Chưa có giao dịch nào' implemented. Total transaction count display included. Needs testing."
+        - working: true
+          agent: "testing"
+          comment: "✅ RECENT TRANSACTIONS SECTION EXCELLENT: 'Giao Dịch Gần Đây (3 tổng)' section displays perfectly. Shows 3 recent transactions with proper formatting: Date in Vietnamese format (2/9/2025), Payment methods (BILL, POS), Amounts in Vietnamese currency (1.500.000 ₫, 1.000.000 ₫, 2.500.000 ₫), Profit percentage badges (4% lợi nhuận, 3.5% lợi nhuận), Transaction notes ('Test BILL payment with multiple bills', 'Test POS payment'). Total transaction count '(3 tổng)' displayed in header. Empty state 'Chưa có giao dịch nào' properly implemented for cards without transactions."
 
   - task: "Responsive Layout"
     implemented: true
