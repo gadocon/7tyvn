@@ -1792,6 +1792,183 @@ async def download_import_template():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Credit Card APIs
+@api_router.get("/credit-cards/stats", response_model=CreditCardStats)
+async def get_credit_card_stats():
+    """Get credit card statistics"""
+    try:
+        total_cards = await db.credit_cards.count_documents({})
+        paid_off_cards = await db.credit_cards.count_documents({"status": CardStatus.PAID_OFF})
+        need_payment_cards = await db.credit_cards.count_documents({"status": CardStatus.NEED_PAYMENT})
+        not_due_cards = await db.credit_cards.count_documents({"status": CardStatus.NOT_DUE})
+        
+        # Calculate total credit limit
+        pipeline = [
+            {"$group": {"_id": None, "total_limit": {"$sum": "$credit_limit"}}}
+        ]
+        limit_result = await db.credit_cards.aggregate(pipeline).to_list(1)
+        total_credit_limit = limit_result[0]["total_limit"] if limit_result else 0.0
+        
+        return CreditCardStats(
+            total_cards=total_cards,
+            paid_off_cards=paid_off_cards,
+            need_payment_cards=need_payment_cards,
+            not_due_cards=not_due_cards,
+            total_credit_limit=total_credit_limit
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/credit-cards", response_model=List[CreditCard])
+async def get_credit_cards(
+    customer_id: Optional[str] = None,
+    status: Optional[CardStatus] = None,
+    search: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20
+):
+    """Get credit cards with filtering and pagination"""
+    try:
+        # Build query
+        query = {}
+        
+        if customer_id:
+            query["customer_id"] = customer_id
+            
+        if status:
+            query["status"] = status
+            
+        if search:
+            query["$or"] = [
+                {"customer_name": {"$regex": search, "$options": "i"}},
+                {"cardholder_name": {"$regex": search, "$options": "i"}},
+                {"bank_name": {"$regex": search, "$options": "i"}},
+                {"card_number": {"$regex": search, "$options": "i"}}
+            ]
+        
+        # Calculate skip
+        skip = (page - 1) * page_size
+        
+        # Get credit cards
+        cards = await db.credit_cards.find(query).skip(skip).limit(page_size).sort("created_at", -1).to_list(page_size)
+        
+        return [CreditCard(**parse_from_mongo(card)) for card in cards]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/credit-cards", response_model=CreditCard)
+async def create_credit_card(card_data: CreditCardCreate):
+    """Create new credit card"""
+    try:
+        # Validate customer exists
+        customer = await db.customers.find_one({"id": card_data.customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        # Check for duplicate card number
+        existing_card = await db.credit_cards.find_one({"card_number": card_data.card_number})
+        if existing_card:
+            raise HTTPException(status_code=400, detail="Số thẻ đã tồn tại")
+        
+        # Create card
+        card = CreditCard(
+            customer_id=card_data.customer_id,
+            customer_name=customer["name"],
+            card_number=card_data.card_number,
+            cardholder_name=card_data.cardholder_name,
+            bank_name=card_data.bank_name,
+            card_type=card_data.card_type,
+            expiry_date=card_data.expiry_date,
+            ccv=card_data.ccv,
+            statement_date=card_data.statement_date,
+            payment_due_date=card_data.payment_due_date,
+            credit_limit=card_data.credit_limit,
+            status=card_data.status,
+            notes=card_data.notes
+        )
+        
+        # Save to database
+        card_dict = prepare_for_mongo(card.dict())
+        await db.credit_cards.insert_one(card_dict)
+        
+        # Update customer total_cards count
+        await db.customers.update_one(
+            {"id": card_data.customer_id},
+            {"$inc": {"total_cards": 1}}
+        )
+        
+        return card
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/credit-cards/{card_id}")
+async def update_credit_card(card_id: str, card_data: CreditCardUpdate):
+    """Update credit card"""
+    try:
+        # Check if card exists
+        existing_card = await db.credit_cards.find_one({"id": card_id})
+        if not existing_card:
+            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+        
+        # Prepare update data
+        update_data = {}
+        for field, value in card_data.dict(exclude_unset=True).items():
+            if value is not None:
+                if isinstance(value, Enum):
+                    update_data[field] = value.value
+                else:
+                    update_data[field] = value
+        
+        if update_data:
+            update_data["updated_at"] = datetime.now(timezone.utc)
+            
+            # Update card
+            await db.credit_cards.update_one(
+                {"id": card_id},
+                {"$set": prepare_for_mongo(update_data)}
+            )
+        
+        # Get updated card
+        updated_card = await db.credit_cards.find_one({"id": card_id})
+        return CreditCard(**parse_from_mongo(updated_card))
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/credit-cards/{card_id}")
+async def delete_credit_card(card_id: str):
+    """Delete credit card"""
+    try:
+        # Get card to find customer_id
+        card = await db.credit_cards.find_one({"id": card_id})
+        if not card:
+            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+        
+        # Delete card
+        result = await db.credit_cards.delete_one({"id": card_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+        
+        # Update customer total_cards count
+        await db.customers.update_one(
+            {"id": card["customer_id"]},
+            {"$inc": {"total_cards": -1}}
+        )
+        
+        return {"success": True, "message": "Đã xóa thẻ thành công"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Sales/Transaction APIs
 @api_router.post("/sales", response_model=Sale)
 async def create_sale(sale_data: SaleCreate):
