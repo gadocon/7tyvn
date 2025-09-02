@@ -1361,61 +1361,51 @@ const Inventory = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Inventory */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Package className="h-4 w-4 mr-2" />
-              Tổng Bill
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{inventoryStats?.total_bills || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Tất cả trong kho</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Có Sẵn
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{inventoryStats?.available_bills || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Sẵn sàng bán</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Clock className="h-4 w-4 mr-2" />
-              Chờ Thanh Toán
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{inventoryStats?.pending_bills || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Đang xử lý</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-purple-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Tổng Giá Trị
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {formatCurrency(inventoryStats?.total_value || 0)}
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <Package className="h-6 w-6 text-green-800" />
             </div>
-            <p className="text-xs text-gray-500 mt-1">Giá trị kho</p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{inventoryStats?.total_bills || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Tổng Bill</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Tất cả trong kho</div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <CheckCircle className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{inventoryStats?.available_bills || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Có Sẵn</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Sẵn sàng bán</div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <Clock className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{inventoryStats?.pending_bills || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Chờ Thanh Toán</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Đang xử lý</div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <X className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{inventoryStats?.sold_bills || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Đã Bán</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Hoàn thành</div>
+        </div>
       </div>
 
       {/* Filters and Search */}
