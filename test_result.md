@@ -249,8 +249,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Dashboard Customer Hyperlinks Bug Fix"
-    - "Check Lại Button API Error Fix"
+    - "Fix Dashboard Modal Duplication Bug"
+    - "Change App Name to 7ty.vn CRM"
   stuck_tasks:
     - "Real-time Status Calculation Functions"
   test_all: false
