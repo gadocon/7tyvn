@@ -4421,13 +4421,16 @@ const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
           <div>
             <h4 className="font-medium text-gray-900 mb-4">Xem Trước Thẻ</h4>
             <div className="w-full max-w-sm mx-auto">
-              <div className="aspect-[1.586/1] bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-4 sm:p-6 text-white shadow-xl relative">
+              <div className={`aspect-[1.586/1] ${getCardStyle(formData.card_type).gradient} rounded-xl p-4 sm:p-6 ${getCardStyle(formData.card_type).textColor} shadow-xl relative`}>
               
-              {/* Card Type Icon */}
+              {/* Card Type & Bank Icons */}
               <div className="flex justify-between items-start mb-8">
-                <div className="text-2xl">💳</div>
+                <div className="flex items-center space-x-2">
+                  <div className="text-2xl">{getBankIcon(formData.bank_name)}</div>
+                  <div className="text-xs font-bold opacity-90">{formData.bank_name || "BANK NAME"}</div>
+                </div>
                 <div className="text-right">
-                  <p className="text-xs opacity-80">{formData.bank_name || "BANK NAME"}</p>
+                  <div className="text-lg font-bold">{getCardStyle(formData.card_type).logo}</div>
                   <p className="text-xs opacity-60">{formData.card_type}</p>
                 </div>
               </div>
