@@ -422,6 +422,110 @@ const Dashboard = ({ customerDetail, setCustomerDetail }) => {
         <p className="text-gray-600 mt-1">Tổng quan hệ thống CRM quản lý khách hàng</p>
       </div>
 
+      {/* Quick Actions Section */}
+      <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-yellow-200 mb-2">⚡ Thao Tác Nhanh</h2>
+          <p className="text-yellow-100 text-sm opacity-90">Truy cập nhanh các chức năng chính của hệ thống</p>
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {/* Add Customer */}
+          <Link 
+            to="/customers" 
+            className="group bg-green-700 hover:bg-green-600 rounded-lg p-4 text-center transition-all duration-200 transform hover:scale-105 hover:shadow-md"
+          >
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-yellow-100 transition-colors">
+              <Users className="h-6 w-6 text-green-800" />
+            </div>
+            <h3 className="text-yellow-200 font-semibold text-sm mb-1">Khách Hàng</h3>
+            <p className="text-yellow-100 text-xs opacity-80">Thêm & quản lý</p>
+          </Link>
+
+          {/* Check Bill */}
+          <Link 
+            to="/check-bill" 
+            className="group bg-green-700 hover:bg-green-600 rounded-lg p-4 text-center transition-all duration-200 transform hover:scale-105 hover:shadow-md"
+          >
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-yellow-100 transition-colors">
+              <Search className="h-6 w-6 text-green-800" />
+            </div>
+            <h3 className="text-yellow-200 font-semibold text-sm mb-1">Kiểm Tra Bill</h3>
+            <p className="text-yellow-100 text-xs opacity-80">Tra cứu nhanh</p>
+          </Link>
+
+          {/* Credit Cards */}
+          <Link 
+            to="/credit-cards" 
+            className="group bg-green-700 hover:bg-green-600 rounded-lg p-4 text-center transition-all duration-200 transform hover:scale-105 hover:shadow-md"
+          >
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-yellow-100 transition-colors">
+              <CreditCard className="h-6 w-6 text-green-800" />
+            </div>
+            <h3 className="text-yellow-200 font-semibold text-sm mb-1">Thẻ Tín Dụng</h3>
+            <p className="text-yellow-100 text-xs opacity-80">Quản lý thẻ</p>
+          </Link>
+
+          {/* Inventory */}
+          <Link 
+            to="/inventory" 
+            className="group bg-green-700 hover:bg-green-600 rounded-lg p-4 text-center transition-all duration-200 transform hover:scale-105 hover:shadow-md"
+          >
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-yellow-100 transition-colors">
+              <Package className="h-6 w-6 text-green-800" />
+            </div>
+            <h3 className="text-yellow-200 font-semibold text-sm mb-1">Kho Bill</h3>
+            <p className="text-yellow-100 text-xs opacity-80">Quản lý tồn kho</p>
+          </Link>
+
+          {/* Transactions */}
+          <Link 
+            to="/transactions" 
+            className="group bg-green-700 hover:bg-green-600 rounded-lg p-4 text-center transition-all duration-200 transform hover:scale-105 hover:shadow-md"
+          >
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-yellow-100 transition-colors">
+              <Activity className="h-6 w-6 text-green-800" />
+            </div>
+            <h3 className="text-yellow-200 font-semibold text-sm mb-1">Giao Dịch</h3>
+            <p className="text-yellow-100 text-xs opacity-80">Xem tất cả</p>
+          </Link>
+
+          {/* Reports */}
+          <Link 
+            to="/reports" 
+            className="group bg-green-700 hover:bg-green-600 rounded-lg p-4 text-center transition-all duration-200 transform hover:scale-105 hover:shadow-md"
+          >
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-yellow-100 transition-colors">
+              <BarChart3 className="h-6 w-6 text-green-800" />
+            </div>
+            <h3 className="text-yellow-200 font-semibold text-sm mb-1">Báo Cáo</h3>
+            <p className="text-yellow-100 text-xs opacity-80">Phân tích dữ liệu</p>
+          </Link>
+        </div>
+
+        {/* Quick Stats Row */}
+        <div className="mt-6 pt-4 border-t border-green-700">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-200">{stats?.total_customers || 0}</div>
+              <div className="text-yellow-100 text-sm opacity-80">Khách hàng</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-200">{stats?.total_bills || 0}</div>
+              <div className="text-yellow-100 text-sm opacity-80">Bills</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-200">{stats?.total_cards || 0}</div>
+              <div className="text-yellow-100 text-sm opacity-80">Thẻ tín dụng</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-200">{formatCurrency(stats?.total_revenue || 0)}</div>
+              <div className="text-yellow-100 text-sm opacity-80">Doanh thu</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border-l-4 border-l-blue-500">
