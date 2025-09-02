@@ -141,33 +141,10 @@ const LoginPage = ({ onLogin }) => {
 
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Login Method Selector */}
-              <div className="flex space-x-1 bg-white/50 p-1 rounded-lg">
-                {[
-                  { key: 'username', label: 'Tên TK', icon: User },
-                  { key: 'email', label: 'Email', icon: Mail },
-                  { key: 'phone', label: 'SĐT', icon: Phone }
-                ].map((mode) => (
-                  <button
-                    key={mode.key}
-                    type="button"
-                    onClick={() => handleLoginModeChange(mode.key)}
-                    className={`flex-1 flex items-center justify-center space-x-1 py-2 px-3 rounded-md text-xs font-medium transition-all duration-200 ${
-                      loginMode === mode.key
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                    }`}
-                  >
-                    <mode.icon className="h-3 w-3" />
-                    <span>{mode.label}</span>
-                  </button>
-                ))}
-              </div>
-
               {/* Login Input */}
               <div className="space-y-2">
                 <Label htmlFor="login" className="text-gray-700 font-medium">
-                  {loginMode === 'email' ? 'Email' : loginMode === 'phone' ? 'Số điện thoại' : 'Tên đăng nhập'}
+                  {getInputLabel()}
                 </Label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
