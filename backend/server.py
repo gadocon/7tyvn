@@ -2893,6 +2893,289 @@ async def webhook_checkbill(
 # Include the router in the main app
 app.include_router(api_router)
 
+# =============================================================================
+# UNIFIED TRANSACTIONS API - TRANG GIAO DỊCH TỔNG HỢP
+# =============================================================================
+
+class TransactionType(str, Enum):
+    BILL_SALE = "BILL_SALE"           # Bán Bill
+    CREDIT_DAO_POS = "CREDIT_DAO_POS" # Đáo Thẻ POS
+    CREDIT_DAO_BILL = "CREDIT_DAO_BILL" # Đáo Thẻ BILL
+
+class UnifiedTransaction(BaseModel):
+    """Unified transaction model combining Bill Sales and Credit Card DAO"""
+    id: str
+    type: TransactionType
+    customer_id: str
+    customer_name: str
+    customer_phone: Optional[str] = None
+    
+    # Transaction details
+    total_amount: float
+    profit_amount: float
+    profit_percentage: float
+    payback: Optional[float] = None
+    
+    # Items involved
+    items: List[Dict[str, Any]]  # Bills or Cards
+    item_codes: List[str]  # Bill codes or masked card numbers
+    item_display: str  # "PB090..., PB091..." or "****1234"
+    
+    # Payment & Status
+    payment_method: Optional[str] = None
+    status: str = "COMPLETED"
+    notes: Optional[str] = None
+    
+    # Metadata
+    created_at: datetime
+    created_by: Optional[str] = None
+
+@api_router.get("/transactions/unified")
+async def get_unified_transactions(
+    limit: int = 50,
+    offset: int = 0,
+    transaction_type: Optional[str] = None,
+    customer_id: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    search: Optional[str] = None
+):
+    """Get unified transactions from both Sales and Credit Card DAO"""
+    try:
+        unified_transactions = []
+        
+        # Query filters
+        match_filters = {}
+        if date_from or date_to:
+            date_filter = {}
+            if date_from:
+                date_filter["$gte"] = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+            if date_to:  
+                date_filter["$lte"] = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+            match_filters["created_at"] = date_filter
+        
+        if customer_id:
+            match_filters["customer_id"] = customer_id
+        
+        # Get Bill Sales
+        if not transaction_type or transaction_type == "BILL_SALE":
+            sales_pipeline = [
+                {"$match": match_filters},
+                {
+                    "$lookup": {
+                        "from": "customers",
+                        "localField": "customer_id", 
+                        "foreignField": "id",
+                        "as": "customer"
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "bills",
+                        "localField": "bill_ids",
+                        "foreignField": "id", 
+                        "as": "bills"
+                    }
+                },
+                {"$sort": {"created_at": -1}},
+                {"$limit": limit + offset},
+                {"$skip": offset}
+            ]
+            
+            sales_cursor = db.sales.aggregate(sales_pipeline)
+            sales_results = await sales_cursor.to_list(length=None)
+            
+            for sale in sales_results:
+                customer = sale.get("customer", [{}])[0]
+                bills = sale.get("bills", [])
+                
+                # Create bill codes display
+                bill_codes = [bill.get("customer_code", "N/A") for bill in bills]
+                item_display = ", ".join(bill_codes[:3])
+                if len(bill_codes) > 3:
+                    item_display += f" (+{len(bill_codes)-3} khác)"
+                
+                transaction = UnifiedTransaction(
+                    id=sale["id"],
+                    type=TransactionType.BILL_SALE,
+                    customer_id=sale["customer_id"],
+                    customer_name=customer.get("name", "N/A"),
+                    customer_phone=customer.get("phone"),
+                    total_amount=sale["total"],
+                    profit_amount=sale["profit_value"],
+                    profit_percentage=sale["profit_pct"],
+                    payback=sale.get("payback"),
+                    items=[{
+                        "id": bill["id"],
+                        "code": bill.get("customer_code"),
+                        "amount": bill.get("amount"),
+                        "type": "BILL"
+                    } for bill in bills],
+                    item_codes=bill_codes,
+                    item_display=item_display,
+                    payment_method=sale.get("method"),
+                    status=sale.get("status", "COMPLETED"),
+                    notes=sale.get("notes"),
+                    created_at=sale["created_at"]
+                )
+                unified_transactions.append(transaction)
+        
+        # Get Credit Card DAO Transactions
+        if not transaction_type or transaction_type in ["CREDIT_DAO_POS", "CREDIT_DAO_BILL"]:
+            dao_match_filters = match_filters.copy()
+            if transaction_type == "CREDIT_DAO_POS":
+                dao_match_filters["payment_method"] = "POS"
+            elif transaction_type == "CREDIT_DAO_BILL":
+                dao_match_filters["payment_method"] = "BILL"
+            
+            dao_pipeline = [
+                {"$match": dao_match_filters},
+                {
+                    "$lookup": {
+                        "from": "customers",
+                        "localField": "customer_id",
+                        "foreignField": "id", 
+                        "as": "customer"
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "credit_cards",
+                        "localField": "card_id",
+                        "foreignField": "id",
+                        "as": "card"
+                    }
+                },
+                {"$sort": {"created_at": -1}},
+                {"$limit": limit + offset},
+                {"$skip": offset}
+            ]
+            
+            dao_cursor = db.credit_card_transactions.aggregate(dao_pipeline)
+            dao_results = await dao_cursor.to_list(length=None)
+            
+            for dao in dao_results:
+                customer = dao.get("customer", [{}])[0]
+                card = dao.get("card", [{}])[0]
+                
+                # Create masked card number
+                card_number = card.get("card_number", "0000")
+                masked_card = f"****{card_number[-4:]}"
+                
+                # Determine transaction type
+                tx_type = TransactionType.CREDIT_DAO_POS if dao["payment_method"] == "POS" else TransactionType.CREDIT_DAO_BILL
+                
+                transaction = UnifiedTransaction(
+                    id=dao["id"],
+                    type=tx_type,
+                    customer_id=dao["customer_id"],
+                    customer_name=customer.get("name", "N/A"),
+                    customer_phone=customer.get("phone"),
+                    total_amount=dao["total_amount"],
+                    profit_amount=dao["profit_value"],
+                    profit_percentage=dao["profit_pct"],
+                    payback=dao.get("payback"),
+                    items=[{
+                        "id": card["id"],
+                        "code": masked_card,
+                        "amount": dao["total_amount"],
+                        "type": "CREDIT_CARD"
+                    }],
+                    item_codes=[masked_card],
+                    item_display=masked_card,
+                    payment_method=dao["payment_method"],
+                    status=dao.get("status", "COMPLETED"),
+                    notes=dao.get("notes"),
+                    created_at=dao["created_at"]
+                )
+                unified_transactions.append(transaction)
+        
+        # Sort by created_at descending
+        unified_transactions.sort(key=lambda x: x.created_at, reverse=True)
+        
+        # Apply search filter if provided
+        if search:
+            search_lower = search.lower()
+            filtered_transactions = []
+            for tx in unified_transactions:
+                if (search_lower in tx.customer_name.lower() or 
+                    search_lower in tx.item_display.lower() or
+                    any(search_lower in code.lower() for code in tx.item_codes)):
+                    filtered_transactions.append(tx)
+            unified_transactions = filtered_transactions
+        
+        return unified_transactions[:limit]
+        
+    except Exception as e:
+        logger.error(f"Error getting unified transactions: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/transactions/stats")
+async def get_transactions_stats():
+    """Get comprehensive transaction statistics"""
+    try:
+        # Get current date for filtering
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        this_month = today.replace(day=1)
+        
+        # Bill Sales Stats
+        bill_sales_today = await db.sales.count_documents({
+            "created_at": {"$gte": today}
+        })
+        
+        bill_sales_total = await db.sales.count_documents({})
+        
+        bill_revenue_pipeline = [
+            {
+                "$group": {
+                    "_id": None,
+                    "total_revenue": {"$sum": "$total"},
+                    "total_profit": {"$sum": "$profit_value"}
+                }
+            }
+        ]
+        bill_revenue = await db.sales.aggregate(bill_revenue_pipeline).to_list(1)
+        bill_stats = bill_revenue[0] if bill_revenue else {"total_revenue": 0, "total_profit": 0}
+        
+        # Credit Card DAO Stats
+        dao_today = await db.credit_card_transactions.count_documents({
+            "created_at": {"$gte": today}
+        })
+        
+        dao_total = await db.credit_card_transactions.count_documents({})
+        
+        dao_revenue_pipeline = [
+            {
+                "$group": {
+                    "_id": None,
+                    "total_revenue": {"$sum": "$total_amount"},
+                    "total_profit": {"$sum": "$profit_value"}
+                }
+            }
+        ]
+        dao_revenue = await db.credit_card_transactions.aggregate(dao_revenue_pipeline).to_list(1)
+        dao_stats = dao_revenue[0] if dao_revenue else {"total_revenue": 0, "total_profit": 0}
+        
+        # Pending transactions (for future use)
+        pending_count = 0  # No pending transactions in current system
+        
+        return {
+            "total_revenue": bill_stats["total_revenue"] + dao_stats["total_revenue"],
+            "total_profit": bill_stats["total_profit"] + dao_stats["total_profit"],
+            "transactions_today": bill_sales_today + dao_today,
+            "bill_sales_count": bill_sales_total,
+            "dao_transactions_count": dao_total,
+            "pending_count": pending_count,
+            "bill_sales_revenue": bill_stats["total_revenue"],
+            "bill_sales_profit": bill_stats["total_profit"],
+            "dao_revenue": dao_stats["total_revenue"], 
+            "dao_profit": dao_stats["total_profit"]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting transaction stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
