@@ -3210,7 +3210,7 @@ async def get_dashboard_stats(period: str = "monthly"):
             current_end = now
 
         # Current period stats
-        current_filter = {"created_at": {"$gte": current_start, "$lt": current_end}}
+        current_filter = {"created_at": {"$gte": current_start, "$lte": current_end}}
         previous_filter = {"created_at": {"$gte": previous_start, "$lt": previous_end}}
 
         # Bill Sales Current Period
