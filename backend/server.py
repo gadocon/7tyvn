@@ -195,6 +195,34 @@ class CreditCardStats(BaseModel):
     not_due_cards: int
     total_credit_limit: float
 
+class CreditCardPaymentMethod(str, Enum):
+    POS = "POS"  # Thanh toán qua POS
+    BILL = "BILL"  # Thanh toán qua bill điện
+
+class CreditCardTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    card_id: str  # Link to credit card
+    customer_id: str  # Link to customer
+    transaction_group_id: str  # Nhóm các transactions cùng một lần đáo
+    transaction_type: str = "CREDIT_CARD_PAYMENT"  # Loại giao dịch
+    payment_method: CreditCardPaymentMethod  # POS hoặc BILL
+    total_amount: float  # Tổng số tiền đáo
+    profit_pct: float  # % lợi nhuận
+    profit_value: float  # Giá trị lợi nhuận
+    payback: float  # Số tiền trả khách
+    bill_ids: Optional[List[str]] = []  # Danh sách bill_ids nếu dùng phương thức BILL
+    notes: Optional[str] = None
+    status: str = "COMPLETED"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CreditCardTransactionCreate(BaseModel):
+    card_id: str
+    payment_method: CreditCardPaymentMethod
+    total_amount: Optional[float] = None  # For POS method
+    profit_pct: float
+    bill_ids: Optional[List[str]] = []  # For BILL method
+    notes: Optional[str] = None
+
 class Sale(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     customer_id: str
