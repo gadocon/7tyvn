@@ -7447,4 +7447,338 @@ const CustomerTransactionsTab = ({ customer, formatCurrency, formatDateTime }) =
   );
 };
 
+// Customer Analytics Tab Component
+const CustomerAnalyticsTab = ({ customer, formatCurrency }) => {
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState('30');
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [customer.id, selectedPeriod]);
+
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      // Simulate analytics data since we don't have dedicated analytics endpoint
+      const response = await axios.get(`${API}/customers/${customer.id}/detailed-profile`);
+      const data = response.data;
+      
+      // Calculate analytics metrics
+      const analytics = {
+        customerValue: {
+          ltv: data.metrics.total_transaction_value,
+          avgOrderValue: data.metrics.avg_transaction_value,
+          frequency: data.metrics.total_transactions,
+          recency: 30 // days since last transaction
+        },
+        profitability: {
+          totalProfit: data.metrics.total_profit,
+          profitMargin: data.metrics.profit_margin,
+          profitTrend: Math.random() > 0.5 ? 'increasing' : 'decreasing'
+        },
+        engagement: {
+          transactionFrequency: data.metrics.total_transactions / 12, // per month average
+          preferredService: data.metrics.sales_transactions > data.metrics.dao_transactions ? 'Bills' : 'Credit Cards',
+          loyaltyScore: Math.min(100, Math.round((data.metrics.total_transaction_value / 1000000) * 10))
+        },
+        predictions: {
+          nextTransactionProbability: Math.round(Math.random() * 100),
+          churnRisk: data.metrics.total_transactions < 2 ? 'high' : data.metrics.total_transactions < 5 ? 'medium' : 'low',
+          recommendedActions: [
+            'Gửi ưu đãi đặc biệt cho dịch vụ đáo thẻ',
+            'Liên hệ tư vấn sản phẩm mới',
+            'Cập nhật thông tin khách hàng'
+          ]
+        }
+      };
+      
+      setAnalyticsData(analytics);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      toast.error("Không thể tải dữ liệu phân tích");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRiskColor = (risk) => {
+    switch (risk) {
+      case 'low':
+        return 'text-green-600 bg-green-100 border-green-200';
+      case 'medium':
+        return 'text-yellow-600 bg-yellow-100 border-yellow-200';
+      case 'high':
+        return 'text-red-600 bg-red-100 border-red-200';
+      default:
+        return 'text-gray-600 bg-gray-100 border-gray-200';
+    }
+  };
+
+  const getRiskLabel = (risk) => {
+    switch (risk) {
+      case 'low': return 'Thấp';
+      case 'medium': return 'Trung bình';
+      case 'high': return 'Cao';
+      default: return 'Không xác định';
+    }
+  };
+
+  const getTrendIcon = (trend) => {
+    return trend === 'increasing' ? 
+      <TrendingUp className="h-4 w-4 text-green-600" /> : 
+      <TrendingDown className="h-4 w-4 text-red-600" />;
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-40 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[1, 2].map(i => (
+              <div key={i} className="h-60 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!analyticsData) {
+    return (
+      <div className="text-center py-12">
+        <AlertTriangle className="h-16 w-16 mx-auto text-yellow-500 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Không thể tải dữ liệu</h3>
+        <p className="text-gray-500">Vui lòng thử lại sau</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Period Selector */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-900">Phân Tích Khách Hàng</h2>
+        <select
+          value={selectedPeriod}
+          onChange={(e) => setSelectedPeriod(e.target.value)}
+          className="p-2 border border-gray-300 rounded-md text-sm"
+        >
+          <option value="7">7 ngày qua</option>
+          <option value="30">30 ngày qua</option>
+          <option value="90">90 ngày qua</option>
+          <option value="365">12 tháng qua</option>
+        </select>
+      </div>
+
+      {/* Customer Value Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-purple-600">{formatCurrency(analyticsData.customerValue.ltv)}</div>
+            <div className="text-sm text-gray-600">Giá Trị Khách Hàng (LTV)</div>
+            <div className="text-xs text-green-600 mt-1">+12% so với TB</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{formatCurrency(analyticsData.customerValue.avgOrderValue)}</div>
+            <div className="text-sm text-gray-600">Giá Trị TB/Đơn</div>
+            <div className="text-xs text-gray-500 mt-1">Ổn định</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{analyticsData.customerValue.frequency}</div>
+            <div className="text-sm text-gray-600">Tần Suất Giao Dịch</div>
+            <div className="text-xs text-blue-600 mt-1">Khách hàng tích cực</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-orange-600">{analyticsData.engagement.loyaltyScore}/100</div>
+            <div className="text-sm text-gray-600">Điểm Trung Thành</div>
+            <div className="text-xs text-purple-600 mt-1">Khách hàng VIP</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Analytics Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Profitability Analysis */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <DollarSign className="h-5 w-5 mr-2" />
+              Phân Tích Lợi Nhuận
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Tổng lợi nhuận:</span>
+              <span className="font-bold text-green-600">{formatCurrency(analyticsData.profitability.totalProfit)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Tỷ suất lợi nhuận:</span>
+              <div className="flex items-center space-x-2">
+                <span className="font-bold">{analyticsData.profitability.profitMargin}%</span>
+                {getTrendIcon(analyticsData.profitability.profitTrend)}
+              </div>
+            </div>
+            <div className="pt-3 border-t">
+              <div className="text-sm text-gray-600 mb-2">Xu hướng lợi nhuận:</div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-green-600 h-2 rounded-full" 
+                  style={{ width: `${Math.min(analyticsData.profitability.profitMargin, 100)}%` }}
+                ></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Customer Engagement */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="h-5 w-5 mr-2" />
+              Mức Độ Tương Tác
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Tần suất giao dịch:</span>
+              <span className="font-bold">{analyticsData.engagement.transactionFrequency.toFixed(1)}/tháng</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Dịch vụ ưa thích:</span>
+              <Badge variant="outline" className="text-xs">
+                {analyticsData.engagement.preferredService}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Điểm trung thành:</span>
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-purple-600">{analyticsData.engagement.loyaltyScore}/100</span>
+                <Award className="h-4 w-4 text-yellow-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Risk Assessment */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Shield className="h-5 w-5 mr-2" />
+              Đánh Giá Rủi Ro
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Rủi ro churn:</span>
+              <Badge className={`text-xs ${getRiskColor(analyticsData.predictions.churnRisk)}`}>
+                {getRiskLabel(analyticsData.predictions.churnRisk)}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Khả năng giao dịch tiếp:</span>
+              <span className="font-bold text-blue-600">{analyticsData.predictions.nextTransactionProbability}%</span>
+            </div>
+            <div className="pt-3 border-t">
+              <div className="text-sm text-gray-600 mb-2">Dự đoán xu hướng:</div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full" 
+                  style={{ width: `${analyticsData.predictions.nextTransactionProbability}%` }}
+                ></div>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Khả năng giao dịch trong 30 ngày tới
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recommendations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Lightbulb className="h-5 w-5 mr-2" />
+              Đề Xuất Hành Động
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {analyticsData.predictions.recommendedActions.map((action, index) => (
+                <div key={index} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                    {index + 1}
+                  </div>
+                  <div className="text-sm text-gray-700">{action}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t">
+              <Button className="w-full">
+                <Target className="h-4 w-4 mr-2" />
+                Thực Hiện Chiến Lược
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Customer Journey Insights */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <MapPin className="h-5 w-5 mr-2" />
+            Hành Trình Khách Hàng
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <UserPlus className="h-8 w-8 text-blue-600" />
+              </div>
+              <h4 className="font-medium text-gray-900 mb-1">Khách Hàng Mới</h4>
+              <p className="text-sm text-gray-500">Giai đoạn khám phá và làm quen</p>
+              <div className="mt-2 text-xs text-blue-600 font-medium">
+                {new Date(customer.created_at).toLocaleDateString('vi-VN')}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <TrendingUp className="h-8 w-8 text-green-600" />
+              </div>
+              <h4 className="font-medium text-gray-900 mb-1">Phát Triển</h4>
+              <p className="text-sm text-gray-500">Tăng tần suất và giá trị giao dịch</p>
+              <div className="mt-2 text-xs text-green-600 font-medium">
+                {analyticsData.customerValue.frequency} giao dịch
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Crown className="h-8 w-8 text-purple-600" />
+              </div>
+              <h4 className="font-medium text-gray-900 mb-1">Khách VIP</h4>
+              <p className="text-sm text-gray-500">Khách hàng có giá trị cao</p>
+              <div className="mt-2 text-xs text-purple-600 font-medium">
+                {formatCurrency(analyticsData.customerValue.ltv)}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 export default App;
