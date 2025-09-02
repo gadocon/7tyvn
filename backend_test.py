@@ -2825,6 +2825,7 @@ class FPTBillManagerAPITester:
         # Create POS payment
         print(f"\n💳 Step 2: Creating POS payment...")
         pos_payment_data = {
+            "card_id": card_id,
             "payment_method": "POS",
             "total_amount": 5000000,  # 5M VND
             "profit_pct": 3.5,
