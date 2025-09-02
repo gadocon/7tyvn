@@ -131,7 +131,9 @@ const API = `${BACKEND_URL}/api`;
 // Navigation Component with Responsive Sidebar
 const Navigation = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   // Navigation items
   const navigationItems = [
@@ -143,6 +145,11 @@ const Navigation = () => {
     { path: '/transactions', icon: Activity, label: 'Giao Dịch' },
     { path: '/reports', icon: BarChart3, label: 'Báo Cáo' }
   ];
+
+  const handleLogout = () => {
+    logout();
+    setUserDropdownOpen(false);
+  };
 
   // Close sidebar when clicking outside (mobile)
   useEffect(() => {
