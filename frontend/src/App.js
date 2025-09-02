@@ -247,10 +247,14 @@ const Dashboard = ({ customerDetail, setCustomerDetail }) => {
     }
   };
 
-  const handleCustomerClick = (customerId) => {
-    // Navigate to customer page and open modal 
-    window.location.hash = `customers/${customerId}`;
-    toast.info("Chuyển đến trang khách hàng...");
+  const handleCustomerClick = async (customerId) => {
+    try {
+      const response = await axios.get(`${API}/customers/${customerId}/transactions`);
+      setCustomerDetail(response.data);
+    } catch (error) {
+      console.error("Error fetching customer detail:", error);
+      toast.error("Không thể tải chi tiết khách hàng");
+    }
   };
 
   const formatCurrency = (amount) => {
