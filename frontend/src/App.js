@@ -64,7 +64,8 @@ const Navigation = () => {
     { path: '/inventory', icon: Package, label: 'Kho Bill' },
     { path: '/customers', icon: Users, label: 'Khách Hàng' },
     { path: '/credit-cards', icon: CreditCard, label: 'Quản Lý Thẻ' },
-    { path: '/transactions', icon: Activity, label: 'Giao Dịch' }
+    { path: '/transactions', icon: Activity, label: 'Giao Dịch' },
+    { path: '/reports', icon: BarChart3, label: 'Báo Cáo' }
   ];
 
   // Close sidebar when clicking outside (mobile)
