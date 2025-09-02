@@ -81,6 +81,7 @@ import axios from "axios";
 // Customer Name Link Component - Makes customer names clickable everywhere
 const CustomerNameLink = ({ customer, className = "", children }) => {
   const navigate = useNavigate();
+  const [showTooltip, setShowTooltip] = useState(false);
   
   const handleClick = (e) => {
     e.preventDefault();
@@ -95,13 +96,28 @@ const CustomerNameLink = ({ customer, className = "", children }) => {
   }
 
   return (
-    <span 
-      onClick={handleClick}
-      className={`cursor-pointer text-blue-600 hover:text-blue-800 hover:underline transition-colors ${className}`}
-      title={`Xem chi tiết khách hàng: ${customer.name}`}
-    >
-      {children || customer.name}
-    </span>
+    <div className="relative inline-block">
+      <span 
+        onClick={handleClick}
+        className={`cursor-pointer font-semibold text-gray-900 hover:text-black hover:underline transition-all duration-200 ${className}`}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        {children || customer.name}
+      </span>
+      
+      {/* Custom Tooltip */}
+      {showTooltip && (
+        <div className="absolute z-50 px-3 py-2 text-sm text-white bg-gray-800 rounded-lg shadow-lg whitespace-nowrap -top-10 left-1/2 transform -translate-x-1/2 animate-in fade-in-0 zoom-in-95">
+          <div className="flex items-center space-x-2">
+            <User className="h-3 w-3" />
+            <span>Xem chi tiết: {customer.name}</span>
+          </div>
+          {/* Tooltip Arrow */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+        </div>
+      )}
+    </div>
   );
 };
 
