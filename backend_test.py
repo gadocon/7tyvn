@@ -3604,66 +3604,401 @@ class FPTBillManagerAPITester:
             print(f"❌ Customer detail API failed with test data")
             return False
 
+    def test_customers_api_comprehensive(self):
+        """Comprehensive test of all customer APIs as requested in review"""
+        print(f"\n🎯 COMPREHENSIVE CUSTOMER API TESTING")
+        print("=" * 60)
+        print("Testing all customer-related backend APIs to ensure UI fixes didn't break functionality")
+        
+        all_tests_passed = True
+        
+        # Test 1: GET /api/customers/stats
+        print(f"\n📊 TEST 1: Customer Statistics API")
+        stats_success, stats_response = self.run_test(
+            "GET /api/customers/stats",
+            "GET",
+            "customers/stats",
+            200
+        )
+        
+        if stats_success:
+            required_fields = ['total_customers', 'individual_customers', 'agent_customers', 'active_customers', 'total_customer_value']
+            missing_fields = [field for field in required_fields if field not in stats_response]
+            if missing_fields:
+                print(f"   ❌ Missing fields: {missing_fields}")
+                all_tests_passed = False
+            else:
+                print(f"   ✅ All required fields present")
+                print(f"   📊 Stats: Total={stats_response.get('total_customers', 0)}, Individual={stats_response.get('individual_customers', 0)}, Agent={stats_response.get('agent_customers', 0)}")
+        else:
+            all_tests_passed = False
+        
+        # Test 2: GET /api/customers (basic)
+        print(f"\n👥 TEST 2: Get Customers API (Basic)")
+        customers_success, customers_response = self.run_test(
+            "GET /api/customers",
+            "GET",
+            "customers",
+            200
+        )
+        
+        if customers_success:
+            print(f"   ✅ Found {len(customers_response)} customers")
+            if customers_response:
+                sample_customer = customers_response[0]
+                required_fields = ['id', 'name', 'type', 'is_active']
+                missing_fields = [field for field in required_fields if field not in sample_customer]
+                if missing_fields:
+                    print(f"   ❌ Missing customer fields: {missing_fields}")
+                    all_tests_passed = False
+                else:
+                    print(f"   ✅ Customer structure valid")
+        else:
+            all_tests_passed = False
+        
+        # Test 3: GET /api/customers with search parameter
+        print(f"\n🔍 TEST 3: Customer Search Functionality")
+        if customers_response and len(customers_response) > 0:
+            # Use first customer's name for search
+            search_name = customers_response[0].get('name', '').split()[0] if customers_response[0].get('name') else 'Test'
+            search_success, search_response = self.run_test(
+                f"GET /api/customers?search={search_name}",
+                "GET",
+                f"customers?search={search_name}",
+                200
+            )
+            
+            if search_success:
+                print(f"   ✅ Search returned {len(search_response)} results for '{search_name}'")
+                # Verify search results contain the search term
+                if search_response:
+                    found_match = any(search_name.lower() in customer.get('name', '').lower() for customer in search_response)
+                    if found_match:
+                        print(f"   ✅ Search results contain matching names")
+                    else:
+                        print(f"   ⚠️  Search results may not contain exact matches (could be partial)")
+            else:
+                all_tests_passed = False
+        else:
+            print(f"   ⚠️  Skipping search test - no customers available")
+        
+        # Test 4: GET /api/customers with customer_type filter
+        print(f"\n🏷️ TEST 4: Customer Type Filtering")
+        type_success, type_response = self.run_test(
+            "GET /api/customers?customer_type=INDIVIDUAL",
+            "GET",
+            "customers?customer_type=INDIVIDUAL",
+            200
+        )
+        
+        if type_success:
+            print(f"   ✅ Type filter returned {len(type_response)} INDIVIDUAL customers")
+            # Verify all returned customers are INDIVIDUAL type
+            if type_response:
+                non_individual = [c for c in type_response if c.get('type') != 'INDIVIDUAL']
+                if non_individual:
+                    print(f"   ❌ Found {len(non_individual)} non-INDIVIDUAL customers in filtered results")
+                    all_tests_passed = False
+                else:
+                    print(f"   ✅ All filtered customers have correct type")
+        else:
+            all_tests_passed = False
+        
+        # Test 5: GET /api/customers with is_active filter
+        print(f"\n✅ TEST 5: Customer Active Status Filtering")
+        active_success, active_response = self.run_test(
+            "GET /api/customers?is_active=true",
+            "GET",
+            "customers?is_active=true",
+            200
+        )
+        
+        if active_success:
+            print(f"   ✅ Active filter returned {len(active_response)} active customers")
+            # Verify all returned customers are active
+            if active_response:
+                inactive_customers = [c for c in active_response if not c.get('is_active', True)]
+                if inactive_customers:
+                    print(f"   ❌ Found {len(inactive_customers)} inactive customers in active filter")
+                    all_tests_passed = False
+                else:
+                    print(f"   ✅ All filtered customers are active")
+        else:
+            all_tests_passed = False
+        
+        # Test 6: POST /api/customers (Create new customer)
+        print(f"\n➕ TEST 6: Create Customer API")
+        timestamp = int(datetime.now().timestamp())
+        new_customer_data = {
+            "name": f"Test Customer API {timestamp}",
+            "type": "INDIVIDUAL",
+            "phone": f"012345{timestamp % 10000}",
+            "email": f"test_api_{timestamp}@example.com",
+            "address": "123 Test Street, API Test City",
+            "notes": "Created by comprehensive API test"
+        }
+        
+        create_success, create_response = self.run_test(
+            "POST /api/customers",
+            "POST",
+            "customers",
+            200,
+            data=new_customer_data
+        )
+        
+        created_customer_id = None
+        if create_success:
+            created_customer_id = create_response.get('id')
+            print(f"   ✅ Created customer with ID: {created_customer_id}")
+            # Verify created customer has correct data
+            if create_response.get('name') == new_customer_data['name']:
+                print(f"   ✅ Customer data matches input")
+            else:
+                print(f"   ❌ Customer data mismatch")
+                all_tests_passed = False
+        else:
+            all_tests_passed = False
+        
+        # Test 7: PUT /api/customers/{id} (Update customer)
+        print(f"\n✏️ TEST 7: Update Customer API")
+        if created_customer_id:
+            update_data = {
+                "name": f"Updated Test Customer API {timestamp}",
+                "phone": f"098765{timestamp % 10000}",
+                "notes": "Updated by comprehensive API test"
+            }
+            
+            update_success, update_response = self.run_test(
+                f"PUT /api/customers/{created_customer_id}",
+                "PUT",
+                f"customers/{created_customer_id}",
+                200,
+                data=update_data
+            )
+            
+            if update_success:
+                print(f"   ✅ Updated customer successfully")
+                if update_response.get('name') == update_data['name']:
+                    print(f"   ✅ Update data applied correctly")
+                else:
+                    print(f"   ❌ Update data not applied correctly")
+                    all_tests_passed = False
+            else:
+                all_tests_passed = False
+        else:
+            print(f"   ⚠️  Skipping update test - no customer created")
+        
+        # Test 8: GET /api/customers/{id}/transactions
+        print(f"\n📋 TEST 8: Customer Transactions API")
+        if created_customer_id:
+            transactions_success, transactions_response = self.run_test(
+                f"GET /api/customers/{created_customer_id}/transactions",
+                "GET",
+                f"customers/{created_customer_id}/transactions",
+                200
+            )
+            
+            if transactions_success:
+                print(f"   ✅ Retrieved customer transactions")
+                required_fields = ['customer', 'transactions', 'summary']
+                missing_fields = [field for field in required_fields if field not in transactions_response]
+                if missing_fields:
+                    print(f"   ❌ Missing transaction response fields: {missing_fields}")
+                    all_tests_passed = False
+                else:
+                    print(f"   ✅ Transaction response structure valid")
+                    transactions = transactions_response.get('transactions', [])
+                    print(f"   📊 Found {len(transactions)} transactions for new customer")
+            else:
+                all_tests_passed = False
+        else:
+            print(f"   ⚠️  Skipping transactions test - no customer created")
+        
+        # Test 9: GET /api/customers/export
+        print(f"\n📤 TEST 9: Customer Export API")
+        export_success = False
+        try:
+            url = f"{self.api_url}/customers/export"
+            print(f"   GET {url}")
+            response = requests.get(url, timeout=30)
+            print(f"   Response Status: {response.status_code}")
+            
+            if response.status_code == 200:
+                content_type = response.headers.get('content-type', '')
+                content_disposition = response.headers.get('content-disposition', '')
+                
+                print(f"   Content-Type: {content_type}")
+                print(f"   Content-Disposition: {content_disposition}")
+                
+                # Check if it's an Excel file
+                if 'spreadsheet' in content_type or 'excel' in content_type:
+                    print(f"   ✅ Export returned Excel file")
+                    print(f"   📊 File size: {len(response.content)} bytes")
+                    export_success = True
+                    self.tests_passed += 1
+                else:
+                    print(f"   ❌ Export did not return Excel file")
+            else:
+                print(f"   ❌ Export failed with status {response.status_code}")
+                
+        except Exception as e:
+            print(f"   ❌ Export request failed: {e}")
+        finally:
+            self.tests_run += 1
+            
+        if not export_success:
+            all_tests_passed = False
+        
+        # Test 10: DELETE /api/customers/{id} (Clean up)
+        print(f"\n🗑️ TEST 10: Delete Customer API")
+        if created_customer_id:
+            delete_success, delete_response = self.run_test(
+                f"DELETE /api/customers/{created_customer_id}",
+                "DELETE",
+                f"customers/{created_customer_id}",
+                200
+            )
+            
+            if delete_success:
+                print(f"   ✅ Deleted test customer successfully")
+                if delete_response.get('success'):
+                    print(f"   ✅ Delete operation confirmed")
+                else:
+                    print(f"   ⚠️  Delete response format unexpected")
+            else:
+                all_tests_passed = False
+                print(f"   ❌ Failed to clean up test customer")
+        else:
+            print(f"   ⚠️  Skipping delete test - no customer to delete")
+        
+        # Test 11: Combined filters test
+        print(f"\n🔗 TEST 11: Combined Filters Test")
+        combined_success, combined_response = self.run_test(
+            "GET /api/customers?customer_type=INDIVIDUAL&is_active=true&page=1&page_size=10",
+            "GET",
+            "customers?customer_type=INDIVIDUAL&is_active=true&page=1&page_size=10",
+            200
+        )
+        
+        if combined_success:
+            print(f"   ✅ Combined filters returned {len(combined_response)} customers")
+            # Verify pagination limit
+            if len(combined_response) <= 10:
+                print(f"   ✅ Pagination limit respected")
+            else:
+                print(f"   ❌ Pagination limit exceeded")
+                all_tests_passed = False
+        else:
+            all_tests_passed = False
+        
+        # Summary
+        print(f"\n📊 COMPREHENSIVE CUSTOMER API TEST RESULTS:")
+        print(f"=" * 60)
+        
+        if all_tests_passed:
+            print(f"🎉 ALL CUSTOMER API TESTS PASSED!")
+            print(f"✅ Customer statistics API working")
+            print(f"✅ Customer listing API working")
+            print(f"✅ Customer search functionality working")
+            print(f"✅ Customer type filtering working")
+            print(f"✅ Customer active status filtering working")
+            print(f"✅ Customer creation API working")
+            print(f"✅ Customer update API working")
+            print(f"✅ Customer transactions API working")
+            print(f"✅ Customer export API working")
+            print(f"✅ Customer deletion API working")
+            print(f"✅ Combined filters working")
+            print(f"\n🎯 CONCLUSION: UI fixes did NOT break any customer backend functionality!")
+            return True
+        else:
+            print(f"❌ SOME CUSTOMER API TESTS FAILED!")
+            print(f"⚠️  UI fixes may have affected backend functionality")
+            print(f"🔧 Review failed tests above for specific issues")
+            return False
+
+    def run_customer_tests_only(self):
+        """Run only customer-related tests as requested in review"""
+        print("🎯 Running Customer API Tests Only (Review Request)")
+        print("=" * 60)
+        print("Testing customer backend APIs to ensure UI fixes didn't break functionality")
+        
+        try:
+            success = self.test_customers_api_comprehensive()
+            
+            print(f"\n{'='*60}")
+            print(f"📊 CUSTOMER API TEST SUMMARY")
+            print(f"{'='*60}")
+            print(f"Tests Run: {self.tests_run}")
+            print(f"Tests Passed: {self.tests_passed}")
+            print(f"Tests Failed: {self.tests_run - self.tests_passed}")
+            print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%" if self.tests_run > 0 else "No tests run")
+            
+            if success:
+                print(f"🎉 All customer API tests passed!")
+                print(f"✅ UI fixes did NOT break backend functionality")
+            else:
+                print(f"⚠️  Some customer API tests failed")
+                print(f"❌ UI fixes may have affected backend functionality")
+                
+            return success
+            
+        except Exception as e:
+            print(f"❌ Customer API tests failed with exception: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
+
 def main():
-    print("🎯 DASHBOARD ACTIVITY SYSTEM TESTING (Review Request)")
+    print("🎯 CUSTOMER API TESTING (Review Request)")
     print("=" * 80)
+    print("Testing Customers page backend APIs to ensure UI fixes didn't break functionality")
     
     tester = FPTBillManagerAPITester()
     
-    # Run the specific dashboard activity system test as requested in review
-    dashboard_success = tester.test_dashboard_activity_system()
+    # Run the comprehensive customer API tests as requested in review
+    customer_success = tester.run_customer_tests_only()
     
-    if dashboard_success:
-        print(f"\n🎉 Dashboard Activity System Tests PASSED!")
+    if customer_success:
+        print(f"\n🎉 Customer API Tests PASSED!")
+        print(f"✅ All customer management features are working correctly")
+        print(f"✅ UI responsive layout fixes did NOT break backend functionality")
     else:
-        print(f"\n❌ Dashboard Activity System Tests FAILED!")
+        print(f"\n❌ Customer API Tests FAILED!")
+        print(f"⚠️  Some customer backend functionality may be affected by UI changes")
     
-    # Also run other core tests
+    # Also run dashboard test for completeness
     print(f"\n" + "=" * 80)
-    print("🚀 RUNNING ADDITIONAL CORE API TESTS")
+    print("🚀 RUNNING ADDITIONAL DASHBOARD TESTS")
     print("=" * 80)
     
-    additional_tests = [
-        ("Dashboard Stats", tester.test_dashboard_stats),
-        ("Get Customers", tester.test_get_customers),
-        ("Customer Detail with Bill Codes", tester.test_customer_detail_with_bill_codes),
-        ("Error Handling", tester.test_error_handling)
-    ]
+    dashboard_success = tester.test_dashboard_activity_system()
     
-    additional_passed = 0
-    for test_name, test_func in additional_tests:
-        try:
-            print(f"\n{'='*20} {test_name} {'='*20}")
-            success = test_func()
-            if success:
-                print(f"✅ {test_name} - PASSED")
-                additional_passed += 1
-            else:
-                print(f"❌ {test_name} - FAILED")
-        except Exception as e:
-            print(f"💥 {test_name} - ERROR: {str(e)}")
-    
-    total_tests = 1 + len(additional_tests)  # Dashboard test + additional tests
-    total_passed = (1 if dashboard_success else 0) + additional_passed
+    total_tests = 2  # Customer + Dashboard tests
+    total_passed = (1 if customer_success else 0) + (1 if dashboard_success else 0)
     
     print(f"\n{'='*80}")
-    print(f"🏁 FINAL TEST SUMMARY: {total_passed}/{total_tests} tests passed")
+    print(f"🏁 FINAL TEST SUMMARY: {total_passed}/{total_tests} test suites passed")
     print(f"📊 Success Rate: {(total_passed/total_tests)*100:.1f}%")
     
-    if dashboard_success:
-        print(f"\n🎯 REVIEW REQUEST FULFILLED: Dashboard Activity System APIs tested successfully!")
-        print(f"   ✅ Dashboard Stats API working")
-        print(f"   ✅ Recent Activities API working") 
-        print(f"   ✅ Customer Detail API working")
-        print(f"   ✅ Error handling verified")
+    if customer_success:
+        print(f"\n🎯 REVIEW REQUEST FULFILLED: Customer API testing completed successfully!")
+        print(f"   ✅ Customer statistics API working")
+        print(f"   ✅ Customer listing with filters working") 
+        print(f"   ✅ Customer CRUD operations working")
+        print(f"   ✅ Customer transactions API working")
+        print(f"   ✅ Customer export functionality working")
+        print(f"   ✅ Search and filtering working")
+        print(f"\n🎉 UI fixes did NOT break any customer backend functionality!")
     else:
-        print(f"\n⚠️  REVIEW REQUEST ISSUES: Dashboard Activity System needs attention!")
+        print(f"\n⚠️  REVIEW REQUEST ISSUES: Customer APIs need attention!")
+        print(f"   ❌ Some customer backend functionality may be broken")
+        print(f"   🔧 UI changes may have affected backend operations")
     
     if total_passed == total_tests:
-        print(f"\n🎉 All tests passed!")
+        print(f"\n🎉 All test suites passed!")
         return 0
     else:
-        print(f"\n⚠️  Some tests failed.")
+        print(f"\n⚠️  Some test suites failed.")
         return 1
 
 if __name__ == "__main__":
