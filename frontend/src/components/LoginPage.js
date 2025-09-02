@@ -59,6 +59,18 @@ const LoginPage = ({ onLogin }) => {
     }
   };
 
+  const getInputLabel = () => {
+    const type = detectLoginType(formData.login);
+    switch (type) {
+      case 'email':
+        return 'Email';
+      case 'phone':
+        return 'Số điện thoại';
+      default:
+        return 'Tên đăng nhập';
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
