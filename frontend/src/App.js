@@ -5783,7 +5783,9 @@ const TransactionDetailModal = ({ show, transaction, onClose }) => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Tên KH:</span>
-                  <span className="font-medium">{transaction.customer_name}</span>
+                  <span className="font-medium">
+                    <CustomerNameLink customer={{id: transaction.customer_id, name: transaction.customer_name}} />
+                  </span>
                 </div>
                 
                 {transaction.customer_phone && (
