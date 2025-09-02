@@ -2765,89 +2765,77 @@ const Transactions = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Tổng Doanh Thu
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(transactionStats?.total_revenue || 0)}
+      {/* Stats Cards - Transactions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <DollarSign className="h-6 w-6 text-green-800" />
             </div>
-            <p className="text-xs text-gray-500 mt-1">Tất cả giao dịch</p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">
+            {formatCurrency(transactionStats?.total_revenue || 0)}
+          </div>
+          <div className="text-yellow-100 text-sm opacity-90">Tổng Doanh Thu</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Tất cả giao dịch</div>
+        </div>
 
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Lợi Nhuận
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(transactionStats?.total_profit || 0)}
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-green-800" />
             </div>
-            <p className="text-xs text-gray-500 mt-1">Tổng lợi nhuận</p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">
+            {formatCurrency(transactionStats?.total_profit || 0)}
+          </div>
+          <div className="text-yellow-100 text-sm opacity-90">Lợi Nhuận</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Tổng lợi nhuận</div>
+        </div>
 
-        <Card className="border-l-4 border-l-purple-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Activity className="h-4 w-4 mr-2" />
-              GD Hôm Nay
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{transactionStats?.transactions_today || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Giao dịch hôm nay</p>
-          </CardContent>
-        </Card>
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <Activity className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{transactionStats?.transactions_today || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">GD Hôm Nay</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Giao dịch hôm nay</div>
+        </div>
 
-        <Card className="border-l-4 border-l-orange-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Receipt className="h-4 w-4 mr-2" />
-              Bán Bill
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{transactionStats?.bill_sales_count || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Giao dịch bán bill</p>
-          </CardContent>
-        </Card>
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <Receipt className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{transactionStats?.bill_sales_count || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Bán Bill</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Giao dịch bán bill</div>
+        </div>
 
-        <Card className="border-l-4 border-l-indigo-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Đáo Thẻ
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-indigo-600">{transactionStats?.dao_transactions_count || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Giao dịch đáo thẻ</p>
-          </CardContent>
-        </Card>
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <CreditCard className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{transactionStats?.dao_transactions_count || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Đáo Thẻ</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Giao dịch đáo thẻ</div>
+        </div>
 
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Clock className="h-4 w-4 mr-2" />
-              Chờ Xử Lý
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{transactionStats?.pending_count || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Đang xử lý</p>
-          </CardContent>
-        </Card>
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <BarChart3 className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{transactionStats?.total_transactions || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Tổng GD</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Tất cả giao dịch</div>
+        </div>
       </div>
 
       {/* Filters */}
