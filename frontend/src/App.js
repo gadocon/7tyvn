@@ -5634,6 +5634,7 @@ function App() {
               <Route path="/customers" element={<Customers customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
               <Route path="/credit-cards" element={<CreditCards />} />
               <Route path="/transactions" element={<Transactions />} />
+              <Route path="/reports" element={<Reports />} />
             </Routes>
           </div>
         </main>
