@@ -48,7 +48,8 @@ const LoginPage = ({ onLogin }) => {
   };
 
   const getIcon = () => {
-    switch (loginMode) {
+    const type = detectLoginType(formData.login);
+    switch (type) {
       case 'email':
         return <Mail className="h-4 w-4" />;
       case 'phone':
