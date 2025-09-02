@@ -3433,6 +3433,311 @@ async def get_customer_analytics():
         logger.error(f"Error getting customer analytics: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/reports/charts/revenue-trend")
+async def get_revenue_trend_chart(months: int = 12):
+    """Get revenue trend data for line chart - REAL DATA ONLY"""
+    try:
+        # Calculate start date
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date.replace(day=1) - timedelta(days=months * 30)
+        
+        # Get all sales and DAO transactions grouped by month
+        sales_pipeline = [
+            {
+                "$addFields": {
+                    "year_month": {
+                        "$dateToString": {
+                            "format": "%Y-%m",
+                            "date": "$created_at"
+                        }
+                    }
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$year_month",
+                    "sales_revenue": {"$sum": "$total"},
+                    "sales_profit": {"$sum": "$profit_value"},
+                    "sales_count": {"$sum": 1}
+                }
+            },
+            {"$sort": {"_id": 1}}
+        ]
+        
+        dao_pipeline = [
+            {
+                "$addFields": {
+                    "year_month": {
+                        "$dateToString": {
+                            "format": "%Y-%m", 
+                            "date": "$created_at"
+                        }
+                    }
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$year_month",
+                    "dao_revenue": {"$sum": "$total_amount"},
+                    "dao_profit": {"$sum": "$profit_value"},
+                    "dao_count": {"$sum": 1}
+                }
+            },
+            {"$sort": {"_id": 1}}
+        ]
+        
+        sales_data = await db.sales.aggregate(sales_pipeline).to_list(None)
+        dao_data = await db.credit_card_transactions.aggregate(dao_pipeline).to_list(None)
+        
+        # Combine data by month
+        months_data = {}
+        
+        # Add sales data
+        for item in sales_data:
+            month = item["_id"]
+            months_data[month] = {
+                "month": month,
+                "sales_revenue": item["sales_revenue"],
+                "sales_profit": item["sales_profit"],
+                "sales_count": item["sales_count"],
+                "dao_revenue": 0,
+                "dao_profit": 0,
+                "dao_count": 0
+            }
+        
+        # Add DAO data
+        for item in dao_data:
+            month = item["_id"]
+            if month in months_data:
+                months_data[month]["dao_revenue"] = item["dao_revenue"]
+                months_data[month]["dao_profit"] = item["dao_profit"]
+                months_data[month]["dao_count"] = item["dao_count"]
+            else:
+                months_data[month] = {
+                    "month": month,
+                    "sales_revenue": 0,
+                    "sales_profit": 0,
+                    "sales_count": 0,
+                    "dao_revenue": item["dao_revenue"],
+                    "dao_profit": item["dao_profit"],
+                    "dao_count": item["dao_count"]
+                }
+        
+        # Calculate totals and format for chart
+        chart_data = []
+        for month_key in sorted(months_data.keys()):
+            data = months_data[month_key]
+            total_revenue = data["sales_revenue"] + data["dao_revenue"]
+            total_profit = data["sales_profit"] + data["dao_profit"]
+            total_transactions = data["sales_count"] + data["dao_count"]
+            
+            chart_data.append({
+                "month": month_key,
+                "month_display": datetime.strptime(month_key, "%Y-%m").strftime("%m/%Y"),
+                "total_revenue": total_revenue,
+                "total_profit": total_profit,
+                "total_transactions": total_transactions,
+                "sales_revenue": data["sales_revenue"],
+                "dao_revenue": data["dao_revenue"],
+                "profit_margin": round((total_profit / total_revenue * 100) if total_revenue > 0 else 0, 1)
+            })
+        
+        return {
+            "success": True,
+            "data": chart_data,
+            "summary": {
+                "total_months": len(chart_data),
+                "total_revenue": sum(item["total_revenue"] for item in chart_data),
+                "total_profit": sum(item["total_profit"] for item in chart_data),
+                "avg_monthly_revenue": sum(item["total_revenue"] for item in chart_data) / len(chart_data) if chart_data else 0
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting revenue trend chart: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/reports/charts/transaction-distribution")
+async def get_transaction_distribution_chart():
+    """Get transaction distribution for pie chart - REAL DATA ONLY"""
+    try:
+        # Get bill sales stats
+        bill_stats = await db.sales.aggregate([
+            {
+                "$group": {
+                    "_id": None,
+                    "count": {"$sum": 1},
+                    "revenue": {"$sum": "$total"},
+                    "profit": {"$sum": "$profit_value"}
+                }
+            }
+        ]).to_list(1)
+        
+        bill_data = bill_stats[0] if bill_stats else {"count": 0, "revenue": 0, "profit": 0}
+        
+        # Get DAO stats by payment method
+        dao_stats = await db.credit_card_transactions.aggregate([
+            {
+                "$group": {
+                    "_id": "$payment_method",
+                    "count": {"$sum": 1},
+                    "revenue": {"$sum": "$total_amount"},
+                    "profit": {"$sum": "$profit_value"}
+                }
+            }
+        ]).to_list(10)
+        
+        # Process DAO data
+        dao_pos = {"count": 0, "revenue": 0, "profit": 0}
+        dao_bill = {"count": 0, "revenue": 0, "profit": 0}
+        
+        for item in dao_stats:
+            if item["_id"] == "POS":
+                dao_pos = {"count": item["count"], "revenue": item["revenue"], "profit": item["profit"]}
+            elif item["_id"] == "BILL":
+                dao_bill = {"count": item["count"], "revenue": item["revenue"], "profit": item["profit"]}
+        
+        # Calculate total for percentages
+        total_revenue = bill_data["revenue"] + dao_pos["revenue"] + dao_bill["revenue"]
+        total_transactions = bill_data["count"] + dao_pos["count"] + dao_bill["count"]
+        
+        # Format for pie chart
+        chart_data = [
+            {
+                "name": "Bán Bill",
+                "value": bill_data["revenue"],
+                "count": bill_data["count"],
+                "profit": bill_data["profit"],
+                "percentage": round((bill_data["revenue"] / total_revenue * 100) if total_revenue > 0 else 0, 1),
+                "color": "#10B981"  # Green
+            },
+            {
+                "name": "Đáo Thẻ POS", 
+                "value": dao_pos["revenue"],
+                "count": dao_pos["count"],
+                "profit": dao_pos["profit"],
+                "percentage": round((dao_pos["revenue"] / total_revenue * 100) if total_revenue > 0 else 0, 1),
+                "color": "#3B82F6"  # Blue
+            },
+            {
+                "name": "Đáo Thẻ BILL",
+                "value": dao_bill["revenue"],
+                "count": dao_bill["count"], 
+                "profit": dao_bill["profit"],
+                "percentage": round((dao_bill["revenue"] / total_revenue * 100) if total_revenue > 0 else 0, 1),
+                "color": "#8B5CF6"  # Purple
+            }
+        ]
+        
+        # Filter out zero values
+        chart_data = [item for item in chart_data if item["value"] > 0]
+        
+        return {
+            "success": True,
+            "data": chart_data,
+            "summary": {
+                "total_revenue": total_revenue,
+                "total_transactions": total_transactions,
+                "largest_segment": max(chart_data, key=lambda x: x["value"])["name"] if chart_data else None
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting transaction distribution chart: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/reports/charts/top-customers")
+async def get_top_customers_chart(limit: int = 10):
+    """Get top customers for bar chart - REAL DATA ONLY"""
+    try:
+        # Aggregate customer data from both sales and DAO transactions
+        pipeline = [
+            {
+                "$lookup": {
+                    "from": "sales",
+                    "localField": "id",
+                    "foreignField": "customer_id",
+                    "as": "sales"
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "credit_card_transactions",
+                    "localField": "id", 
+                    "foreignField": "customer_id",
+                    "as": "dao_transactions"
+                }
+            },
+            {
+                "$addFields": {
+                    "total_sales_revenue": {"$sum": "$sales.total"},
+                    "total_dao_revenue": {"$sum": "$dao_transactions.total_amount"},
+                    "total_sales_profit": {"$sum": "$sales.profit_value"},
+                    "total_dao_profit": {"$sum": "$dao_transactions.profit_value"},
+                    "sales_count": {"$size": "$sales"},
+                    "dao_count": {"$size": "$dao_transactions"}
+                }
+            },
+            {
+                "$addFields": {
+                    "total_revenue": {"$add": ["$total_sales_revenue", "$total_dao_revenue"]},
+                    "total_profit": {"$add": ["$total_sales_profit", "$total_dao_profit"]},
+                    "total_transactions": {"$add": ["$sales_count", "$dao_count"]}
+                }
+            },
+            {
+                "$match": {
+                    "total_revenue": {"$gt": 0}
+                }
+            },
+            {"$sort": {"total_revenue": -1}},
+            {"$limit": limit},
+            {
+                "$project": {
+                    "name": 1,
+                    "phone": 1,
+                    "type": 1,
+                    "total_revenue": 1,
+                    "total_profit": 1,
+                    "total_transactions": 1,
+                    "total_sales_revenue": 1,
+                    "total_dao_revenue": 1
+                }
+            }
+        ]
+        
+        customers = await db.customers.aggregate(pipeline).to_list(limit)
+        
+        # Format for bar chart
+        chart_data = []
+        for i, customer in enumerate(customers):
+            chart_data.append({
+                "rank": i + 1,
+                "name": customer["name"],
+                "phone": customer.get("phone", "N/A"),
+                "type": customer.get("type", "N/A"),
+                "total_revenue": customer["total_revenue"],
+                "total_profit": customer["total_profit"],
+                "total_transactions": customer["total_transactions"],
+                "sales_revenue": customer["total_sales_revenue"],
+                "dao_revenue": customer["total_dao_revenue"],
+                "profit_margin": round((customer["total_profit"] / customer["total_revenue"] * 100) if customer["total_revenue"] > 0 else 0, 1)
+            })
+        
+        return {
+            "success": True,
+            "data": chart_data,
+            "summary": {
+                "total_customers": len(chart_data),
+                "top_customer_revenue": chart_data[0]["total_revenue"] if chart_data else 0,
+                "avg_customer_revenue": sum(item["total_revenue"] for item in chart_data) / len(chart_data) if chart_data else 0
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting top customers chart: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
