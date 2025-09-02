@@ -4519,12 +4519,24 @@ const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="bank_name">Ngân Hàng</Label>
-                  <Input
-                    id="bank_name"
+                  <Select 
                     value={formData.bank_name}
-                    onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                    placeholder="Vietcombank"
-                  />
+                    onValueChange={(value) => setFormData({ ...formData, bank_name: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn ngân hàng" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vietnameseBanks.map((bank) => (
+                        <SelectItem key={bank} value={bank}>
+                          <div className="flex items-center space-x-2">
+                            <span>{getBankIcon(bank)}</span>
+                            <span>{bank}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="card_type">Loại Thẻ</Label>
