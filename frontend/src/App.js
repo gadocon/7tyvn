@@ -2322,7 +2322,20 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
                       {formatDateTimeVN(transaction.created_at)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">Bán Bill</Badge>
+                      <Badge variant="outline">
+                        {(() => {
+                          // Determine transaction type based on bill_codes format
+                          if (transaction.bill_codes && transaction.bill_codes.length > 0) {
+                            const firstCode = transaction.bill_codes[0];
+                            // If bill_codes contains ****1234 format, it's credit card transaction
+                            if (firstCode.startsWith('****')) {
+                              return "Đáo Thẻ";
+                            }
+                          }
+                          // Default to regular bill sale
+                          return "Bán Bill";
+                        })()}
+                      </Badge>
                     </TableCell>
                     <TableCell>{formatCurrency(transaction.total)}</TableCell>
                     <TableCell>{formatCurrency(transaction.profit_value)}</TableCell>
