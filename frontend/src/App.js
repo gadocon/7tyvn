@@ -6371,7 +6371,9 @@ const Reports = () => {
                     {customer.rank}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{customer.name}</p>
+                    <p className="font-medium text-gray-900 truncate">
+                      <CustomerNameLink customer={customer} />
+                    </p>
                     <p className="text-xs text-gray-500">{customer.phone}</p>
                   </div>
                 </div>
