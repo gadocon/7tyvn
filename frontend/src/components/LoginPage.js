@@ -29,8 +29,9 @@ const LoginPage = ({ onLogin }) => {
   };
 
   const detectLoginType = (input) => {
+    if (!input) return 'username';
     if (input.includes('@')) return 'email';
-    if (/^\d{10,15}$/.test(input)) return 'phone';
+    if (/^\d{10,15}$/.test(input.replace(/\s/g, ''))) return 'phone';
     return 'username';
   };
 
