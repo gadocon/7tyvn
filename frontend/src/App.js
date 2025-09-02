@@ -7150,4 +7150,302 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
   );
 };
 
+// Customer Transactions Tab Component  
+const CustomerTransactionsTab = ({ customer, formatCurrency, formatDateTime }) => {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    type: 'all',
+    dateRange: '30',
+    status: 'all'
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [customer.id, filters]);
+
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API}/customers/${customer.id}/transactions-summary?limit=100`);
+      setTransactions(response.data.transactions || []);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      toast.error("Không thể tải lịch sử giao dịch");
+      setTransactions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTransactionIcon = (type) => {
+    switch (type) {
+      case 'BILL_SALE':
+        return <Receipt className="h-4 w-4 text-green-600" />;
+      case 'CREDIT_DAO_POS':
+        return <CreditCard className="h-4 w-4 text-blue-600" />;
+      case 'CREDIT_DAO_BILL':
+        return <Zap className="h-4 w-4 text-purple-600" />;
+      default:
+        return <Activity className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const getTransactionTypeLabel = (type) => {
+    switch (type) {
+      case 'BILL_SALE':
+        return 'Bán Bill';
+      case 'CREDIT_DAO_POS':
+        return 'Đáo Thẻ POS';
+      case 'CREDIT_DAO_BILL':
+        return 'Đáo Thẻ BILL';
+      default:
+        return 'Giao Dịch';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+      case 'hoàn thành':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending':
+      case 'đang xử lý':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'failed':
+      case 'thất bại':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  // Filter transactions
+  const filteredTransactions = transactions.filter(transaction => {
+    if (filters.type !== 'all' && transaction.type !== filters.type) return false;
+    if (filters.status !== 'all' && transaction.status?.toLowerCase() !== filters.status) return false;
+    
+    if (filters.dateRange !== 'all') {
+      const daysAgo = parseInt(filters.dateRange);
+      const transactionDate = new Date(transaction.created_at);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+      if (transactionDate < cutoffDate) return false;
+    }
+    
+    return true;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const paginatedTransactions = filteredTransactions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Calculate totals
+  const totalRevenue = filteredTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+  const totalProfit = filteredTransactions.reduce((sum, t) => sum + (t.profit || 0), 0);
+  const avgTransactionValue = filteredTransactions.length > 0 ? totalRevenue / filteredTransactions.length : 0;
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-20 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Transaction Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{filteredTransactions.length}</div>
+            <div className="text-sm text-gray-600">Tổng Giao Dịch</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</div>
+            <div className="text-sm text-gray-600">Tổng Doanh Thu</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-purple-600">{formatCurrency(totalProfit)}</div>
+            <div className="text-sm text-gray-600">Tổng Lợi Nhuận</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-orange-600">{formatCurrency(avgTransactionValue)}</div>
+            <div className="text-sm text-gray-600">TB/Giao Dịch</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Loại giao dịch</label>
+              <select
+                value={filters.type}
+                onChange={(e) => setFilters({...filters, type: e.target.value})}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="all">Tất cả</option>
+                <option value="BILL_SALE">Bán Bill</option>
+                <option value="CREDIT_DAO_POS">Đáo Thẻ POS</option>
+                <option value="CREDIT_DAO_BILL">Đáo Thẻ BILL</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Khoảng thời gian</label>
+              <select
+                value={filters.dateRange}
+                onChange={(e) => setFilters({...filters, dateRange: e.target.value})}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="all">Tất cả</option>
+                <option value="7">7 ngày qua</option>
+                <option value="30">30 ngày qua</option>
+                <option value="90">90 ngày qua</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({...filters, status: e.target.value})}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="all">Tất cả</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="pending">Đang xử lý</option>
+                <option value="failed">Thất bại</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setFilters({ type: 'all', dateRange: '30', status: 'all' })}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Đặt lại
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transactions List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center">
+              <Activity className="h-5 w-5 mr-2" />
+              Lịch Sử Giao Dịch ({filteredTransactions.length})
+            </span>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Xuất Excel
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredTransactions.length === 0 ? (
+            <div className="text-center py-8">
+              <Activity className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500">Không có giao dịch nào</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {paginatedTransactions.map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        {getTransactionIcon(transaction.type)}
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">{getTransactionTypeLabel(transaction.type)}</div>
+                        <div className="text-xs text-gray-500">
+                          {transaction.description || `Giao dịch ${transaction.id}`}
+                        </div>
+                        <div className="text-xs text-gray-400">{formatDateTime(transaction.created_at)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <div className="font-medium">{formatCurrency(transaction.amount || 0)}</div>
+                        <div className="text-xs text-green-600">+{formatCurrency(transaction.profit || 0)}</div>
+                      </div>
+                      <Badge className={`${getStatusColor(transaction.status)} text-xs`}>
+                        {transaction.status || 'Hoàn thành'}
+                      </Badge>
+                      <Button variant="ghost" size="sm">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <div className="text-sm text-gray-600">
+                    Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredTransactions.length)} trong {filteredTransactions.length} giao dịch
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Trước
+                    </Button>
+                    <span className="px-3 py-1 text-sm bg-gray-100 rounded">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    >
+                      Sau
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 export default App;
