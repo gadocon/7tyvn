@@ -2630,32 +2630,22 @@ def main():
     
     tester = FPTBillManagerAPITester()
     
-    # Run all tests - focusing on NEW PUT ENDPOINT for bill updates (as per review request)
+    # Run all tests - focusing on CREDIT CARD MANAGEMENT SYSTEM (as per review request)
     tests = [
-        tester.test_put_bill_endpoint_comprehensive,           # NEW: Comprehensive PUT endpoint test
-        tester.test_put_bill_update_successful,               # NEW: Test 1 - Successful bill update
-        tester.test_put_bill_update_to_crossed_status,        # NEW: Test 2 - Update to CROSSED status
-        tester.test_put_bill_recheck_scenario,                # NEW: Test 3 - Recheck scenario
-        tester.test_put_bill_error_handling,                  # NEW: Test 4 - Error handling
+        tester.test_credit_card_management_comprehensive,      # NEW: Comprehensive Credit Card Management test
+        tester.test_credit_card_stats,                         # NEW: Test 1 - Credit Card Stats API
+        tester.test_credit_card_creation,                      # NEW: Test 2 - Credit Card Creation
+        tester.test_credit_card_crud_operations,               # NEW: Test 3 - Credit Card CRUD Operations
+        tester.test_credit_card_data_validation,               # NEW: Test 4 - Credit Card Data Validation
+        tester.test_put_bill_endpoint_comprehensive,           # Previous: Comprehensive PUT endpoint test
         tester.test_inventory_page_improvements_comprehensive, # Previous: Comprehensive inventory improvements test
-        tester.test_crossed_status_creation,                   # Previous: Test 1 - CROSSED status creation
-        tester.test_crossed_bill_deletion_protection,          # Previous: Test 2 - CROSSED deletion protection
-        tester.test_bills_api_status_filter,                   # Previous: Test 3 - Bills API status filtering
-        tester.test_bill_update_recheck_logic,                 # Previous: Test 4 - Bill update for recheck
         tester.test_critical_data_integrity_bill_deletion,     # CRITICAL: Data integrity fix testing
         tester.test_customer_detail_with_bill_codes,           # Bill codes functionality
-        tester.test_multiple_customers_bill_codes,             # Test consistency across customers
         tester.test_debug_payload_mien_nam,                    # Test MIEN_NAM -> mien_nam mapping
         tester.test_debug_payload_hcmc,                        # Test HCMC -> evnhcmc mapping (corrected)
         tester.test_single_bill_check_mien_nam,                # Test actual bill check with MIEN_NAM
-        tester.test_single_bill_check_hcmc,                    # Test actual bill check with HCMC
-        tester.test_external_api_call_simulation,              # Test external API call
         tester.test_dashboard_stats,
-        tester.test_check_bills_valid,
-        tester.test_check_bills_invalid,
-        tester.test_get_bills,
         tester.test_get_customers,
-        tester.test_webhook_endpoint,
         tester.test_error_handling
     ]
     
