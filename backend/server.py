@@ -2470,12 +2470,17 @@ async def process_card_payment(card_id: str, payment_data: CreditCardTransaction
 async def log_activity(activity_data: ActivityCreate):
     """Log system activity for dashboard"""
     try:
+        print(f"[DEBUG] Logging activity: {activity_data.title}")
         activity = Activity(**activity_data.dict())
         activity_dict = prepare_for_mongo(activity.dict())
+        print(f"[DEBUG] Prepared activity dict: {activity_dict}")
         await db.activities.insert_one(activity_dict)
+        print(f"[DEBUG] Activity saved successfully: {activity.id}")
         return activity
     except Exception as e:
-        print(f"Error logging activity: {e}")  # Don't fail main operation
+        print(f"[ERROR] Error logging activity: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def format_currency_short(amount: float) -> str:
