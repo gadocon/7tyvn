@@ -2500,12 +2500,14 @@ async def get_recent_activities(days: int = 3, limit: int = 50):
         since_date = datetime.now(timezone.utc) - timedelta(days=days)
         print(f"[DEBUG] Looking for activities since: {since_date}")
         
-        # Get activities (temporarily without date filter for debugging)
-        activities_count = await db.activities.count_documents({})
-        print(f"[DEBUG] Total activities in database: {activities_count}")
+        # Get activities within date range
+        activities = await db.activities.find({
+            "created_at": {"$gte": since_date}
+        }).sort("created_at", -1).limit(limit).to_list(limit)
         
-        activities = await db.activities.find({}).sort("created_at", -1).limit(limit).to_list(limit)
-        print(f"[DEBUG] Recent activities without date filter: {len(activities)}")
+        # If no activities in date range, get recent ones anyway (for better UX)
+        if len(activities) == 0:
+            activities = await db.activities.find({}).sort("created_at", -1).limit(10).to_list(10)
         
         print(f"[DEBUG] Found {len(activities)} activities from database")
         
