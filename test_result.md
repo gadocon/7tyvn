@@ -345,6 +345,18 @@ test_plan:
           agent: "testing"
           comment: "🎉 TRANSACTION TYPE BUG FIX FULLY VERIFIED! ✅ COMPREHENSIVE TESTING COMPLETED: Successfully tested customer transaction history display. Found customer 'Validation Test Customer 1756785537' with 3 credit card transactions. All transactions correctly show: Mã Bill/Thẻ = '****37MA', '****3712' format and Loại = 'Đáo Thẻ'. ✅ BUG FIX WORKING PERFECTLY: Credit card transactions (bill_codes starting with '****') correctly display 'Đáo Thẻ' instead of incorrect 'Bán Bill'. ✅ VERIFICATION PROCESS: Accessed credit cards page → InfoCard modal → customers page → customer detail modal → transaction history table. All 3 credit card transactions analyzed show correct type classification. No errors found."
 
+  - task: "Activity Dashboard Integration"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Activity Dashboard Integration implemented - Dashboard now fetches real activities from /api/activities/recent?days=3&limit=20 with enhanced activity display including icons, customer links, and error highlighting. Activity format: '10:30 - Đáo thẻ ****1234 - 5M VND - tên khách (hyperlink)' with 3-day activity history and proper Vietnamese formatting. Ready for comprehensive testing."
+
 agent_communication:
     - agent: "main"
       message: "DAO CARD MODAL IMPLEMENTED: Complete DAO Card Modal functionality has been implemented with comprehensive 2-method payment system (POS/BILL). Modal accessible from InfoCard, features tab navigation, form validation, real-time calculations, multi-bill selection, and API integration. Backend API endpoint ready at POST /api/credit-cards/{card_id}/dao. Ready for comprehensive testing of all features including modal access, tab switching, payment methods, calculations, and API integration."
