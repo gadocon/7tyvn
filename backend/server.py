@@ -216,7 +216,6 @@ class CreditCardTransaction(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CreditCardTransactionCreate(BaseModel):
-    card_id: str
     payment_method: CreditCardPaymentMethod
     total_amount: Optional[float] = None  # For POS method
     profit_pct: float
