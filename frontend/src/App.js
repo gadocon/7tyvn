@@ -1979,74 +1979,64 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Users className="h-4 w-4 mr-2" />
-              Tổng Khách Hàng
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{customerStats?.total_customers || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Tất cả khách hàng</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Users className="h-4 w-4 mr-2" />
-              Cá Nhân
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{customerStats?.individual_customers || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Khách cá nhân</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-purple-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Users className="h-4 w-4 mr-2" />
-              Đại Lý
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{customerStats?.agent_customers || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Đại lý/Doanh nghiệp</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Hoạt Động
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{customerStats?.active_customers || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Đang hoạt động</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-orange-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Tổng Giá Trị
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {formatCurrency(customerStats?.total_customer_value || 0)}
+      {/* Stats Cards - Customers */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <Users className="h-6 w-6 text-green-800" />
             </div>
-            <p className="text-xs text-gray-500 mt-1">Giá trị khách hàng</p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{customerStats?.total_customers || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Tổng Khách Hàng</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Tất cả khách hàng</div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <User className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{customerStats?.individual_customers || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Cá Nhân</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Khách cá nhân</div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <Building className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{customerStats?.agent_customers || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Đại Lý</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Đại lý/Doanh nghiệp</div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <CheckCircle className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{customerStats?.active_customers || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Hoạt Động</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Đang hoạt động</div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <DollarSign className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">
+            {formatCurrency(customerStats?.total_customer_value || 0)}
+          </div>
+          <div className="text-yellow-100 text-sm opacity-90">Tổng Giá Trị</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Giá trị khách hàng</div>
+        </div>
       </div>
 
       {/* Filters and Search */}
