@@ -4138,8 +4138,9 @@ const CreditCardInfoModal = ({ show, cardDetail, onClose, onDao, onEdit, onDelet
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Side - Card Visual & Info */}
           <div>
-            {/* Visual Credit Card */}
-            <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-6 text-white shadow-xl mb-6">
+            {/* Visual Credit Card - Fixed Aspect Ratio */}
+            <div className="w-full max-w-sm mx-auto mb-6">
+              <div className="aspect-[1.586/1] bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-4 sm:p-6 text-white shadow-xl relative">
               
               {/* Card Type Icon */}
               <div className="flex justify-between items-start mb-8">
