@@ -116,7 +116,7 @@ class ActivityLoggingTester:
             "name": f"Activity Test Customer {int(datetime.now().timestamp())}",
             "type": "INDIVIDUAL",
             "phone": "0123456789",
-            "email": f"activity_test_{int(datetime.now().timestamp())}@example.com",
+            "email": f"activity_test_{int(datetime.now().timestamp() * 1000)}@example.com",
             "address": "Test Address for Activity"
         }
         
