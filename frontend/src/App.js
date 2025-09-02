@@ -249,15 +249,10 @@ const Dashboard = () => {
     }
   };
 
-  const handleCustomerClick = async (customerId) => {
-    try {
-      const response = await axios.get(`${API}/customers/${customerId}/transactions`);
-      setSelectedCustomerDetail(response.data);
-      setShowCustomerModal(true);
-    } catch (error) {
-      console.error("Error fetching customer detail:", error);
-      toast.error("Không thể tải thông tin khách hàng");
-    }
+  const handleCustomerClick = (customerId) => {
+    // Navigate to customer page and open modal 
+    window.location.hash = `customers/${customerId}`;
+    toast.info("Chuyển đến trang khách hàng...");
   };
 
   const formatCurrency = (amount) => {
