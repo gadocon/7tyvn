@@ -2430,6 +2430,44 @@ async def process_card_payment(card_id: str, payment_data: CreditCardTransaction
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Activity Logging Functions
+async def log_activity(activity_data: ActivityCreate):
+    """Log system activity for dashboard"""
+    try:
+        activity = Activity(**activity_data.dict())
+        activity_dict = prepare_for_mongo(activity.dict())
+        await db.activities.insert_one(activity_dict)
+        return activity
+    except Exception as e:
+        print(f"Error logging activity: {e}")  # Don't fail main operation
+        return None
+
+def format_currency_short(amount: float) -> str:
+    """Format currency for activity display"""
+    if amount >= 1_000_000:
+        return f"{amount/1_000_000:.1f}M"
+    elif amount >= 1_000:
+        return f"{amount/1_000:.0f}K"
+    else:
+        return f"{amount:.0f}"
+
+@api_router.get("/activities/recent")
+async def get_recent_activities(days: int = 3, limit: int = 50):
+    """Get recent activities for dashboard"""
+    try:
+        # Calculate date range (3 days ago)
+        since_date = datetime.now(timezone.utc) - timedelta(days=days)
+        
+        # Get activities
+        activities = await db.activities.find({
+            "created_at": {"$gte": since_date}
+        }).sort("created_at", -1).limit(limit).to_list(limit)
+        
+        return [Activity(**parse_from_mongo(activity)) for activity in activities]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/credit-cards/initialize-cycles")
 async def initialize_credit_card_cycles():
     """Initialize cycle data for existing credit cards"""
