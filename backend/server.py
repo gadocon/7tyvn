@@ -472,7 +472,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     
     return user
 
-async def require_role(required_roles: List[UserRole]):
+def require_role(required_roles: List[UserRole]):
     """Dependency to require specific user roles"""
     def role_checker(current_user: dict = Depends(get_current_user)):
         user_role = current_user.get("role")
