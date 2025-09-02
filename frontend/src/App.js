@@ -3629,6 +3629,358 @@ const CreditCards = () => {
   );
 };
 
+// Add Credit Card Modal Component
+const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    customer_id: "",
+    card_number: "",
+    cardholder_name: "",
+    bank_name: "",
+    card_type: "VISA",
+    expiry_date: "",
+    ccv: "",
+    statement_date: 1,
+    payment_due_date: 15,
+    credit_limit: "",
+    status: "Chưa đến hạn",
+    notes: ""
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Validate required fields
+      if (!formData.customer_id || !formData.card_number || !formData.cardholder_name) {
+        toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
+        return;
+      }
+
+      // Format data for API
+      const apiData = {
+        customer_id: formData.customer_id,
+        card_number: formData.card_number.replace(/\s/g, ''), // Remove spaces
+        cardholder_name: formData.cardholder_name,
+        bank_name: formData.bank_name,
+        card_type: formData.card_type,
+        expiry_date: formData.expiry_date,
+        ccv: formData.ccv,
+        statement_date: parseInt(formData.statement_date),
+        payment_due_date: parseInt(formData.payment_due_date),
+        credit_limit: parseFloat(formData.credit_limit) || 0,
+        status: formData.status,
+        notes: formData.notes || null
+      };
+
+      await axios.post(`${API}/credit-cards`, apiData);
+      toast.success("Đã thêm thẻ mới thành công!");
+      onSuccess();
+      
+      // Reset form
+      setFormData({
+        customer_id: "",
+        card_number: "",
+        cardholder_name: "",
+        bank_name: "",
+        card_type: "VISA",
+        expiry_date: "",
+        ccv: "",
+        statement_date: 1,
+        payment_due_date: 15,
+        credit_limit: "",
+        status: "Chưa đến hạn",
+        notes: ""
+      });
+
+    } catch (error) {
+      console.error("Error adding credit card:", error);
+      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi thêm thẻ");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCardNumber = (value) => {
+    // Remove all non-digits
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    // Add spaces every 4 digits
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return v;
+    }
+  };
+
+  const handleCardNumberChange = (e) => {
+    const formatted = formatCardNumber(e.target.value);
+    setFormData({ ...formData, card_number: formatted });
+  };
+
+  const maskCardNumberForPreview = (cardNumber) => {
+    if (!cardNumber) return "**** **** **** ****";
+    const digits = cardNumber.replace(/\s/g, '');
+    if (digits.length <= 4) {
+      return cardNumber.padEnd(19, '*').replace(/(.{4})/g, '$1 ').trim();
+    }
+    const lastFour = digits.slice(-4);
+    const masked = '**** **** **** ' + lastFour;
+    return masked;
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-semibold">Thêm Thẻ Tín Dụng Mới</h3>
+          <Button variant="outline" onClick={onClose}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Live Card Preview */}
+          <div>
+            <h4 className="font-medium text-gray-900 mb-4">Xem Trước Thẻ</h4>
+            <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-6 text-white shadow-xl max-w-sm">
+              
+              {/* Card Type Icon */}
+              <div className="flex justify-between items-start mb-8">
+                <div className="text-2xl">💳</div>
+                <div className="text-right">
+                  <p className="text-xs opacity-80">{formData.bank_name || "BANK NAME"}</p>
+                  <p className="text-xs opacity-60">{formData.card_type}</p>
+                </div>
+              </div>
+              
+              {/* Card Number */}
+              <div className="mb-6">
+                <p className="text-lg font-mono tracking-wider">
+                  {maskCardNumberForPreview(formData.card_number)}
+                </p>
+              </div>
+              
+              {/* Card Info */}
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-xs opacity-60 mb-1">CARDHOLDER NAME</p>
+                  <p className="font-semibold text-sm uppercase tracking-wide">
+                    {formData.cardholder_name || "CARDHOLDER NAME"}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs opacity-60 mb-1">VALID THRU</p>
+                  <p className="font-mono text-sm">{formData.expiry_date || "MM/YY"}</p>
+                </div>
+              </div>
+              
+              {/* Status Badge */}
+              <div className="absolute top-4 left-4">
+                <Badge className="bg-white/20 text-white border-white/30">
+                  {formData.status}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          {/* Form */}
+          <div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {/* Customer Selection */}
+              <div>
+                <Label htmlFor="customer_id">Khách Hàng *</Label>
+                <Select 
+                  value={formData.customer_id} 
+                  onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn khách hàng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name} - {customer.phone || "N/A"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Card Number */}
+              <div>
+                <Label htmlFor="card_number">Số Thẻ *</Label>
+                <Input
+                  id="card_number"
+                  value={formData.card_number}
+                  onChange={handleCardNumberChange}
+                  placeholder="1234 5678 9012 3456"
+                  maxLength={19}
+                  required
+                />
+              </div>
+
+              {/* Cardholder Name */}
+              <div>
+                <Label htmlFor="cardholder_name">Tên Chủ Thẻ *</Label>
+                <Input
+                  id="cardholder_name"
+                  value={formData.cardholder_name}
+                  onChange={(e) => setFormData({ ...formData, cardholder_name: e.target.value })}
+                  placeholder="NGUYEN VAN A"
+                  required
+                />
+              </div>
+
+              {/* Bank and Card Type */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="bank_name">Ngân Hàng</Label>
+                  <Input
+                    id="bank_name"
+                    value={formData.bank_name}
+                    onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                    placeholder="Vietcombank"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="card_type">Loại Thẻ</Label>
+                  <Select 
+                    value={formData.card_type}
+                    onValueChange={(value) => setFormData({ ...formData, card_type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="VISA">VISA</SelectItem>
+                      <SelectItem value="MASTERCARD">MASTERCARD</SelectItem>
+                      <SelectItem value="JCB">JCB</SelectItem>
+                      <SelectItem value="AMEX">AMEX</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Expiry and CCV */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="expiry_date">Ngày Hết Hạn (MM/YY)</Label>
+                  <Input
+                    id="expiry_date"
+                    value={formData.expiry_date}
+                    onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+                    placeholder="12/25"
+                    maxLength={5}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ccv">CCV</Label>
+                  <Input
+                    id="ccv"
+                    value={formData.ccv}
+                    onChange={(e) => setFormData({ ...formData, ccv: e.target.value })}
+                    placeholder="123"
+                    maxLength={4}
+                  />
+                </div>
+              </div>
+
+              {/* Statement and Payment Dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="statement_date">Ngày Sao Kê</Label>
+                  <Input
+                    id="statement_date"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={formData.statement_date}
+                    onChange={(e) => setFormData({ ...formData, statement_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="payment_due_date">Hạn Thanh Toán</Label>
+                  <Input
+                    id="payment_due_date"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={formData.payment_due_date}
+                    onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Credit Limit and Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="credit_limit">Hạn Mức (VND)</Label>
+                  <Input
+                    id="credit_limit"
+                    type="number"
+                    value={formData.credit_limit}
+                    onChange={(e) => setFormData({ ...formData, credit_limit: e.target.value })}
+                    placeholder="50000000"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="status">Trạng Thái</Label>
+                  <Select 
+                    value={formData.status}
+                    onValueChange={(value) => setFormData({ ...formData, status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Chưa đến hạn">Chưa đến hạn</SelectItem>
+                      <SelectItem value="Cần đáo">Cần đáo</SelectItem>
+                      <SelectItem value="Đã đáo">Đã đáo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <Label htmlFor="notes">Ghi Chú</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Ghi chú thêm về thẻ..."
+                  rows={3}
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+                  Hủy
+                </Button>
+                <Button type="submit" disabled={loading} className="flex-1 bg-green-600 hover:bg-green-700">
+                  {loading ? "Đang thêm..." : "Thêm Thẻ"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component  
 function App() {
   return (
