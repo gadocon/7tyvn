@@ -119,7 +119,7 @@ backend:
 
 agent_communication:
     - agent: "main"
-      message: "🚨 CHECK LẠI BUTTON 404 ERROR FIXED: Successfully resolved critical bug in Kho Bill page. ISSUE: Frontend sending complex bill object to PUT /api/bills/{id} but backend expected strict BillCreate model causing 404 errors. SOLUTION: Modified backend endpoint to accept flexible dict input with selective field updates, proper datetime handling, and enhanced error logging. RESULT: Check lại functionality now works perfectly - 19 buttons tested, external API validation successful, database updates working, toast notifications and transfer modal flow restored. Zero 404 errors detected in comprehensive testing."
+      message: "🚨 NEW BUG REPORT: User reports error when deleting bills in inventory (Kho Bill page). Need to investigate DELETE /api/bills/{bill_id} endpoint behavior and frontend handleDeleteBill function. Backend code shows validation logic for SOLD/CROSSED bills and safety checks for bills referenced in sales. Frontend has error handling for response.data.detail. Will test with various bill types (AVAILABLE, SOLD, CROSSED) to identify specific error scenario causing user's problem."
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
