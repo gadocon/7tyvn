@@ -2453,74 +2453,408 @@ const CustomerExportModal = ({ show, onClose, onExport }) => {
   );
 };
 
-const Sales = () => {
+const Transactions = () => {
+  const [transactions, setTransactions] = useState([]);
+  const [transactionStats, setTransactionStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [transactionType, setTransactionType] = useState("");
+  const [dateRange, setDateRange] = useState("today");
   const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const handleExportSales = async () => {
+  useEffect(() => {
+    fetchTransactionData();
+  }, [transactionType, dateRange, searchTerm]);
+
+  const fetchTransactionData = async () => {
     try {
+      setLoading(true);
+      
+      // Fetch stats
+      const statsResponse = await axios.get(`${API}/transactions/stats`);
+      setTransactionStats(statsResponse.data);
+
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (transactionType) params.append("transaction_type", transactionType);
+      if (searchTerm) params.append("search", searchTerm);
+      
+      // Handle date range
+      const now = new Date();
+      if (dateRange === "today") {
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        params.append("date_from", today.toISOString());
+      } else if (dateRange === "week") {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        params.append("date_from", weekAgo.toISOString());
+      } else if (dateRange === "month") {
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        params.append("date_from", monthAgo.toISOString());
+      }
+
+      // Fetch transactions
+      const transactionsResponse = await axios.get(`${API}/transactions/unified?${params.toString()}`);
+      setTransactions(transactionsResponse.data);
+      
+    } catch (error) {
+      console.error("Error fetching transaction data:", error);
+      toast.error("Không thể tải dữ liệu giao dịch");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportTransactions = async () => {
+    try {
+      // For now, export sales data (can be enhanced later)
       const response = await axios.get(`${API}/sales/export`, {
         responseType: 'blob'
       });
       
-      // Create blob link to download file
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'lich_su_ban_bill.xlsx');
+      link.setAttribute('download', 'giao_dich_tong_hop.xlsx');
       document.body.appendChild(link);
       link.click();
       link.remove();
       
-      toast.success("Đã xuất lịch sử bán bill thành công!");
+      toast.success("Đã xuất dữ liệu giao dịch thành công!");
       setShowExportModal(false);
     } catch (error) {
-      console.error("Error exporting sales:", error);
+      console.error("Error exporting transactions:", error);
       toast.error("Có lỗi xảy ra khi xuất dữ liệu");
     }
   };
 
-  return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Lịch Sử Bán Bill</h1>
-          <p className="text-gray-600 mt-1">Quản lý và xuất dữ liệu giao dịch bán bill</p>
+  const getTransactionTypeIcon = (type) => {
+    switch (type) {
+      case "BILL_SALE":
+        return <Receipt className="h-4 w-4 text-green-600" />;
+      case "CREDIT_DAO_POS":
+        return <CreditCard className="h-4 w-4 text-blue-600" />;
+      case "CREDIT_DAO_BILL":
+        return <Zap className="h-4 w-4 text-purple-600" />;
+      default:
+        return <FileText className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const getTransactionTypeLabel = (type) => {
+    switch (type) {
+      case "BILL_SALE":
+        return "Bán Bill";
+      case "CREDIT_DAO_POS":
+        return "Đáo Thẻ POS";
+      case "CREDIT_DAO_BILL":
+        return "Đáo Thẻ BILL";
+      default:
+        return "N/A";
+    }
+  };
+
+  const getTransactionTypeBadge = (type) => {
+    const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
+    switch (type) {
+      case "BILL_SALE":
+        return `${baseClasses} bg-green-100 text-green-800`;
+      case "CREDIT_DAO_POS":
+        return `${baseClasses} bg-blue-100 text-blue-800`;
+      case "CREDIT_DAO_BILL":
+        return `${baseClasses} bg-purple-100 text-purple-800`;
+      default:
+        return `${baseClasses} bg-gray-100 text-gray-800`;
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const handleViewDetail = (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowDetailModal(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-gray-200 rounded w-24"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-20"></div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-        <Button 
-          variant="outline"
-          onClick={() => setShowExportModal(true)}
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Export Excel
-        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Giao Dịch Tổng Hợp</h1>
+          <p className="text-gray-600 mt-1">Quản lý toàn bộ giao dịch bán bill và đáo thẻ</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Button 
+            variant="outline"
+            onClick={() => setShowExportModal(true)}
+            className="flex-1 sm:flex-none"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Export Excel</span>
+            <span className="sm:hidden">Export</span>
+          </Button>
+        </div>
       </div>
 
-      {/* Stats or Table would go here - for now showing export feature */}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Tổng Doanh Thu
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(transactionStats?.total_revenue || 0)}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Tất cả giao dịch</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Lợi Nhuận
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrency(transactionStats?.total_profit || 0)}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Tổng lợi nhuận</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Activity className="h-4 w-4 mr-2" />
+              GD Hôm Nay
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{transactionStats?.transactions_today || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Giao dịch hôm nay</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Receipt className="h-4 w-4 mr-2" />
+              Bán Bill
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{transactionStats?.bill_sales_count || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Giao dịch bán bill</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-indigo-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <CreditCard className="h-4 w-4 mr-2" />
+              Đáo Thẻ
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-indigo-600">{transactionStats?.dao_transactions_count || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Giao dịch đáo thẻ</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-yellow-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Clock className="h-4 w-4 mr-2" />
+              Chờ Xử Lý
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{transactionStats?.pending_count || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">Đang xử lý</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
       <Card>
-        <CardContent className="p-8">
-          <div className="text-center">
-            <ShoppingCart className="h-16 w-16 mx-auto text-green-600 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Export Lịch Sử Giao Dịch</h3>
-            <p className="text-gray-500 mb-6">
-              Xuất toàn bộ lịch sử bán bill ra file Excel với đầy đủ thông tin giao dịch
-            </p>
-            <Button 
-              onClick={() => setShowExportModal(true)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Dữ Liệu
-            </Button>
+        <CardHeader>
+          <div className="flex flex-col gap-4">
+            <CardTitle>Danh Sách Giao Dịch</CardTitle>
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-2 flex-1">
+                <select 
+                  value={dateRange} 
+                  onChange={(e) => setDateRange(e.target.value)}
+                  className="flex-1 sm:flex-none border border-gray-300 rounded px-3 py-2 text-sm sm:w-40"
+                >
+                  <option value="">Tất cả thời gian</option>
+                  <option value="today">Hôm nay</option>
+                  <option value="week">7 ngày qua</option>
+                  <option value="month">30 ngày qua</option>
+                </select>
+
+                <select 
+                  value={transactionType} 
+                  onChange={(e) => setTransactionType(e.target.value)}
+                  className="flex-1 sm:flex-none border border-gray-300 rounded px-3 py-2 text-sm sm:w-40"
+                >
+                  <option value="">Tất cả loại</option>
+                  <option value="BILL_SALE">Bán Bill</option>
+                  <option value="CREDIT_DAO_POS">Đáo Thẻ POS</option>
+                  <option value="CREDIT_DAO_BILL">Đáo Thẻ BILL</option>
+                </select>
+              </div>
+
+              <div className="relative flex-1 lg:flex-none lg:w-64">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Tìm kiếm khách hàng, mã bill/thẻ..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
+            </div>
           </div>
+        </CardHeader>
+        <CardContent>
+          {/* Transaction Table */}
+          {transactions.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table className="min-w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">Thời Gian</TableHead>
+                    <TableHead className="whitespace-nowrap">Loại GD</TableHead>
+                    <TableHead className="whitespace-nowrap">Khách Hàng</TableHead>
+                    <TableHead className="whitespace-nowrap">Mã/Thẻ</TableHead>
+                    <TableHead className="whitespace-nowrap">Số Tiền</TableHead>
+                    <TableHead className="whitespace-nowrap">Lợi Nhuận</TableHead>
+                    <TableHead className="whitespace-nowrap">Trạng Thái</TableHead>
+                    <TableHead className="whitespace-nowrap">Thao Tác</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.map((tx) => (
+                    <TableRow key={tx.id}>
+                      <TableCell className="whitespace-nowrap">
+                        {formatDateTime(tx.created_at)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {getTransactionTypeIcon(tx.type)}
+                          <span className={getTransactionTypeBadge(tx.type)}>
+                            {getTransactionTypeLabel(tx.type)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap font-medium">
+                        {tx.customer_name}
+                        {tx.customer_phone && (
+                          <div className="text-xs text-gray-500">{tx.customer_phone}</div>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap font-mono text-sm">
+                        {tx.item_display}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap font-medium">
+                        {formatCurrency(tx.total_amount)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="text-green-600 font-medium">
+                          +{formatCurrency(tx.profit_amount)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          ({tx.profit_percentage}%)
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge className="bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          {tx.status === "COMPLETED" ? "Hoàn thành" : tx.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2 whitespace-nowrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetail(tx)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Chi tiết
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Activity className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có giao dịch</h3>
+              <p className="text-gray-500 mb-4">Không tìm thấy giao dịch nào với bộ lọc hiện tại</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Sales Export Modal */}
-      <SalesExportModal
+      {/* Export Modal */}
+      <TransactionExportModal
         show={showExportModal}
         onClose={() => setShowExportModal(false)}
-        onExport={handleExportSales}
+        onExport={handleExportTransactions}
+      />
+
+      {/* Transaction Detail Modal */}
+      <TransactionDetailModal
+        show={showDetailModal}
+        transaction={selectedTransaction}
+        onClose={() => setShowDetailModal(false)}
       />
     </div>
   );
