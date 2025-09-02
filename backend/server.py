@@ -2396,6 +2396,55 @@ async def process_card_payment(card_id: str, payment_data: CreditCardTransaction
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/credit-cards/initialize-cycles")
+async def initialize_credit_card_cycles():
+    """Initialize cycle data for existing credit cards"""
+    try:
+        current_date = datetime.now(timezone.utc)
+        current_cycle_month = get_current_cycle_month(current_date)
+        
+        # Find cards without cycle data
+        cards_without_cycle = await db.credit_cards.find({
+            "$or": [
+                {"current_cycle_month": {"$exists": False}},
+                {"current_cycle_month": None}
+            ]
+        }).to_list(None)
+        
+        updated_count = 0
+        for card in cards_without_cycle:
+            # Calculate real-time status
+            real_time_status = calculate_card_status_realtime(card, current_date)
+            
+            # Initialize cycle fields
+            update_fields = {
+                "current_cycle_month": current_cycle_month,
+                "status": real_time_status.value,
+                "cycle_payment_count": 0,
+                "total_cycles": 1,  # Start with cycle 1
+                "updated_at": current_date
+            }
+            
+            # Set last_payment_date only if status is PAID_OFF
+            if real_time_status == CardStatus.PAID_OFF:
+                update_fields["last_payment_date"] = current_date
+            
+            await db.credit_cards.update_one(
+                {"id": card["id"]},
+                {"$set": update_fields}
+            )
+            updated_count += 1
+        
+        return {
+            "success": True,
+            "message": f"Đã khởi tạo chu kỳ cho {updated_count} thẻ",
+            "updated_count": updated_count,
+            "current_cycle_month": current_cycle_month
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Sales/Transaction APIs
 @api_router.post("/sales", response_model=Sale)
 async def create_sale(sale_data: SaleCreate):
