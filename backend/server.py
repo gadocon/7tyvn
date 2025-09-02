@@ -78,6 +78,44 @@ class CustomerType(str, Enum):
 class PaymentMethod(str, Enum):
     CASH = "CASH"
     BANK_TRANSFER = "BANK_TRANSFER"
+
+# Authentication Models
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    phone: Optional[str] = Field(None, min_length=10, max_length=15)
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=1, max_length=100)
+    role: UserRole = UserRole.USER
+
+class UserLogin(BaseModel):
+    login: str  # Can be username, email, or phone
+    password: str
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    email: str
+    phone: Optional[str]
+    full_name: str
+    role: UserRole
+    is_active: bool
+    created_at: datetime
+    last_login: Optional[datetime] = None
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6)
     OTHER = "OTHER"
 
 class CardType(str, Enum):
