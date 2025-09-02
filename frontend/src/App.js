@@ -2578,7 +2578,7 @@ const CustomerExportModal = ({ show, onClose, onExport }) => {
           </div>
 
           <div className="border rounded-lg p-4 bg-green-50">
-            <h3 className="font-medium text-blue-900 mb-2">File Excel</h3>
+            <h3 className="font-medium text-green-900 mb-2">File Excel</h3>
             <p className="text-green-700 text-sm">
               File sẽ có 2 sheets: "Khách Hàng" và "Giao Dịch" với đầy đủ thông tin và định dạng chuyên nghiệp.
             </p>
@@ -3543,7 +3543,7 @@ const ImportModal = ({ show, onClose, onImportComplete, onDownloadTemplate }) =>
         <div className="space-y-4">
           {/* Download Template */}
           <div className="border rounded-lg p-4 bg-green-50">
-            <h3 className="font-medium text-blue-900 mb-2">1. Tải Template Excel</h3>
+            <h3 className="font-medium text-green-900 mb-2">1. Tải Template Excel</h3>
             <p className="text-green-700 text-sm mb-3">
               Tải file mẫu để đảm bảo định dạng dữ liệu chính xác
             </p>
