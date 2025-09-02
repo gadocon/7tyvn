@@ -2651,6 +2651,39 @@ async def create_sale(sale_data: SaleCreate):
             }
         )
         
+        # Log activity for bill sale
+        try:
+            # Get bill codes for activity title
+            bill_codes = [bill.get("customer_code", "N/A") for bill in bills]
+            bill_codes_str = ", ".join(bill_codes[:3])  # Show first 3 bill codes
+            if len(bill_codes) > 3:
+                bill_codes_str += f" (+{len(bill_codes)-3} khác)"
+            
+            activity_title = f"Bán Bill {bill_codes_str} - {format_currency_short(total)} VND"
+            
+            activity_data = ActivityCreate(
+                type=ActivityType.BILL_SALE,
+                title=activity_title,
+                description=f"Bán {len(sale_data.bill_ids)} bill cho khách hàng {customer.get('name', 'N/A')}",
+                customer_id=sale_data.customer_id,
+                customer_name=customer.get('name', 'N/A'),
+                amount=total,
+                status="SUCCESS",
+                metadata={
+                    "sale_id": sale.id,
+                    "bill_count": len(sale_data.bill_ids),
+                    "profit_pct": sale_data.profit_pct,
+                    "profit_value": profit_value,
+                    "method": sale_data.method.value,
+                    "bill_codes": bill_codes
+                }
+            )
+            
+            await log_activity(activity_data)
+        except Exception as e:
+            # Don't fail the sale if activity logging fails
+            print(f"[WARNING] Failed to log bill sale activity: {e}")
+        
         return sale
         
     except Exception as e:
