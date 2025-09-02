@@ -413,3 +413,27 @@ agent_communication:
       message: "🎉 FIXED ACTIVITY DASHBOARD INTEGRATION - COMPLETE SUCCESS! ✅ BACKEND BUG RESOLVED: The activities are now working in backend! Backend API /api/activities/recent returns 8+ real activities successfully with perfect formatting. ✅ REAL ACTIVITIES DISPLAYING: Dashboard now shows real activities instead of 'Chưa có hoạt động' empty state. Found 8 activities: 'Đáo thẻ ****3456 - 3.0M VND', 'Đáo thẻ ****3456 - 2.0M VND', 'Đáo thẻ ****3456 - 1.0M VND', 'Thêm thẻ ****3456', 'Đáo thẻ ****5377 - 3.0M VND'. ✅ ALL INTERACTIVE FEATURES WORKING: Customer names clickable with toast messages, activity icons (green CreditCard), Vietnamese timestamps (05:04 02/09/2025), currency formatting (3.000.000 ₫). ✅ ACTIVITY TYPES VERIFIED: CARD_PAYMENT_POS and CARD_CREATE working perfectly. ✅ DATA ACCURACY CONFIRMED: Customer 'Activity Test Customer 1756788280', amounts 3.0M/2.0M/1.0M/25M VND, card format ****3456. ✅ MOBILE RESPONSIVE: All features work on mobile. 🎯 CRITICAL SUCCESS: Real activity data displays, no empty state, comprehensive activity logging system fully operational!"
     - agent: "testing"
       message: "🎉 TWO CRITICAL BUG FIXES TESTING COMPLETED SUCCESSFULLY! ✅ BUG FIX 1 - DASHBOARD CUSTOMER HYPERLINKS: Customer hyperlinks now open customer detail modal instead of just toast notifications. Enhanced styling with blue pill-shaped 'Xem Chi Tiết' buttons (bg-blue-50, border-blue-200, text-blue-700) with Users icon and hover effects (hover:bg-blue-100). Modal displays customer info and recent transactions correctly. ✅ BUG FIX 2 - CHECK LẠI BUTTON API ERROR: API call format successfully changed from POST with body to POST with query parameters (/api/bill/check/single?customer_code=XXX&provider_region=XXX). No more 422 'Unprocessable Content' errors - API calls return 200 success status. Found 21 bills with 'Có Sẵn' status and working Check lại buttons. ✅ BUG FIX 3 - ENHANCED UI ELEMENTS: All styling enhancements working perfectly - blue backgrounds, borders, text colors, hover effects, Users icons, responsive design for mobile view. Professional appearance achieved. 🏆 ALL CRITICAL SUCCESS CRITERIA MET: Customer modal opens from dashboard activities, Check lại API calls succeed without 422 errors, UI enhancements display correctly, no console errors detected. Both bug fixes completely resolved and enhanced UI elements functioning as intended."
+
+  - task: "Fix Dashboard Modal Duplication Bug"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Found duplicate CustomerDetailModal in Dashboard component (lines 474-539). Need to remove this duplicate and implement proper state management to reuse the existing CustomerDetailModal component from Khách Hàng page (line 2337). This will eliminate code duplication and resource waste."
+
+  - task: "Change App Name to 7ty.vn CRM"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to update all occurrences of 'FPT Bill Manager' to '7ty.vn CRM' throughout the application including navigation header, sidebar, page titles, and footer."
