@@ -249,11 +249,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Activity Dashboard Integration"
+    - "Dashboard Customer Hyperlinks Bug Fix"
+    - "Check Lại Button API Error Fix"
   stuck_tasks:
     - "Real-time Status Calculation Functions"
   test_all: false
-  test_priority: "activity_dashboard_integration"
+  test_priority: "critical_bug_fixes_completed"
 
   - task: "Real-time Status Calculation Functions"
     implemented: true
