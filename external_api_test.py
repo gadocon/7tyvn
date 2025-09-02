@@ -80,7 +80,7 @@ def test_backend_api_detailed():
     print("\n🏠 Testing Our Backend API with External Integration")
     print("=" * 50)
     
-    base_url = "https://fpt-billing-app.preview.emergentagent.com"
+    base_url = "https://crm-overflow-fix.preview.emergentagent.com"
     api_url = f"{base_url}/api"
     
     test_cases = [
