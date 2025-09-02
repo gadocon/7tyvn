@@ -18,7 +18,7 @@ const LoginPage = ({ onLogin }) => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [loginMode, setLoginMode] = useState('username'); // username, email, phone
+
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
