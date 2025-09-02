@@ -20,6 +20,7 @@ import {
   Users, 
   ShoppingCart, 
   TrendingUp,
+  TrendingDown,
   Search,
   Plus,
   DollarSign,
@@ -51,7 +52,14 @@ import {
   Edit,
   ChevronLeft,
   ChevronRight,
-  RotateCcw
+  RotateCcw,
+  Shield,
+  Award,
+  Lightbulb,
+  Target,
+  MapPin,
+  UserPlus,
+  Crown
 } from "lucide-react";
 import { 
   LineChart, 
