@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Fix UI overflow issue in Customers page - filter dropdowns and table overflowing screen on mobile devices and illogical arrangement, optimize for both desktop and mobile. Also investigate Check lại button error reports in Kho Bill page."
+user_problem_statement: "Create comprehensive Transactions page to replace Sales page - unified view combining Bill Sales and Credit Card DAO transactions with professional dashboard, filtering, and analytics."
 
 backend:
   - task: "DAO Card API Endpoint"
