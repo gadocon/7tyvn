@@ -5651,4 +5651,327 @@ function App() {
   );
 }
 
+// Reports Page - Comprehensive Analytics Dashboard  
+const Reports = () => {
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState("all");
+
+  useEffect(() => {
+    fetchReportsData();
+  }, [selectedPeriod]);
+
+  const fetchReportsData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch dashboard stats with real data
+      const statsResponse = await axios.get(`${API}/reports/dashboard-stats?period=${selectedPeriod}`);
+      setDashboardStats(statsResponse.data);
+      
+    } catch (error) {
+      console.error("Error fetching reports data:", error);
+      toast.error("Không thể tải dữ liệu báo cáo");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatNumber = (number) => {
+    return new Intl.NumberFormat('vi-VN').format(number);
+  };
+
+  const getGrowthIcon = (growth) => {
+    if (growth > 0) return <TrendingUp className="h-4 w-4 text-green-600" />;
+    if (growth < 0) return <ArrowDown className="h-4 w-4 text-red-600" />;
+    return <ArrowUpDown className="h-4 w-4 text-gray-400" />;
+  };
+
+  const getGrowthColor = (growth) => {
+    if (growth > 0) return "text-green-600";
+    if (growth < 0) return "text-red-600";
+    return "text-gray-500";
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-gray-200 rounded w-24"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-gray-200 rounded w-20 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-16"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Báo Cáo & Phân Tích</h1>
+          <p className="text-gray-600 mt-1">Dashboard tổng quan và phân tích kinh doanh</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <select 
+            value={selectedPeriod} 
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="border border-gray-300 rounded px-3 py-2 text-sm"
+          >
+            <option value="all">Tất cả thời gian</option>
+            <option value="monthly">Tháng này</option>
+            <option value="weekly">Tuần này</option>
+            <option value="daily">Hôm nay</option>
+          </select>
+          <Button 
+            variant="outline"
+            className="flex-1 sm:flex-none"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Export PDF</span>
+            <span className="sm:hidden">Export</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Overview Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Tổng Doanh Thu
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(dashboardStats?.total_revenue || 0)}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {formatNumber(dashboardStats?.total_transactions || 0)} giao dịch
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Tổng Lợi Nhuận
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrency(dashboardStats?.total_profit || 0)}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {dashboardStats?.profit_margin || 0}% margin
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Activity className="h-4 w-4 mr-2" />
+              Trung Bình/GD
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {formatCurrency(dashboardStats?.avg_transaction_value || 0)}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Giá trị TB mỗi GD</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Users className="h-4 w-4 mr-2" />
+              Khách Hàng
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {formatNumber(dashboardStats?.customer_stats?.active_customers || 0)}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {formatNumber(dashboardStats?.customer_stats?.total_customers || 0)} tổng cộng
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Breakdown Analysis */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bill Sales Analysis */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Receipt className="h-5 w-5 mr-2 text-green-600" />
+              Phân Tích Bán Bill
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-medium">Doanh Thu Bills</span>
+              </div>
+              <span className="font-bold text-green-700">
+                {formatCurrency(dashboardStats?.breakdown?.bill_sales?.revenue || 0)}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="text-lg font-bold text-gray-900">
+                  {formatNumber(dashboardStats?.breakdown?.bill_sales?.transactions || 0)}
+                </div>
+                <div className="text-xs text-gray-500">Giao dịch</div>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="text-lg font-bold text-gray-900">
+                  {formatCurrency(dashboardStats?.breakdown?.bill_sales?.avg_value || 0)}
+                </div>
+                <div className="text-xs text-gray-500">TB/Giao dịch</div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Lợi nhuận Bills:</span>
+                <span className="font-medium text-green-600">
+                  {formatCurrency(dashboardStats?.breakdown?.bill_sales?.profit || 0)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Credit DAO Analysis */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <CreditCard className="h-5 w-5 mr-2 text-blue-600" />
+              Phân Tích Đáo Thẻ
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-medium">Doanh Thu ĐÁO</span>
+              </div>
+              <span className="font-bold text-blue-700">
+                {formatCurrency(dashboardStats?.breakdown?.credit_dao?.revenue || 0)}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="text-lg font-bold text-gray-900">
+                  {formatNumber(dashboardStats?.breakdown?.credit_dao?.transactions || 0)}
+                </div>
+                <div className="text-xs text-gray-500">Giao dịch</div>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="text-lg font-bold text-gray-900">
+                  {formatCurrency(dashboardStats?.breakdown?.credit_dao?.avg_value || 0)}
+                </div>
+                <div className="text-xs text-gray-500">TB/Giao dịch</div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Lợi nhuận ĐÁO:</span>
+                <span className="font-medium text-blue-600">
+                  {formatCurrency(dashboardStats?.breakdown?.credit_dao?.profit || 0)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Performance Insights */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2" />
+            Insights & Hiệu Suất
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+              <Receipt className="h-8 w-8 mx-auto text-green-600 mb-2" />
+              <div className="text-lg font-bold text-green-700">
+                {((dashboardStats?.breakdown?.bill_sales?.revenue || 0) / (dashboardStats?.total_revenue || 1) * 100).toFixed(1)}%
+              </div>
+              <div className="text-sm text-green-600">Tỷ trọng Bills</div>
+            </div>
+
+            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+              <CreditCard className="h-8 w-8 mx-auto text-blue-600 mb-2" />
+              <div className="text-lg font-bold text-blue-700">
+                {((dashboardStats?.breakdown?.credit_dao?.revenue || 0) / (dashboardStats?.total_revenue || 1) * 100).toFixed(1)}%
+              </div>
+              <div className="text-sm text-blue-600">Tỷ trọng ĐÁO</div>
+            </div>
+
+            <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+              <DollarSign className="h-8 w-8 mx-auto text-purple-600 mb-2" />
+              <div className="text-lg font-bold text-purple-700">
+                {dashboardStats?.profit_margin || 0}%
+              </div>
+              <div className="text-sm text-purple-600">Profit Margin</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Future: Charts Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <BarChart3 className="h-5 w-5 mr-2" />
+            Biểu Đồ Phân Tích
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12">
+            <BarChart3 className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Biểu Đồ Đang Phát Triển</h3>
+            <p className="text-gray-500 mb-4">
+              Charts và visualizations sẽ được thêm vào phiên bản tiếp theo
+            </p>
+            <p className="text-sm text-gray-400">
+              Revenue Trend • Customer Analytics • Transaction Distribution
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 export default App;
