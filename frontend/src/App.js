@@ -6539,7 +6539,7 @@ const CustomerDetailPage = () => {
       case 'Premium':
         return 'bg-gradient-to-r from-purple-400 to-purple-600 text-white';
       case 'Regular':
-        return 'bg-gradient-to-r from-blue-400 to-blue-600 text-white';
+        return 'bg-gradient-to-r from-green-400 to-blue-600 text-white';
       default:
         return 'bg-gradient-to-r from-gray-400 to-gray-600 text-white';
     }
@@ -6607,7 +6607,7 @@ const CustomerDetailPage = () => {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Customer Info */}
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-blue-600 rounded-full flex items-center justify-center">
               <User className="h-8 w-8 text-white" />
             </div>
             <div>
@@ -6861,7 +6861,7 @@ const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activitie
           {credit_cards.cards.slice(0, 3).map((card, index) => (
             <div key={card.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-5 bg-gradient-to-r from-blue-400 to-blue-600 rounded text-xs text-white flex items-center justify-center">
+                <div className="w-8 h-5 bg-gradient-to-r from-green-400 to-blue-600 rounded text-xs text-white flex items-center justify-center">
                   {card.card_type}
                 </div>
                 <div>
@@ -6932,7 +6932,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
     switch (cardType?.toLowerCase()) {
       case 'visa':
         return {
-          gradient: 'bg-gradient-to-br from-blue-400 via-green-500 to-blue-600',
+          gradient: 'bg-gradient-to-br from-green-400 via-green-500 to-blue-600',
           textColor: 'text-white',
           logo: '💳'
         };
