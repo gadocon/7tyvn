@@ -3948,57 +3948,296 @@ class FPTBillManagerAPITester:
             traceback.print_exc()
             return False
 
+    def test_check_lai_functionality_comprehensive(self):
+        """Comprehensive test for 'Check lại' functionality as reported by user"""
+        print(f"\n🎯 COMPREHENSIVE CHECK LẠI FUNCTIONALITY TEST")
+        print("=" * 60)
+        print("Testing the specific issue reported by user: 'Check lại' buttons still showing errors")
+        
+        # Test 1: Get available bills first
+        print(f"\n📋 TEST 1: Get Available Bills")
+        available_success, available_response = self.run_test(
+            "Get Available Bills",
+            "GET",
+            "bills?status=AVAILABLE&limit=50",
+            200
+        )
+        
+        if not available_success:
+            print("❌ Failed to get available bills")
+            return False
+            
+        available_bills = [bill for bill in available_response if bill.get('status') == 'AVAILABLE']
+        print(f"✅ Found {len(available_bills)} AVAILABLE bills")
+        
+        if not available_bills:
+            print("⚠️  No available bills found - creating test bill")
+            # Create a test bill for testing
+            test_bill_data = {
+                "customer_code": "PB09020058383",
+                "provider_region": "MIEN_NAM",
+                "full_name": "Test Customer for Check Lai",
+                "address": "Test Address",
+                "amount": 1500000,
+                "billing_cycle": "12/2025",
+                "status": "AVAILABLE"
+            }
+            
+            bill_success, bill_response = self.run_test(
+                "Create Test Bill for Check Lai",
+                "POST",
+                "bills/create",
+                200,
+                data=test_bill_data
+            )
+            
+            if bill_success:
+                available_bills = [bill_response]
+                print(f"✅ Created test bill: {bill_response.get('id')}")
+            else:
+                print("❌ Failed to create test bill")
+                return False
+        
+        # Test 2: Test check bill API with real bill data
+        test_bills = available_bills[:3]  # Test up to 3 bills
+        success_count = 0
+        error_422_count = 0
+        
+        for i, bill in enumerate(test_bills):
+            customer_code = bill.get('customer_code')
+            provider_region = bill.get('provider_region', 'MIEN_NAM')
+            
+            print(f"\n📋 TEST 2.{i+1}: Check Bill API - {customer_code}")
+            print(f"   Customer Code: {customer_code}")
+            print(f"   Provider Region: {provider_region}")
+            
+            # Test the check bill API with query parameters (as fixed)
+            url = f"{self.api_url}/bill/check/single"
+            params = {
+                "customer_code": customer_code,
+                "provider_region": provider_region
+            }
+            
+            print(f"   🌐 POST {url}")
+            print(f"   📋 Query Parameters: {params}")
+            
+            try:
+                response = requests.post(url, params=params, timeout=30)
+                print(f"   📥 Response Status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    try:
+                        response_data = response.json()
+                        print(f"   ✅ API call successful")
+                        print(f"   📊 Response: {json.dumps(response_data, indent=2, ensure_ascii=False)}")
+                        
+                        # Analyze response
+                        status = response_data.get('status')
+                        errors = response_data.get('errors')
+                        
+                        if status == "OK":
+                            print(f"   ✅ Bill check successful - bill found")
+                            success_count += 1
+                        elif status == "ERROR" and errors:
+                            error_code = errors.get('code')
+                            error_message = errors.get('message')
+                            print(f"   ✅ Bill check handled error correctly")
+                            print(f"      Error Code: {error_code}")
+                            print(f"      Error Message: {error_message}")
+                            success_count += 1
+                        else:
+                            print(f"   ❌ Unexpected response format")
+                            
+                    except json.JSONDecodeError:
+                        print(f"   ❌ Could not parse JSON response")
+                        print(f"   Raw response: {response.text}")
+                        
+                elif response.status_code == 422:
+                    error_422_count += 1
+                    print(f"   ❌ CRITICAL: 422 Unprocessable Content error detected!")
+                    print(f"   🚨 This is the exact error user reported!")
+                    try:
+                        error_data = response.json()
+                        print(f"   Error details: {json.dumps(error_data, indent=2)}")
+                    except:
+                        print(f"   Raw error: {response.text}")
+                    print(f"   ⚠️  Check lại functionality is broken - 422 error confirms user report")
+                    
+                else:
+                    print(f"   ❌ Unexpected status code: {response.status_code}")
+                    try:
+                        error_data = response.json()
+                        print(f"   Error: {error_data}")
+                    except:
+                        print(f"   Error text: {response.text}")
+                        
+            except Exception as e:
+                print(f"   ❌ Request failed: {e}")
+                
+        # Test 3: Test different provider regions
+        print(f"\n📋 TEST 3: Test Different Provider Regions")
+        test_customer_code = "PB09020058383"  # Use the specific code mentioned by user
+        
+        regions_to_test = ["MIEN_NAM", "MIEN_BAC", "HCMC"]  # Note: MIEN_TRUNG not supported
+        region_success_count = 0
+        region_422_count = 0
+        
+        for region in regions_to_test:
+            print(f"\n   🌍 Testing region: {region}")
+            
+            url = f"{self.api_url}/bill/check/single"
+            params = {
+                "customer_code": test_customer_code,
+                "provider_region": region
+            }
+            
+            try:
+                response = requests.post(url, params=params, timeout=30)
+                print(f"      Status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    status = response_data.get('status')
+                    print(f"      Result: {status}")
+                    region_success_count += 1
+                elif response.status_code == 422:
+                    region_422_count += 1
+                    print(f"      ❌ 422 ERROR - Check lại broken for {region}")
+                else:
+                    print(f"      ⚠️  Status {response.status_code}")
+                    
+            except Exception as e:
+                print(f"      ❌ Error: {e}")
+        
+        # Test 4: Verify API format (query parameters vs POST body)
+        print(f"\n📋 TEST 4: Verify API Format (Query Parameters)")
+        print("   Testing that API uses query parameters, not POST body (as per fix)")
+        
+        # Test with query parameters (correct format)
+        url = f"{self.api_url}/bill/check/single"
+        params = {"customer_code": test_customer_code, "provider_region": "MIEN_NAM"}
+        
+        try:
+            response = requests.post(url, params=params, timeout=30)
+            query_param_status = response.status_code
+            print(f"   Query parameters: Status {query_param_status}")
+        except:
+            query_param_status = 0
+            print(f"   Query parameters: Failed")
+        
+        # Test with POST body (old incorrect format)
+        try:
+            response = requests.post(url, json=params, timeout=30)
+            post_body_status = response.status_code
+            print(f"   POST body: Status {post_body_status}")
+        except:
+            post_body_status = 0
+            print(f"   POST body: Failed")
+        
+        # Summary
+        print(f"\n📊 CHECK LẠI FUNCTIONALITY TEST RESULTS:")
+        print(f"   Available bills found: {len(available_bills)}")
+        print(f"   Bill check tests successful: {success_count}/{len(test_bills)}")
+        print(f"   422 errors detected: {error_422_count}")
+        print(f"   Region tests successful: {region_success_count}/{len(regions_to_test)}")
+        print(f"   Region 422 errors: {region_422_count}")
+        print(f"   Query parameter format: {'✅ Working' if query_param_status == 200 else '❌ Failed'}")
+        print(f"   POST body format: {'⚠️  Still works' if post_body_status == 200 else '✅ Correctly rejected'}")
+        
+        # Determine overall success
+        has_422_errors = error_422_count > 0 or region_422_count > 0
+        overall_success = (
+            len(available_bills) > 0 and
+            success_count > 0 and
+            region_success_count > 0 and
+            query_param_status == 200 and
+            not has_422_errors
+        )
+        
+        if overall_success:
+            print(f"\n✅ CHECK LẠI FUNCTIONALITY WORKING")
+            print(f"   The 'Check lại' buttons should work correctly")
+            self.tests_passed += 1
+        else:
+            print(f"\n❌ CHECK LẠI FUNCTIONALITY ISSUES DETECTED")
+            print(f"   User report confirmed - 'Check lại' buttons have errors")
+            if has_422_errors:
+                print(f"   🚨 422 errors detected - API format issue or validation problem")
+            
+        self.tests_run += 1
+        return overall_success
+
+    def run_check_lai_tests(self):
+        """Run focused tests for Check lại functionality"""
+        print("🎯 Starting Check Lại Functionality Tests...")
+        print("=" * 60)
+        
+        tests = [
+            self.test_check_lai_functionality_comprehensive,
+            self.test_single_bill_check_mien_nam,
+            self.test_single_bill_check_hcmc,
+            self.test_debug_payload_mien_nam,
+            self.test_debug_payload_hcmc
+        ]
+        
+        for test in tests:
+            try:
+                test()
+            except Exception as e:
+                print(f"❌ Test failed with exception: {e}")
+                
+        print(f"\n📊 Check Lại Test Summary:")
+        print(f"   Tests run: {self.tests_run}")
+        print(f"   Tests passed: {self.tests_passed}")
+        print(f"   Success rate: {(self.tests_passed/self.tests_run*100):.1f}%")
+        
+        return self.tests_passed == self.tests_run
+
 def main():
-    print("🎯 CUSTOMER API TESTING (Review Request)")
+    print("🎯 CHECK LẠI FUNCTIONALITY TESTING (Review Request)")
     print("=" * 80)
-    print("Testing Customers page backend APIs to ensure UI fixes didn't break functionality")
+    print("Testing 'Check lại' functionality for bills in Kho Bill page as reported by user")
     
     tester = FPTBillManagerAPITester()
     
-    # Run the comprehensive customer API tests as requested in review
-    customer_success = tester.run_customer_tests_only()
+    # Run the comprehensive Check lại tests as requested in review
+    check_lai_success = tester.run_check_lai_tests()
     
-    if customer_success:
-        print(f"\n🎉 Customer API Tests PASSED!")
-        print(f"✅ All customer management features are working correctly")
-        print(f"✅ UI responsive layout fixes did NOT break backend functionality")
+    if check_lai_success:
+        print(f"\n🎉 Check Lại Tests PASSED!")
+        print(f"✅ All 'Check lại' functionality is working correctly")
+        print(f"✅ No 422 errors detected - API format is correct")
     else:
-        print(f"\n❌ Customer API Tests FAILED!")
-        print(f"⚠️  Some customer backend functionality may be affected by UI changes")
-    
-    # Also run dashboard test for completeness
-    print(f"\n" + "=" * 80)
-    print("🚀 RUNNING ADDITIONAL DASHBOARD TESTS")
-    print("=" * 80)
-    
-    dashboard_success = tester.test_dashboard_activity_system()
-    
-    total_tests = 2  # Customer + Dashboard tests
-    total_passed = (1 if customer_success else 0) + (1 if dashboard_success else 0)
+        print(f"\n❌ Check Lại Tests FAILED!")
+        print(f"⚠️  'Check lại' functionality has issues as reported by user")
+        print(f"🚨 422 errors may be present - API needs attention")
     
     print(f"\n{'='*80}")
-    print(f"🏁 FINAL TEST SUMMARY: {total_passed}/{total_tests} test suites passed")
-    print(f"📊 Success Rate: {(total_passed/total_tests)*100:.1f}%")
+    print(f"🏁 FINAL TEST SUMMARY")
+    print(f"📊 Tests Run: {tester.tests_run}")
+    print(f"📊 Tests Passed: {tester.tests_passed}")
+    print(f"📊 Success Rate: {(tester.tests_passed/tester.tests_run)*100:.1f}%" if tester.tests_run > 0 else "No tests run")
     
-    if customer_success:
-        print(f"\n🎯 REVIEW REQUEST FULFILLED: Customer API testing completed successfully!")
-        print(f"   ✅ Customer statistics API working")
-        print(f"   ✅ Customer listing with filters working") 
-        print(f"   ✅ Customer CRUD operations working")
-        print(f"   ✅ Customer transactions API working")
-        print(f"   ✅ Customer export functionality working")
-        print(f"   ✅ Search and filtering working")
-        print(f"\n🎉 UI fixes did NOT break any customer backend functionality!")
+    if check_lai_success:
+        print(f"\n🎯 REVIEW REQUEST FULFILLED: Check lại testing completed successfully!")
+        print(f"   ✅ GET /api/bills?status=AVAILABLE working")
+        print(f"   ✅ POST /api/bill/check/single with query parameters working") 
+        print(f"   ✅ Real bill data testing completed")
+        print(f"   ✅ Multiple provider regions tested (MIEN_NAM, MIEN_BAC, HCMC)")
+        print(f"   ✅ No 422 errors detected")
+        print(f"   ✅ API format verification passed")
+        print(f"\n🎉 'Check lại' buttons should work correctly!")
     else:
-        print(f"\n⚠️  REVIEW REQUEST ISSUES: Customer APIs need attention!")
-        print(f"   ❌ Some customer backend functionality may be broken")
-        print(f"   🔧 UI changes may have affected backend operations")
+        print(f"\n⚠️  REVIEW REQUEST ISSUES: Check lại functionality needs attention!")
+        print(f"   ❌ User report confirmed - 'Check lại' buttons showing errors")
+        print(f"   🚨 422 errors detected - API validation or format issues")
+        print(f"   🔧 Check lại functionality requires fixes")
     
-    if total_passed == total_tests:
-        print(f"\n🎉 All test suites passed!")
+    if check_lai_success:
+        print(f"\n🎉 All tests passed!")
         return 0
     else:
-        print(f"\n⚠️  Some test suites failed.")
+        print(f"\n⚠️  Tests failed - issues detected.")
         return 1
 
 if __name__ == "__main__":
