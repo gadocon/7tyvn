@@ -105,20 +105,17 @@
 user_problem_statement: "User reports error when deleting bills in inventory (Kho Bill page). Need to investigate and fix the delete bill functionality."
 
 backend:
-  - task: "Fix Check Lại Button 404 Error"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
+  - task: "Delete Bill Error Investigation"
+    implemented: false
+    working: false
+    file: "/app/backend/server.py, /app/frontend/src/App.js"
     stuck_count: 0
-    priority: "critical"
-    needs_retesting: false
+    priority: "high"
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
-          comment: "Fixed 404 error in PUT /api/bills/{id} endpoint. Root cause: Frontend sends complex bill object but backend expected strict BillCreate model. Changed parameter from 'bill_data: BillCreate' to 'bill_data: dict' for flexible input. Added selective field updating with allowed_fields list, proper datetime parsing for last_checked field, enhanced logging and error handling."
-        - working: true
-          agent: "main"
-          comment: "✅ CHECK LẠI BUTTON 404 FIX SUCCESS: API endpoint now working perfectly. Backend accepts flexible dictionary input, handles datetime parsing correctly, and provides detailed logging. Tested with real bill data - PUT requests successful with 200 response. Frontend Check lại workflow restored: external API call → database update → UI feedback → transfer modal flow."
+          comment: "User reported error when deleting bills in inventory. Need to investigate backend DELETE /api/bills/{bill_id} endpoint and frontend handleDeleteBill function. Will test with various bill statuses to identify root cause."
 
 agent_communication:
     - agent: "main"
