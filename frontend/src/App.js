@@ -5971,31 +5971,30 @@ function App() {
 
   return (
     <div className="App min-h-screen bg-gray-50">
-      <BrowserRouter>
-        <Navigation />
-        <main className="pt-16 lg:pl-64 min-h-screen transition-all duration-300">
-          <div className="p-4 lg:p-6">
-            <Routes>
-              <Route path="/" element={<Dashboard customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
-              <Route path="/check-bill" element={<CheckBill />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/customers" element={<Customers customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
-              <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
-              <Route path="/credit-cards" element={<CreditCards />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/reports" element={<Reports />} />
-            </Routes>
-          </div>
-        </main>
-        
-        {/* Global Customer Detail Modal */}
-        <CustomerDetailModal
-          customerDetail={customerDetail}
-          onClose={() => setCustomerDetail(null)}
-        />
-        
-        <Toaster />
-      </BrowserRouter>
+      <Navigation />
+      <main className="pt-16 lg:pl-64 min-h-screen transition-all duration-300">
+        <div className="p-4 lg:p-6">
+          <Routes>
+            <Route path="/" element={<Dashboard customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
+            <Route path="/check-bill" element={<CheckBill />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/customers" element={<Customers customerDetail={customerDetail} setCustomerDetail={setCustomerDetail} />} />
+            <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
+            <Route path="/credit-cards" element={<CreditCards />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/profile" element={<UserProfile />} />
+          </Routes>
+        </div>
+      </main>
+      
+      {/* Global Customer Detail Modal */}
+      <CustomerDetailModal
+        customerDetail={customerDetail}
+        onClose={() => setCustomerDetail(null)}
+      />
+      
+      <Toaster />
     </div>
   );
 }
