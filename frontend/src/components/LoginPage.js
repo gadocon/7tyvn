@@ -89,11 +89,6 @@ const LoginPage = () => {
       
       toast.success(`Chào mừng ${user.full_name}! Đăng nhập thành công.`);
       
-      // Call parent onLogin callback
-      if (onLogin) {
-        onLogin(user);
-      }
-      
       // Navigate to dashboard
       navigate('/');
       
