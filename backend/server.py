@@ -2005,6 +2005,45 @@ async def delete_credit_card(card_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/credit-cards/{card_id}/detail")
+async def get_credit_card_detail(card_id: str):
+    """Get credit card detail with customer info and recent transactions"""
+    try:
+        # Get card
+        card = await db.credit_cards.find_one({"id": card_id})
+        if not card:
+            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+        
+        # Get customer info
+        customer = await db.customers.find_one({"id": card["customer_id"]})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        # Get recent transactions (latest 3)
+        transactions = await db.credit_card_transactions.find(
+            {"card_id": card_id}
+        ).sort("created_at", -1).limit(3).to_list(3)
+        
+        # Get total transaction count
+        total_transactions = await db.credit_card_transactions.count_documents({"card_id": card_id})
+        
+        return {
+            "card": CreditCard(**parse_from_mongo(card)),
+            "customer": {
+                "id": customer["id"],
+                "name": customer["name"],
+                "phone": customer.get("phone"),
+                "type": customer["type"]
+            },
+            "recent_transactions": [CreditCardTransaction(**parse_from_mongo(t)) for t in transactions],
+            "total_transactions": total_transactions
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Credit Card Transaction APIs
 @api_router.get("/credit-cards/{card_id}/transactions")
 async def get_card_transactions(card_id: str, page: int = 1, page_size: int = 3):
