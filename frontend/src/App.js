@@ -2466,7 +2466,7 @@ const Transactions = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [transactionType, setTransactionType] = useState("");
-  const [dateRange, setDateRange] = useState("today");
+  const [dateRange, setDateRange] = useState("");
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
