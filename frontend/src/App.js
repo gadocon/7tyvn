@@ -1047,10 +1047,7 @@ const Inventory = () => {
     
     try {
       // Call external API to check bill status (same as "Kiểm Tra Mã Điện" page)
-      const response = await axios.post(`${API}/bill/check/single`, {
-        bill_code: bill.customer_code,
-        provider: bill.provider_region
-      });
+      const response = await axios.post(`${API}/bill/check/single?customer_code=${bill.customer_code}&provider_region=${bill.provider_region}`);
 
       if (response.data.status === "OK") {
         // Bill is valid - update status and show success
