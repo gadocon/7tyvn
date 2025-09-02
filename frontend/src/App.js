@@ -7894,4 +7894,42 @@ const CustomerAnalyticsTab = ({ customer, formatCurrency }) => {
   );
 };
 
-export default App;
+// Main App with Authentication Wrapper
+const MainApp = () => {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* Protected Routes */}
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <div className="min-h-screen bg-gray-50">
+                <Navigation />
+                <main className="lg:ml-64 pt-16">
+                  <div className="p-4 sm:p-6 lg:p-8">
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/check-bill" element={<CheckBill />} />
+                      <Route path="/inventory" element={<Inventory />} />
+                      <Route path="/customers" element={<Customers />} />
+                      <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
+                      <Route path="/credit-cards" element={<CreditCards />} />
+                      <Route path="/transactions" element={<Transactions />} />
+                      <Route path="/reports" element={<Reports />} />
+                      <Route path="/profile" element={<UserProfile />} />
+                    </Routes>
+                  </div>
+                </main>
+              </div>
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+};
+
+export default MainApp;
