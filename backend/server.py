@@ -1220,9 +1220,9 @@ async def get_customer_transactions(customer_id: str):
                 # Handle credit card transactions - extract card number from notes
                 bill_codes = []
                 notes = sale.get("notes", "")
-                # Extract ****1234 pattern from notes
+                # Extract ****1234 pattern from notes (alphanumeric)
                 import re
-                card_match = re.search(r'\*{4}(\d{4})', notes)
+                card_match = re.search(r'\*{4}([A-Z0-9]{4})', notes)
                 if card_match:
                     bill_codes = [f"****{card_match.group(1)}"]
                 
