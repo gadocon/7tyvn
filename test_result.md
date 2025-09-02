@@ -277,17 +277,17 @@ agent_communication:
 
 metadata:
   created_by: "testing_agent"
-  version: "17.0"
-  test_sequence: 18
+  version: "18.0"
+  test_sequence: 19
   run_ui: true
 
 test_plan:
   current_focus:
-    - "Bill Selling Activity Logging System"
+    - "Customers Page Responsive UI Fix"
   stuck_tasks:
     - "Real-time Status Calculation Functions"
   test_all: false
-  test_priority: "review_request_completed"
+  test_priority: "customer_api_testing_completed"
 
   - task: "Real-time Status Calculation Functions"
     implemented: true
