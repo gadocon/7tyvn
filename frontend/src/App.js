@@ -293,7 +293,7 @@ const Navigation = () => {
                   }
                 `}
               >
-                <Icon className={`h-5 w-5 ${isActive ? 'text-blue-600' : ''}`} />
+                <Icon className={`h-5 w-5 ${isActive ? 'text-green-600' : ''}`} />
                 <span>{item.label}</span>
               </Link>
             );
