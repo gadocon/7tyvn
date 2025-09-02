@@ -396,7 +396,7 @@ test_plan:
 
 agent_communication:
     - agent: "main"
-      message: "DAO CARD MODAL IMPLEMENTED: Complete DAO Card Modal functionality has been implemented with comprehensive 2-method payment system (POS/BILL). Modal accessible from InfoCard, features tab navigation, form validation, real-time calculations, multi-bill selection, and API integration. Backend API endpoint ready at POST /api/credit-cards/{card_id}/dao. Ready for comprehensive testing of all features including modal access, tab switching, payment methods, calculations, and API integration."
+      message: "STARTING DUPLICATE MODAL FIX: Found duplicate CustomerDetailModal in Dashboard component (lines 474-539) that creates a separate modal instead of reusing the existing CustomerDetailModal from Khách Hàng page (line 2337). Will remove duplicate modal, implement proper state management to open existing modal, and change app name to '7ty.vn CRM'. Ready to fix this bug and update branding throughout the application."
     - agent: "testing"
       message: "🎯 COMPREHENSIVE DAO TESTING COMPLETED WITH MIXED RESULTS: ✅ BACKEND FULLY FUNCTIONAL: Both POS and BILL payment methods working perfectly with accurate calculations and proper Vietnamese responses. API integration tested successfully with real transactions. ❌ FRONTEND ROUTING ISSUE: Unable to access Credit Cards page (/credit-cards redirects to dashboard), preventing UI testing of modal access, tab navigation, form validation, and user interactions. 📊 VERIFIED DATA: 32 credit cards exist with various statuses, 3 available bills for BILL method testing. 🔧 ACTION REQUIRED: Main agent must fix frontend routing issue to enable comprehensive UI testing of the DAO modal functionality."
     - agent: "testing"
