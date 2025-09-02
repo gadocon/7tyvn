@@ -3307,6 +3307,11 @@ const CreditCards = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDaoModal, setShowDaoModal] = useState(false);
+  const [cardDetail, setCardDetail] = useState(null);
 
   useEffect(() => {
     fetchCreditCards();
