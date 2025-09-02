@@ -892,6 +892,272 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
             errors={"code": "CONNECTION_ERROR", "message": f"Lỗi kết nối: {str(e)}"}
         )
 
+# =============================================================================
+# AUTHENTICATION API ROUTES
+# =============================================================================
+
+@api_router.post("/auth/register", response_model=UserResponse)
+async def register_user(user_data: UserCreate):
+    """Register a new user"""
+    try:
+        # Check if username already exists
+        existing_user = await db.users.find_one({
+            "$or": [
+                {"username": user_data.username},
+                {"email": user_data.email}
+            ]
+        })
+        
+        if existing_user:
+            if existing_user.get("username") == user_data.username:
+                raise HTTPException(status_code=400, detail="Username already exists")
+            else:
+                raise HTTPException(status_code=400, detail="Email already exists")
+        
+        # Check phone if provided
+        if user_data.phone:
+            phone_exists = await db.users.find_one({"phone": user_data.phone})
+            if phone_exists:
+                raise HTTPException(status_code=400, detail="Phone number already exists")
+        
+        # Create new user
+        user_dict = {
+            "id": str(uuid.uuid4()),
+            "username": user_data.username,
+            "email": user_data.email,
+            "phone": user_data.phone,
+            "password": hash_password(user_data.password),
+            "full_name": user_data.full_name,
+            "role": user_data.role,
+            "is_active": True,
+            "created_at": datetime.now(timezone.utc),
+            "last_login": None
+        }
+        
+        # Insert user
+        await db.users.insert_one(user_dict)
+        
+        # Return user response (without password)
+        user_dict.pop("password")
+        return UserResponse(**user_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error registering user: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/auth/login", response_model=TokenResponse)
+async def login_user(login_data: UserLogin):
+    """Login user with username/email/phone and password"""
+    try:
+        # Find user by username, email, or phone
+        user = await db.users.find_one({
+            "$or": [
+                {"username": login_data.login},
+                {"email": login_data.login},
+                {"phone": login_data.login}
+            ]
+        })
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username/email/phone or password"
+            )
+        
+        # Verify password
+        if not verify_password(login_data.password, user["password"]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username/email/phone or password"  
+            )
+        
+        # Check if user is active
+        if not user.get("is_active", True):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account is deactivated"
+            )
+        
+        # Update last login
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"last_login": datetime.now(timezone.utc)}}
+        )
+        
+        # Create access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user["id"], "role": user["role"]}, 
+            expires_delta=access_token_expires
+        )
+        
+        # Prepare user response (without password)
+        user_dict = dict(user)
+        user_dict.pop("password")
+        user_response = UserResponse(**user_dict)
+        
+        return TokenResponse(
+            access_token=access_token,
+            user=user_response
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error during login: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user: dict = authenticated_user):
+    """Get current user information"""
+    user_dict = dict(current_user)
+    user_dict.pop("password", None)
+    return UserResponse(**user_dict)
+
+@api_router.put("/auth/profile", response_model=UserResponse)
+async def update_user_profile(
+    profile_data: UserUpdate, 
+    current_user: dict = authenticated_user
+):
+    """Update user profile"""
+    try:
+        update_data = {}
+        
+        # Prepare update data
+        if profile_data.full_name is not None:
+            update_data["full_name"] = profile_data.full_name
+        if profile_data.phone is not None:
+            # Check if phone already exists for another user
+            if profile_data.phone != current_user.get("phone"):
+                phone_exists = await db.users.find_one({
+                    "phone": profile_data.phone,
+                    "id": {"$ne": current_user["id"]}
+                })
+                if phone_exists:
+                    raise HTTPException(status_code=400, detail="Phone number already exists")
+            update_data["phone"] = profile_data.phone
+        if profile_data.email is not None:
+            # Check if email already exists for another user
+            if profile_data.email != current_user.get("email"):
+                email_exists = await db.users.find_one({
+                    "email": profile_data.email,
+                    "id": {"$ne": current_user["id"]}
+                })
+                if email_exists:
+                    raise HTTPException(status_code=400, detail="Email already exists")
+            update_data["email"] = profile_data.email
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No data provided for update")
+        
+        update_data["updated_at"] = datetime.now(timezone.utc)
+        
+        # Update user
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": update_data}
+        )
+        
+        # Get updated user
+        updated_user = await db.users.find_one({"id": current_user["id"]})
+        updated_user.pop("password", None)
+        
+        return UserResponse(**updated_user)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user profile: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/auth/change-password")
+async def change_password(
+    password_data: PasswordChange,
+    current_user: dict = authenticated_user
+):
+    """Change user password"""
+    try:
+        # Verify current password
+        if not verify_password(password_data.current_password, current_user["password"]):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is incorrect"
+            )
+        
+        # Hash new password
+        new_password_hash = hash_password(password_data.new_password)
+        
+        # Update password
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": {
+                "password": new_password_hash,
+                "updated_at": datetime.now(timezone.utc)
+            }}
+        )
+        
+        return {"message": "Password changed successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error changing password: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/auth/users", response_model=List[UserResponse])
+async def get_all_users(current_user: dict = manager_or_admin_required):
+    """Get all users (Manager/Admin only)"""
+    try:
+        users_cursor = db.users.find({})
+        users = await users_cursor.to_list(None)
+        
+        # Remove passwords from response
+        user_responses = []
+        for user in users:
+            user.pop("password", None)
+            user_responses.append(UserResponse(**user))
+            
+        return user_responses
+        
+    except Exception as e:
+        logger.error(f"Error getting users: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/auth/users/{user_id}/role")
+async def update_user_role(
+    user_id: str,
+    role_data: dict,
+    current_user: dict = admin_required
+):
+    """Update user role (Admin only)"""
+    try:
+        new_role = role_data.get("role")
+        if new_role not in [role.value for role in UserRole]:
+            raise HTTPException(status_code=400, detail="Invalid role")
+        
+        # Update user role
+        result = await db.users.update_one(
+            {"id": user_id},
+            {"$set": {
+                "role": new_role,
+                "updated_at": datetime.now(timezone.utc)
+            }}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return {"message": "User role updated successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user role: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
 # API Routes
 @api_router.get("/dashboard/stats", response_model=DashboardStats)
 async def get_dashboard_stats():
