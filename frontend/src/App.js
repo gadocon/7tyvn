@@ -405,23 +405,55 @@ const Dashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {stats?.recent_activities?.length > 0 ? (
+          {activities && activities.length > 0 ? (
             <div className="space-y-4">
-              {stats.recent_activities.map((activity, index) => (
-                <div key={activity.id || index} className="flex items-center justify-between p-3 border rounded-lg">
+              {activities.map((activity) => (
+                <div key={activity.id} className={`flex items-center justify-between p-4 rounded-lg transition-colors cursor-pointer hover:bg-gray-100 ${
+                  activity.status === 'ERROR' ? 'bg-red-50 border border-red-200' : 'bg-gray-50'
+                }`}
+                     onClick={() => activity.customer_id && handleCustomerClick(activity.customer_id)}
+                >
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-green-100 rounded-full">
-                      <ShoppingCart className="h-4 w-4 text-green-600" />
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      activity.status === 'ERROR' ? 'bg-red-100 text-red-600' : 
+                      activity.type.includes('CARD') ? 'bg-green-100 text-green-600' :
+                      activity.type.includes('BILL') ? 'bg-blue-100 text-blue-600' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {activity.type.includes('CARD') ? <CreditCard className="h-4 w-4" /> :
+                       activity.type.includes('BILL') ? <Package className="h-4 w-4" /> :
+                       activity.type.includes('CUSTOMER') ? <Users className="h-4 w-4" /> :
+                       <TrendingUp className="h-4 w-4" />}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{activity.description}</p>
-                      <p className="text-sm text-gray-500">{formatDate(activity.created_at)}</p>
+                      <p className="font-medium text-gray-900">{activity.title}</p>
+                      <div className="flex items-center space-x-2">
+                        <p className="text-sm text-gray-600">{formatDate(activity.created_at)}</p>
+                        {activity.customer_name && (
+                          <>
+                            <span className="text-gray-400">•</span>
+                            <button 
+                              className="text-sm text-blue-600 hover:text-blue-800 underline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCustomerClick(activity.customer_id);
+                              }}
+                            >
+                              {activity.customer_name}
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">{formatCurrency(activity.amount)}</p>
-                    <p className="text-sm text-green-600">+{formatCurrency(activity.profit)}</p>
-                  </div>
+                  {activity.amount && (
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">{formatCurrency(activity.amount)}</p>
+                      {activity.status === 'ERROR' && (
+                        <p className="text-sm text-red-600">Lỗi</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
