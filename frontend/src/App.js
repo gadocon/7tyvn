@@ -1815,22 +1815,25 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Khách Hàng</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Quản Lý Khách Hàng</h1>
           <p className="text-gray-600 mt-1">Danh sách khách hàng và thông tin giao dịch</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button 
             variant="outline"
             onClick={() => setShowExportModal(true)}
+            className="flex-1 sm:flex-none"
           >
             <Download className="h-4 w-4 mr-2" />
-            Export Excel
+            <span className="hidden sm:inline">Export Excel</span>
+            <span className="sm:hidden">Export</span>
           </Button>
-          <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none">
             <Plus className="h-4 w-4 mr-2" />
-            Thêm Khách Hàng
+            <span className="hidden sm:inline">Thêm Khách Hàng</span>
+            <span className="sm:hidden">Thêm</span>
           </Button>
         </div>
       </div>
