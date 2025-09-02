@@ -3898,11 +3898,12 @@ const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
                 </div>
               </div>
               
-              {/* Status Badge */}
-              <div className="absolute top-4 left-4">
-                <Badge className="bg-white/20 text-white border-white/30">
-                  {formData.status}
-                </Badge>
+                {/* Status Badge */}
+                <div className="absolute top-2 left-2 sm:top-4 sm:left-4">
+                  <Badge className="bg-white/20 text-white border-white/30 text-xs">
+                    {formData.status}
+                  </Badge>
+                </div>
               </div>
             </div>
           </div>
