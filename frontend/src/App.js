@@ -1352,7 +1352,7 @@ const Inventory = () => {
             Export Excel
           </Button>
           <Button 
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-green-600 hover:bg-blue-700"
             onClick={() => setShowAddBillModal(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -1482,7 +1482,7 @@ const Inventory = () => {
                         className="w-4 h-4 border border-gray-300 rounded cursor-pointer flex items-center justify-center hover:bg-green-50"
                       >
                         {(currentItems.length > 0 && selectedItems.length === currentItems.length) && (
-                          <CheckCircle className="h-3 w-3 text-blue-600" />
+                          <CheckCircle className="h-3 w-3 text-green-600" />
                         )}
                       </button>
                     </TableHead>
@@ -1572,7 +1572,7 @@ const Inventory = () => {
                           className="w-4 h-4 border border-gray-300 rounded cursor-pointer flex items-center justify-center hover:bg-green-50"
                         >
                           {selectedItems.includes(item.id) && (
-                            <CheckCircle className="h-3 w-3 text-blue-600" />
+                            <CheckCircle className="h-3 w-3 text-green-600" />
                           )}
                         </button>
                       </TableCell>
@@ -1630,7 +1630,7 @@ const Inventory = () => {
                               variant="outline"
                               onClick={() => handleRecheckBill(item)}
                               disabled={recheckingBillId === item.id}
-                              className="text-blue-600 hover:text-blue-700"
+                              className="text-green-600 hover:text-blue-700"
                               title="Check lại mã điện"
                             >
                               <RefreshCw className={`h-3 w-3 ${recheckingBillId === item.id ? 'animate-spin' : ''}`} />
@@ -1981,7 +1981,7 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
             <span className="hidden sm:inline">Export Excel</span>
             <span className="sm:hidden">Export</span>
           </Button>
-          <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none">
+          <Button onClick={() => setShowAddModal(true)} className="bg-green-600 hover:bg-blue-700 flex-1 sm:flex-none">
             <Plus className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Thêm Khách Hàng</span>
             <span className="sm:hidden">Thêm</span>
@@ -2461,7 +2461,7 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">{summary.total_transactions}</div>
+              <div className="text-2xl font-bold text-green-600">{summary.total_transactions}</div>
               <p className="text-xs text-gray-500">Tổng Giao Dịch</p>
             </CardContent>
           </Card>
@@ -2687,7 +2687,7 @@ const Transactions = () => {
       case "BILL_SALE":
         return <Receipt className="h-4 w-4 text-green-600" />;
       case "CREDIT_DAO_POS":
-        return <CreditCard className="h-4 w-4 text-blue-600" />;
+        return <CreditCard className="h-4 w-4 text-green-600" />;
       case "CREDIT_DAO_BILL":
         return <Zap className="h-4 w-4 text-purple-600" />;
       default:
@@ -2810,7 +2810,7 @@ const Transactions = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-green-600">
               {formatCurrency(transactionStats?.total_profit || 0)}
             </div>
             <p className="text-xs text-gray-500 mt-1">Tổng lợi nhuận</p>
@@ -3198,7 +3198,7 @@ const SellBillModal = ({ show, billItem, onClose, onComplete }) => {
                 <span>Lợi nhuận:</span>
                 <span className="font-semibold">{formatCurrency(profitValue)}</span>
               </div>
-              <div className="flex justify-between text-blue-600">
+              <div className="flex justify-between text-green-600">
                 <span>Số tiền trả khách:</span>
                 <span className="font-semibold">{formatCurrency(paybackAmount)}</span>
               </div>
@@ -3442,7 +3442,7 @@ const AddBillModal = ({ show, onClose, onSubmit }) => {
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              className="flex-1 bg-green-600 hover:bg-blue-700"
               disabled={loading}
             >
               {loading ? "Đang thêm..." : "Thêm Bill"}
@@ -3636,7 +3636,7 @@ const ImportModal = ({ show, onClose, onImportComplete, onDownloadTemplate }) =>
                 <Button
                   onClick={handleConfirmImport}
                   disabled={loading || errors.length > 0}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-green-600 hover:bg-blue-700"
                 >
                   {loading ? "Đang import..." : `Import ${previewData.total_rows} Bills`}
                 </Button>
@@ -3868,7 +3868,7 @@ const CreditCards = () => {
         };
       case 'VISA':
         return {
-          gradient: 'bg-gradient-to-br from-blue-600 via-blue-700 to-gray-900',
+          gradient: 'bg-gradient-to-br from-green-600 via-blue-700 to-gray-900',
           logo: 'VISA',
           textColor: 'text-white'
         };
@@ -4041,7 +4041,7 @@ const CreditCards = () => {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Đang tải dữ liệu thẻ...</p>
         </div>
       </div>
@@ -4392,7 +4392,7 @@ const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
         };
       case 'VISA':
         return {
-          gradient: 'bg-gradient-to-br from-blue-600 via-blue-700 to-gray-900',
+          gradient: 'bg-gradient-to-br from-green-600 via-blue-700 to-gray-900',
           logo: 'VISA',
           textColor: 'text-white'
         };
@@ -4811,7 +4811,7 @@ const CreditCardInfoModal = ({ show, cardDetail, onClose, onDao, onEdit, onDelet
         };
       case 'VISA':
         return {
-          gradient: 'bg-gradient-to-br from-blue-600 via-blue-700 to-gray-900',
+          gradient: 'bg-gradient-to-br from-green-600 via-blue-700 to-gray-900',
           logo: 'VISA',
           textColor: 'text-white'
         };
@@ -5389,7 +5389,7 @@ const DaoCardModal = ({ show, card, onClose, onSuccess }) => {
                     </div>
                     <div className="flex justify-between border-t pt-2">
                       <span className="text-gray-900 font-medium">Trả khách:</span>
-                      <span className="font-bold text-blue-600">{formatCurrency(payback)}</span>
+                      <span className="font-bold text-green-600">{formatCurrency(payback)}</span>
                     </div>
                   </div>
 
@@ -5735,7 +5735,7 @@ const TransactionExportModal = ({ show, onClose, onExport }) => {
         
         <div className="space-y-4">
           <div className="text-center py-6">
-            <Download className="h-12 w-12 mx-auto text-blue-600 mb-3" />
+            <Download className="h-12 w-12 mx-auto text-green-600 mb-3" />
             <p className="text-gray-600 mb-4">
               Xuất toàn bộ giao dịch (Bán Bill + Đáo Thẻ) ra file Excel
             </p>
@@ -5755,7 +5755,7 @@ const TransactionExportModal = ({ show, onClose, onExport }) => {
           </Button>
           <Button
             onClick={onExport}
-            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            className="flex-1 bg-green-600 hover:bg-blue-700"
           >
             <Download className="h-4 w-4 mr-2" />
             Export Excel
@@ -5793,7 +5793,7 @@ const TransactionDetailModal = ({ show, transaction, onClose }) => {
       case "BILL_SALE":
         return <Receipt className="h-5 w-5 text-green-600" />;
       case "CREDIT_DAO_POS":
-        return <CreditCard className="h-5 w-5 text-blue-600" />;
+        return <CreditCard className="h-5 w-5 text-green-600" />;
       case "CREDIT_DAO_BILL":
         return <Zap className="h-5 w-5 text-purple-600" />;
       default:
@@ -6150,7 +6150,7 @@ const Reports = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-green-600">
               {formatCurrency(dashboardStats?.total_profit || 0)}
             </div>
             <p className="text-xs text-gray-500 mt-1">
@@ -6243,7 +6243,7 @@ const Reports = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <CreditCard className="h-5 w-5 mr-2 text-blue-600" />
+              <CreditCard className="h-5 w-5 mr-2 text-green-600" />
               Phân Tích Đáo Thẻ
             </CardTitle>
           </CardHeader>
@@ -6276,7 +6276,7 @@ const Reports = () => {
             <div className="pt-2 border-t">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Lợi nhuận ĐÁO:</span>
-                <span className="font-medium text-blue-600">
+                <span className="font-medium text-green-600">
                   {formatCurrency(dashboardStats?.breakdown?.credit_dao?.profit || 0)}
                 </span>
               </div>
@@ -6304,11 +6304,11 @@ const Reports = () => {
             </div>
 
             <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-              <CreditCard className="h-8 w-8 mx-auto text-blue-600 mb-2" />
+              <CreditCard className="h-8 w-8 mx-auto text-green-600 mb-2" />
               <div className="text-lg font-bold text-blue-700">
                 {((dashboardStats?.breakdown?.credit_dao?.revenue || 0) / (dashboardStats?.total_revenue || 1) * 100).toFixed(1)}%
               </div>
-              <div className="text-sm text-blue-600">Tỷ trọng ĐÁO</div>
+              <div className="text-sm text-green-600">Tỷ trọng ĐÁO</div>
             </div>
 
             <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
@@ -6453,7 +6453,7 @@ const Reports = () => {
             {topCustomersData.slice(0, 3).map((customer, index) => (
               <div key={index} className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-center mb-2">
-                  <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-2">
+                  <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-2">
                     {customer.rank}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -6474,7 +6474,7 @@ const Reports = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Margin:</span>
-                    <span className="font-medium text-blue-600">{customer.profit_margin}%</span>
+                    <span className="font-medium text-green-600">{customer.profit_margin}%</span>
                   </div>
                 </div>
               </div>
@@ -6539,7 +6539,7 @@ const CustomerDetailPage = () => {
       case 'Premium':
         return 'bg-gradient-to-r from-purple-400 to-purple-600 text-white';
       case 'Regular':
-        return 'bg-gradient-to-r from-green-400 to-blue-600 text-white';
+        return 'bg-gradient-to-r from-green-400 to-green-600 text-white';
       default:
         return 'bg-gradient-to-r from-gray-400 to-gray-600 text-white';
     }
@@ -6550,7 +6550,7 @@ const CustomerDetailPage = () => {
       case 'BILL_SALE':
         return <Receipt className="h-4 w-4 text-green-600" />;
       case 'CREDIT_DAO_POS':
-        return <CreditCard className="h-4 w-4 text-blue-600" />;
+        return <CreditCard className="h-4 w-4 text-green-600" />;
       case 'CREDIT_DAO_BILL':
         return <Zap className="h-4 w-4 text-purple-600" />;
       default:
@@ -6607,7 +6607,7 @@ const CustomerDetailPage = () => {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Customer Info */}
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
               <User className="h-8 w-8 text-white" />
             </div>
             <div>
@@ -6651,7 +6651,7 @@ const CustomerDetailPage = () => {
             <div className="text-sm text-gray-600">Tổng Giao Dịch</div>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(metrics.total_profit)}</div>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(metrics.total_profit)}</div>
             <div className="text-sm text-gray-600">Lợi Nhuận</div>
           </div>
           <div className="bg-white rounded-lg p-4 text-center">
@@ -6687,7 +6687,7 @@ const CustomerDetailPage = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center py-3 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
-                  ? 'border-green-500 text-blue-600'
+                  ? 'border-green-500 text-green-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -6741,7 +6741,7 @@ const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activitie
       case 'BILL_SALE':
         return <Receipt className="h-4 w-4 text-green-600" />;
       case 'CREDIT_DAO_POS':
-        return <CreditCard className="h-4 w-4 text-blue-600" />;
+        return <CreditCard className="h-4 w-4 text-green-600" />;
       case 'CREDIT_DAO_BILL':
         return <Zap className="h-4 w-4 text-purple-600" />;
       default:
@@ -6809,7 +6809,7 @@ const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activitie
               <div className="text-xs text-green-700">Bills</div>
             </div>
             <div className="text-center p-3 bg-green-50 rounded-lg">
-              <div className="text-lg font-bold text-blue-600">{metrics.dao_transactions}</div>
+              <div className="text-lg font-bold text-green-600">{metrics.dao_transactions}</div>
               <div className="text-xs text-blue-700">ĐÁO</div>
             </div>
           </div>
@@ -6821,7 +6821,7 @@ const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activitie
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Doanh thu ĐÁO:</span>
-              <span className="font-medium text-blue-600">{formatCurrency(metrics.dao_value)}</span>
+              <span className="font-medium text-green-600">{formatCurrency(metrics.dao_value)}</span>
             </div>
             <div className="flex justify-between border-t pt-2">
               <span className="text-sm font-medium">Tổng doanh thu:</span>
@@ -6861,7 +6861,7 @@ const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activitie
           {credit_cards.cards.slice(0, 3).map((card, index) => (
             <div key={card.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-5 bg-gradient-to-r from-green-400 to-blue-600 rounded text-xs text-white flex items-center justify-center">
+                <div className="w-8 h-5 bg-gradient-to-r from-green-400 to-green-600 rounded text-xs text-white flex items-center justify-center">
                   {card.card_type}
                 </div>
                 <div>
@@ -6932,7 +6932,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
     switch (cardType?.toLowerCase()) {
       case 'visa':
         return {
-          gradient: 'bg-gradient-to-br from-green-400 via-green-500 to-blue-600',
+          gradient: 'bg-gradient-to-br from-green-400 via-green-500 to-green-600',
           textColor: 'text-white',
           logo: '💳'
         };
@@ -7020,7 +7020,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(credit_cards.total_credit_limit)}</div>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(credit_cards.total_credit_limit)}</div>
             <div className="text-sm text-gray-600">Tổng Hạn Mức</div>
           </CardContent>
         </Card>
@@ -7104,7 +7104,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
                   <Button 
                     size="sm" 
                     variant="secondary"
-                    className="bg-blue-600 text-white hover:bg-blue-700"
+                    className="bg-green-600 text-white hover:bg-blue-700"
                     onClick={(e) => {
                       e.stopPropagation();
                       // Handle DAO action
@@ -7309,7 +7309,7 @@ const CustomerTransactionsTab = ({ customer, formatCurrency, formatDateTime }) =
       case 'BILL_SALE':
         return <Receipt className="h-4 w-4 text-green-600" />;
       case 'CREDIT_DAO_POS':
-        return <CreditCard className="h-4 w-4 text-blue-600" />;
+        return <CreditCard className="h-4 w-4 text-green-600" />;
       case 'CREDIT_DAO_BILL':
         return <Zap className="h-4 w-4 text-purple-600" />;
       default:
@@ -7399,7 +7399,7 @@ const CustomerTransactionsTab = ({ customer, formatCurrency, formatDateTime }) =
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{filteredTransactions.length}</div>
+            <div className="text-2xl font-bold text-green-600">{filteredTransactions.length}</div>
             <div className="text-sm text-gray-600">Tổng Giao Dịch</div>
           </CardContent>
         </Card>
@@ -7712,7 +7712,7 @@ const CustomerAnalyticsTab = ({ customer, formatCurrency }) => {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(analyticsData.customerValue.avgOrderValue)}</div>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(analyticsData.customerValue.avgOrderValue)}</div>
             <div className="text-sm text-gray-600">Giá Trị TB/Đơn</div>
             <div className="text-xs text-gray-500 mt-1">Ổn định</div>
           </CardContent>
@@ -7721,7 +7721,7 @@ const CustomerAnalyticsTab = ({ customer, formatCurrency }) => {
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-600">{analyticsData.customerValue.frequency}</div>
             <div className="text-sm text-gray-600">Tần Suất Giao Dịch</div>
-            <div className="text-xs text-blue-600 mt-1">Khách hàng tích cực</div>
+            <div className="text-xs text-green-600 mt-1">Khách hàng tích cực</div>
           </CardContent>
         </Card>
         <Card>
@@ -7813,13 +7813,13 @@ const CustomerAnalyticsTab = ({ customer, formatCurrency }) => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Khả năng giao dịch tiếp:</span>
-              <span className="font-bold text-blue-600">{analyticsData.predictions.nextTransactionProbability}%</span>
+              <span className="font-bold text-green-600">{analyticsData.predictions.nextTransactionProbability}%</span>
             </div>
             <div className="pt-3 border-t">
               <div className="text-sm text-gray-600 mb-2">Dự đoán xu hướng:</div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
-                  className="bg-blue-600 h-2 rounded-full" 
+                  className="bg-green-600 h-2 rounded-full" 
                   style={{ width: `${analyticsData.predictions.nextTransactionProbability}%` }}
                 ></div>
               </div>
@@ -7842,7 +7842,7 @@ const CustomerAnalyticsTab = ({ customer, formatCurrency }) => {
             <div className="space-y-3">
               {analyticsData.predictions.recommendedActions.map((action, index) => (
                 <div key={index} className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  <div className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
                     {index + 1}
                   </div>
                   <div className="text-sm text-gray-700">{action}</div>
@@ -7871,11 +7871,11 @@ const CustomerAnalyticsTab = ({ customer, formatCurrency }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <UserPlus className="h-8 w-8 text-blue-600" />
+                <UserPlus className="h-8 w-8 text-green-600" />
               </div>
               <h4 className="font-medium text-gray-900 mb-1">Khách Hàng Mới</h4>
               <p className="text-sm text-gray-500">Giai đoạn khám phá và làm quen</p>
-              <div className="mt-2 text-xs text-blue-600 font-medium">
+              <div className="mt-2 text-xs text-green-600 font-medium">
                 {new Date(customer.created_at).toLocaleDateString('vi-VN')}
               </div>
             </div>
