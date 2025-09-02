@@ -3437,103 +3437,70 @@ async def get_customer_analytics():
 async def get_revenue_trend_chart(months: int = 12):
     """Get revenue trend data for line chart - REAL DATA ONLY"""
     try:
-        # Calculate start date
-        end_date = datetime.now(timezone.utc)
-        start_date = end_date.replace(day=1) - timedelta(days=months * 30)
+        # Get all sales transactions
+        sales_cursor = db.sales.find({}).sort("created_at", 1)
+        sales_data = await sales_cursor.to_list(None)
         
-        # Get all sales and DAO transactions grouped by month
-        sales_pipeline = [
-            {
-                "$addFields": {
-                    "year_month": {
-                        "$dateToString": {
-                            "format": "%Y-%m",
-                            "date": "$created_at"
-                        }
-                    }
-                }
-            },
-            {
-                "$group": {
-                    "_id": "$year_month",
-                    "sales_revenue": {"$sum": "$total"},
-                    "sales_profit": {"$sum": "$profit_value"},
-                    "sales_count": {"$sum": 1}
-                }
-            },
-            {"$sort": {"_id": 1}}
-        ]
+        # Get all DAO transactions  
+        dao_cursor = db.credit_card_transactions.find({}).sort("created_at", 1)
+        dao_data = await dao_cursor.to_list(None)
         
-        dao_pipeline = [
-            {
-                "$addFields": {
-                    "year_month": {
-                        "$dateToString": {
-                            "format": "%Y-%m", 
-                            "date": "$created_at"
-                        }
-                    }
-                }
-            },
-            {
-                "$group": {
-                    "_id": "$year_month",
-                    "dao_revenue": {"$sum": "$total_amount"},
-                    "dao_profit": {"$sum": "$profit_value"},
-                    "dao_count": {"$sum": 1}
-                }
-            },
-            {"$sort": {"_id": 1}}
-        ]
-        
-        sales_data = await db.sales.aggregate(sales_pipeline).to_list(None)
-        dao_data = await db.credit_card_transactions.aggregate(dao_pipeline).to_list(None)
-        
-        # Combine data by month
+        # Group data by month
         months_data = {}
         
-        # Add sales data
-        for item in sales_data:
-            month = item["_id"]
-            months_data[month] = {
-                "month": month,
-                "sales_revenue": item["sales_revenue"],
-                "sales_profit": item["sales_profit"],
-                "sales_count": item["sales_count"],
-                "dao_revenue": 0,
-                "dao_profit": 0,
-                "dao_count": 0
-            }
+        # Process sales data
+        for sale in sales_data:
+            if sale.get("created_at"):
+                month_key = sale["created_at"].strftime("%Y-%m")
+                if month_key not in months_data:
+                    months_data[month_key] = {
+                        "month": month_key,
+                        "sales_revenue": 0,
+                        "sales_profit": 0,
+                        "sales_count": 0,
+                        "dao_revenue": 0,
+                        "dao_profit": 0,
+                        "dao_count": 0
+                    }
+                months_data[month_key]["sales_revenue"] += sale.get("total", 0)
+                months_data[month_key]["sales_profit"] += sale.get("profit_value", 0)
+                months_data[month_key]["sales_count"] += 1
         
-        # Add DAO data
-        for item in dao_data:
-            month = item["_id"]
-            if month in months_data:
-                months_data[month]["dao_revenue"] = item["dao_revenue"]
-                months_data[month]["dao_profit"] = item["dao_profit"]
-                months_data[month]["dao_count"] = item["dao_count"]
-            else:
-                months_data[month] = {
-                    "month": month,
-                    "sales_revenue": 0,
-                    "sales_profit": 0,
-                    "sales_count": 0,
-                    "dao_revenue": item["dao_revenue"],
-                    "dao_profit": item["dao_profit"],
-                    "dao_count": item["dao_count"]
-                }
+        # Process DAO data
+        for dao in dao_data:
+            if dao.get("created_at"):
+                month_key = dao["created_at"].strftime("%Y-%m")
+                if month_key not in months_data:
+                    months_data[month_key] = {
+                        "month": month_key,
+                        "sales_revenue": 0,
+                        "sales_profit": 0,
+                        "sales_count": 0,
+                        "dao_revenue": 0,
+                        "dao_profit": 0,
+                        "dao_count": 0
+                    }
+                months_data[month_key]["dao_revenue"] += dao.get("total_amount", 0)
+                months_data[month_key]["dao_profit"] += dao.get("profit_value", 0)
+                months_data[month_key]["dao_count"] += 1
         
-        # Calculate totals and format for chart
+        # Format for chart (last N months)
         chart_data = []
-        for month_key in sorted(months_data.keys()):
+        for month_key in sorted(months_data.keys())[-months:]:
             data = months_data[month_key]
             total_revenue = data["sales_revenue"] + data["dao_revenue"]
             total_profit = data["sales_profit"] + data["dao_profit"]
             total_transactions = data["sales_count"] + data["dao_count"]
             
+            # Convert month to display format
+            try:
+                month_display = datetime.strptime(month_key, "%Y-%m").strftime("%m/%Y")
+            except:
+                month_display = month_key
+            
             chart_data.append({
                 "month": month_key,
-                "month_display": datetime.strptime(month_key, "%Y-%m").strftime("%m/%Y"),
+                "month_display": month_display,
                 "total_revenue": total_revenue,
                 "total_profit": total_profit,
                 "total_transactions": total_transactions,
