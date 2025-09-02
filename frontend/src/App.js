@@ -3310,6 +3310,7 @@ function App() {
             <Route path="/check-bill" element={<CheckBill />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/customers" element={<Customers />} />
+            <Route path="/credit-cards" element={<CreditCards />} />
             <Route path="/sales" element={<Sales />} />
           </Routes>
         </main>
