@@ -331,6 +331,21 @@ test_plan:
           agent: "testing"
           comment: "⚠️ NOT TESTED: Transaction preservation on card deletion not tested due to existing regex error in delete endpoint (Status 500: 'Regular expression is invalid: quantifier does not follow a repeatable item'). This is a separate issue from cycle business logic. Cycle logic implementation is complete but delete endpoint has unrelated technical issue."
 
+  - task: "Transaction Type Bug Fix - Customer Transaction History"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Fixed customer transaction history displaying incorrect 'Loại' = 'Bán Bill' for credit card payments. Now displays 'Đáo Thẻ' for credit card payments (bill_codes starting with '****') and 'Bán Bill' for regular bill sales. Bug fix implemented in lines 2326-2337 of App.js with proper bill_codes format detection."
+        - working: true
+          agent: "testing"
+          comment: "🎉 TRANSACTION TYPE BUG FIX FULLY VERIFIED! ✅ COMPREHENSIVE TESTING COMPLETED: Successfully tested customer transaction history display. Found customer 'Validation Test Customer 1756785537' with 3 credit card transactions. All transactions correctly show: Mã Bill/Thẻ = '****37MA', '****3712' format and Loại = 'Đáo Thẻ'. ✅ BUG FIX WORKING PERFECTLY: Credit card transactions (bill_codes starting with '****') correctly display 'Đáo Thẻ' instead of incorrect 'Bán Bill'. ✅ VERIFICATION PROCESS: Accessed credit cards page → InfoCard modal → customers page → customer detail modal → transaction history table. All 3 credit card transactions analyzed show correct type classification. No errors found."
+
 agent_communication:
     - agent: "main"
       message: "DAO CARD MODAL IMPLEMENTED: Complete DAO Card Modal functionality has been implemented with comprehensive 2-method payment system (POS/BILL). Modal accessible from InfoCard, features tab navigation, form validation, real-time calculations, multi-bill selection, and API integration. Backend API endpoint ready at POST /api/credit-cards/{card_id}/dao. Ready for comprehensive testing of all features including modal access, tab switching, payment methods, calculations, and API integration."
