@@ -78,6 +78,33 @@ import {
 } from 'recharts';
 import axios from "axios";
 
+// Customer Name Link Component - Makes customer names clickable everywhere
+const CustomerNameLink = ({ customer, className = "", children }) => {
+  const navigate = useNavigate();
+  
+  const handleClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (customer?.id) {
+      navigate(`/customers/${customer.id}`);
+    }
+  };
+
+  if (!customer?.id) {
+    return <span className={className}>{children || customer?.name}</span>;
+  }
+
+  return (
+    <span 
+      onClick={handleClick}
+      className={`cursor-pointer text-blue-600 hover:text-blue-800 hover:underline transition-colors ${className}`}
+      title={`Xem chi tiết khách hàng: ${customer.name}`}
+    >
+      {children || customer.name}
+    </span>
+  );
+};
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
