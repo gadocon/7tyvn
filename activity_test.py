@@ -240,7 +240,7 @@ class ActivityLoggingTester:
         if cards_success and cards_response:
             # Find a card that can be used for DAO
             for card in cards_response:
-                if card.get('status') in ['NEED_PAYMENT', 'NOT_DUE']:
+                if card.get('status') in ['Cần đáo', 'Chưa đến hạn']:
                     card_id = card.get('id')
                     card_number = card.get('card_number')
                     print(f"✅ Found existing card for DAO: ****{card_number[-4:]}")
