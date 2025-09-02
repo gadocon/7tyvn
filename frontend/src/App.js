@@ -863,9 +863,9 @@ const CheckBill = () => {
                       <p className="text-sm font-medium text-green-900">{processingStep}</p>
                       {totalCount > 0 && (
                         <div className="mt-2">
-                          <div className="bg-blue-200 rounded-full h-2">
+                          <div className="bg-green-200 rounded-full h-2">
                             <div 
-                              className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                              className="bg-green-600 h-2 rounded-full transition-all duration-500"
                               style={{ width: `${(processedCount / totalCount) * 100}%` }}
                             ></div>
                           </div>
