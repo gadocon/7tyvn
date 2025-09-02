@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Fix 404 error when clicking Check lại (refresh) button in Kho Bill page. Error: PUT /api/bills/{id} 404 Not Found when rechecking bill status."
+user_problem_statement: "User reports error when deleting bills in inventory (Kho Bill page). Need to investigate and fix the delete bill functionality."
 
 backend:
   - task: "Fix Check Lại Button 404 Error"
