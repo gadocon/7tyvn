@@ -93,7 +93,7 @@ const Navigation = () => {
             {/* Logo */}
             <div className="flex items-center space-x-2">
               <BarChart3 className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900 hidden sm:block">FPT Bill Manager</span>
+              <span className="text-xl font-bold text-gray-900 hidden sm:block">7ty.vn CRM</span>
               <span className="text-lg font-bold text-gray-900 sm:hidden">FPT</span>
             </div>
           </div>
