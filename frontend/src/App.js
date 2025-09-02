@@ -4045,59 +4045,51 @@ const CreditCards = () => {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Tổng Thẻ
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{cardStats.total_cards || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Tất cả thẻ trong hệ thống</p>
-          </CardContent>
-        </Card>
+      {/* Stats Cards - Credit Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <CreditCard className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{cardStats.total_cards || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Tổng Thẻ</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Tất cả thẻ trong hệ thống</div>
+        </div>
 
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Đã Đáo
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{cardStats.paid_off_cards || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Thẻ đã thanh toán</p>
-          </CardContent>
-        </Card>
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <CheckCircle className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{cardStats.paid_off_cards || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Đã Đáo</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Thẻ đã thanh toán</div>
+        </div>
 
-        <Card className="border-l-4 border-l-red-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Cần Đáo
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{cardStats.need_payment_cards || 0}</div>
-            <p className="text-xs text-gray-500 mt-1">Thẻ cần thanh toán</p>
-          </CardContent>
-        </Card>
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <AlertTriangle className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{cardStats.need_payment_cards || 0}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Cần Đáo</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Thẻ cần thanh toán</div>
+        </div>
 
-        <Card className="border-l-4 border-l-purple-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Tổng Hạn Mức
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{formatCurrency(cardStats.total_credit_limit || 0)}</div>
-            <p className="text-xs text-gray-500 mt-1">Tổng hạn mức tín dụng</p>
-          </CardContent>
-        </Card>
+        <div className="bg-gradient-to-r from-green-800 to-green-600 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+              <DollarSign className="h-6 w-6 text-green-800" />
+            </div>
+          </div>
+          <div className="text-3xl font-bold text-yellow-200 mb-1">{formatCurrency(cardStats.total_credit_limit || 0)}</div>
+          <div className="text-yellow-100 text-sm opacity-90">Tổng Hạn Mức</div>
+          <div className="text-yellow-100 text-xs opacity-75 mt-1">Tổng hạn mức tín dụng</div>
+        </div>
       </div>
 
       {/* Search Bar */}
