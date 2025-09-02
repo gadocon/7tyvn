@@ -4245,6 +4245,77 @@ const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
 
   const [loading, setLoading] = useState(false);
 
+  // Vietnamese Banks List
+  const vietnameseBanks = [
+    "Vietcombank", "VietinBank", "BIDV", "Agribank", "Techcombank", 
+    "MBBank", "ACB", "VPBank", "Sacombank", "HDBank",
+    "TPBank", "MSB", "OCB", "LienVietPostBank", "VIB",
+    "SHB", "Eximbank", "SeABank", "NCB", "PVcomBank"
+  ];
+
+  // Card Type Colors & Styling (same as parent component)
+  const getCardStyle = (cardType) => {
+    switch (cardType?.toUpperCase()) {
+      case 'MASTERCARD':
+        return {
+          gradient: 'bg-gradient-to-br from-red-500 via-red-600 to-gray-900',
+          logo: '🔴⚪',
+          textColor: 'text-white'
+        };
+      case 'VISA':
+        return {
+          gradient: 'bg-gradient-to-br from-blue-600 via-blue-700 to-gray-900',
+          logo: 'VISA',
+          textColor: 'text-white'
+        };
+      case 'AMEX':
+        return {
+          gradient: 'bg-gradient-to-br from-gray-400 via-gray-500 to-white',
+          logo: 'AMEX',
+          textColor: 'text-gray-900'
+        };
+      case 'JCB':
+        return {
+          gradient: 'bg-gradient-to-br from-yellow-400 via-yellow-500 to-white',
+          logo: 'JCB',
+          textColor: 'text-gray-900'
+        };
+      default:
+        return {
+          gradient: 'bg-gradient-to-br from-green-400 to-green-600',
+          logo: '💳',
+          textColor: 'text-white'
+        };
+    }
+  };
+
+  // Bank Logo/Icon
+  const getBankIcon = (bankName) => {
+    const bankIcons = {
+      'Vietcombank': '🟢',
+      'VietinBank': '🔵', 
+      'BIDV': '🟡',
+      'Agribank': '🟢',
+      'Techcombank': '🔴',
+      'MBBank': '🟣',
+      'ACB': '🟢',
+      'VPBank': '🟠',
+      'Sacombank': '🔵',
+      'HDBank': '🟠',
+      'TPBank': '🟡',
+      'MSB': '🔵',
+      'OCB': '🟠',
+      'LienVietPostBank': '🟡',
+      'VIB': '🟣',
+      'SHB': '🔵',
+      'Eximbank': '🟢',
+      'SeABank': '🔵',
+      'NCB': '🟡',
+      'PVcomBank': '🟠'
+    };
+    return bankIcons[bankName] || '🏛️';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
