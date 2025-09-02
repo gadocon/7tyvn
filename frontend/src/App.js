@@ -472,73 +472,7 @@ const Dashboard = ({ customerDetail, setCustomerDetail }) => {
         </CardContent>
       </Card>
 
-      {/* Customer Detail Modal */}
-      {showCustomerModal && selectedCustomerDetail && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold">Chi Tiết Khách Hàng</h3>
-              <Button variant="outline" onClick={() => {
-                setShowCustomerModal(false);
-                setSelectedCustomerDetail(null);
-              }}>
-                <XCircle className="h-4 w-4" />
-              </Button>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Customer Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Thông Tin Khách Hàng</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div><strong>Tên:</strong> {selectedCustomerDetail.customer.name}</div>
-                    <div><strong>SĐT:</strong> {selectedCustomerDetail.customer.phone || "N/A"}</div>
-                    <div><strong>Loại:</strong> {selectedCustomerDetail.customer.type}</div>
-                    <div><strong>Tổng GD:</strong> {selectedCustomerDetail.summary.total_transactions}</div>
-                    <div><strong>Tổng Giá Trị:</strong> {formatCurrency(selectedCustomerDetail.summary.total_value)}</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recent Transactions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Giao Dịch Gần Đây</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {selectedCustomerDetail.transactions && selectedCustomerDetail.transactions.length > 0 ? (
-                    <div className="space-y-3">
-                      {selectedCustomerDetail.transactions.slice(0, 5).map((transaction, index) => (
-                        <div key={transaction.id} className="border rounded-lg p-3 bg-gray-50">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium text-sm">{formatCurrency(transaction.total)}</p>
-                              <p className="text-xs text-gray-600">
-                                {transaction.bill_codes && transaction.bill_codes.length > 0 
-                                  ? transaction.bill_codes.join(", ") 
-                                  : "N/A"}
-                              </p>
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              {transaction.bill_codes && transaction.bill_codes[0]?.startsWith('****') 
-                                ? 'Đáo Thẻ' : 'Bán Bill'}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-center py-4">Chưa có giao dịch</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
