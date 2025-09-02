@@ -3705,6 +3705,353 @@ async def get_top_customers_chart(limit: int = 10):
         logger.error(f"Error getting top customers chart: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# =============================================================================
+# CUSTOMER DETAIL PAGE APIs - 360° Customer View
+# =============================================================================
+
+@api_router.get("/customers/{customer_id}/detailed-profile")
+async def get_customer_detailed_profile(customer_id: str):
+    """Get comprehensive customer profile with all related data"""
+    try:
+        # Get customer basic info
+        customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        # Get customer's credit cards
+        cards_cursor = db.credit_cards.find({"customer_id": customer_id})
+        cards = await cards_cursor.to_list(None)
+        
+        # Get customer's bill sales
+        sales_pipeline = [
+            {"$match": {"customer_id": customer_id}},
+            {
+                "$lookup": {
+                    "from": "bills",
+                    "localField": "bill_ids", 
+                    "foreignField": "id",
+                    "as": "bills"
+                }
+            },
+            {"$sort": {"created_at": -1}}
+        ]
+        sales_cursor = db.sales.aggregate(sales_pipeline)
+        sales = await sales_cursor.to_list(None)
+        
+        # Get customer's DAO transactions
+        dao_cursor = db.credit_card_transactions.find({"customer_id": customer_id}).sort("created_at", -1)
+        dao_transactions = await dao_cursor.to_list(None)
+        
+        # Calculate customer metrics
+        total_sales_value = sum(sale.get("total", 0) for sale in sales)
+        total_sales_profit = sum(sale.get("profit_value", 0) for sale in sales)
+        total_dao_value = sum(dao.get("total_amount", 0) for dao in dao_transactions)
+        total_dao_profit = sum(dao.get("profit_value", 0) for dao in dao_transactions)
+        
+        total_transaction_value = total_sales_value + total_dao_value
+        total_profit = total_sales_profit + total_dao_profit
+        total_transactions = len(sales) + len(dao_transactions)
+        
+        avg_transaction_value = total_transaction_value / total_transactions if total_transactions > 0 else 0
+        profit_margin = (total_profit / total_transaction_value * 100) if total_transaction_value > 0 else 0
+        
+        # Customer tier calculation
+        if total_transaction_value >= 50000000:  # 50M VND
+            tier = "VIP"
+        elif total_transaction_value >= 20000000:  # 20M VND  
+            tier = "Premium"
+        elif total_transaction_value >= 5000000:   # 5M VND
+            tier = "Regular"
+        else:
+            tier = "New"
+        
+        # Calculate credit cards metrics
+        total_credit_limit = sum(card.get("credit_limit", 0) for card in cards)
+        active_cards = [card for card in cards if card.get("status") != "Hết hạn"]
+        
+        # Recent activity (last 10 transactions)
+        recent_activities = []
+        
+        # Add recent sales
+        for sale in sales[:5]:
+            recent_activities.append({
+                "id": sale["id"],
+                "type": "BILL_SALE",
+                "amount": sale.get("total", 0),
+                "profit": sale.get("profit_value", 0),
+                "created_at": sale["created_at"],
+                "description": f"Bán {len(sale.get('bills', []))} bills",
+                "bills_count": len(sale.get("bills", []))
+            })
+        
+        # Add recent DAO transactions
+        for dao in dao_transactions[:5]:
+            card_number = "N/A"
+            # Find card number from cards list
+            for card in cards:
+                if card["id"] == dao.get("card_id"):
+                    card_number = f"****{card.get('card_number', '0000')[-4:]}"
+                    break
+                    
+            dao_type = "CREDIT_DAO_POS" if dao.get("payment_method", "POS") == "POS" else "CREDIT_DAO_BILL"
+            recent_activities.append({
+                "id": dao["id"],
+                "type": dao_type,
+                "amount": dao.get("total_amount", 0),
+                "profit": dao.get("profit_value", 0),
+                "created_at": dao["created_at"],
+                "description": f"Đáo Thẻ {dao.get('payment_method', 'POS')} {card_number}",
+                "card_number": card_number
+            })
+        
+        # Sort recent activities by date
+        recent_activities.sort(key=lambda x: x["created_at"], reverse=True)
+        recent_activities = recent_activities[:10]
+        
+        return {
+            "success": True,
+            "customer": {
+                "id": customer["id"],
+                "name": customer["name"],
+                "phone": customer.get("phone"),
+                "email": customer.get("email"),
+                "address": customer.get("address"),
+                "type": customer.get("type", "INDIVIDUAL"),
+                "is_active": customer.get("is_active", True),
+                "created_at": customer["created_at"],
+                "tier": tier,
+                "notes": customer.get("notes", "")
+            },
+            "metrics": {
+                "total_transaction_value": total_transaction_value,
+                "total_profit": total_profit,
+                "total_transactions": total_transactions,
+                "avg_transaction_value": avg_transaction_value,
+                "profit_margin": round(profit_margin, 1),
+                "sales_transactions": len(sales),
+                "dao_transactions": len(dao_transactions),
+                "sales_value": total_sales_value,
+                "dao_value": total_dao_value
+            },
+            "credit_cards": {
+                "total_cards": len(cards),
+                "active_cards": len(active_cards),
+                "total_credit_limit": total_credit_limit,
+                "cards": [{
+                    "id": card["id"],
+                    "card_number": f"****{card.get('card_number', '0000')[-4:]}",
+                    "bank_name": card.get("bank_name"),
+                    "card_type": card.get("card_type"),
+                    "credit_limit": card.get("credit_limit", 0),
+                    "status": card.get("status"),
+                    "expiry_date": card.get("expiry_date")
+                } for card in cards]
+            },
+            "recent_activities": recent_activities,
+            "performance": {
+                "best_month_revenue": 0,  # TODO: Calculate from monthly data
+                "growth_rate": 0,         # TODO: Calculate YoY growth
+                "success_rate": 100,      # TODO: Calculate based on transaction success
+                "avg_days_between_transactions": 0  # TODO: Calculate
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting customer detailed profile: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/customers/{customer_id}/transactions-summary")
+async def get_customer_transactions_summary(customer_id: str, limit: int = 50):
+    """Get customer's transaction history with pagination"""
+    try:
+        transactions = []
+        
+        # Get customer's bill sales
+        sales_pipeline = [
+            {"$match": {"customer_id": customer_id}},
+            {
+                "$lookup": {
+                    "from": "bills",
+                    "localField": "bill_ids",
+                    "foreignField": "id", 
+                    "as": "bills"
+                }
+            },
+            {"$sort": {"created_at": -1}},
+            {"$limit": limit}
+        ]
+        
+        sales_cursor = db.sales.aggregate(sales_pipeline)
+        sales = await sales_cursor.to_list(None)
+        
+        for sale in sales:
+            bills = sale.get("bills", [])
+            bill_codes = [bill.get("customer_code", "N/A") for bill in bills]
+            
+            transactions.append({
+                "id": sale["id"],
+                "type": "BILL_SALE",
+                "type_display": "Bán Bill",
+                "amount": sale.get("total", 0),
+                "profit": sale.get("profit_value", 0),
+                "created_at": sale["created_at"],
+                "description": f"{len(bills)} bills: {', '.join(bill_codes[:3])}{'...' if len(bill_codes) > 3 else ''}",
+                "items_count": len(bills),
+                "method": sale.get("method"),
+                "status": "COMPLETED"
+            })
+        
+        # Get customer's DAO transactions
+        dao_cursor = db.credit_card_transactions.find({"customer_id": customer_id}).sort("created_at", -1).limit(limit)
+        dao_transactions = await dao_cursor.to_list(None)
+        
+        # Get cards for card number mapping
+        cards_cursor = db.credit_cards.find({"customer_id": customer_id})
+        cards = await cards_cursor.to_list(None)
+        cards_map = {card["id"]: card for card in cards}
+        
+        for dao in dao_transactions:
+            card_info = cards_map.get(dao.get("card_id"), {})
+            card_number = f"****{card_info.get('card_number', '0000')[-4:]}"
+            
+            dao_type = "CREDIT_DAO_POS" if dao.get("payment_method", "POS") == "POS" else "CREDIT_DAO_BILL"
+            transactions.append({
+                "id": dao["id"],
+                "type": dao_type,
+                "type_display": f"Đáo Thẻ {dao.get('payment_method', 'POS')}",
+                "amount": dao.get("total_amount", 0),
+                "profit": dao.get("profit_value", 0),
+                "created_at": dao["created_at"],
+                "description": f"{card_info.get('bank_name', 'Unknown')} {card_number}",
+                "card_number": card_number,
+                "method": dao.get("payment_method"),
+                "status": "COMPLETED"
+            })
+        
+        # Sort all transactions by date
+        transactions.sort(key=lambda x: x["created_at"], reverse=True)
+        
+        return {
+            "success": True,
+            "transactions": transactions[:limit],
+            "total_count": len(transactions)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting customer transactions summary: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/customers/{customer_id}/analytics")
+async def get_customer_analytics(customer_id: str):
+    """Get customer analytics and performance insights"""
+    try:
+        # Get customer data
+        customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        # Monthly transaction analysis
+        sales_monthly = await db.sales.aggregate([
+            {"$match": {"customer_id": customer_id}},
+            {
+                "$group": {
+                    "_id": {
+                        "$dateToString": {
+                            "format": "%Y-%m",
+                            "date": "$created_at"
+                        }
+                    },
+                    "revenue": {"$sum": "$total"},
+                    "profit": {"$sum": "$profit_value"},
+                    "count": {"$sum": 1}
+                }
+            },
+            {"$sort": {"_id": 1}}
+        ]).to_list(None)
+        
+        dao_monthly = await db.credit_card_transactions.aggregate([
+            {"$match": {"customer_id": customer_id}},
+            {
+                "$group": {
+                    "_id": {
+                        "$dateToString": {
+                            "format": "%Y-%m",
+                            "date": "$created_at"
+                        }
+                    },
+                    "revenue": {"$sum": "$total_amount"},
+                    "profit": {"$sum": "$profit_value"},
+                    "count": {"$sum": 1}
+                }
+            },
+            {"$sort": {"_id": 1}}
+        ]).to_list(None)
+        
+        # Combine monthly data
+        monthly_data = {}
+        for item in sales_monthly:
+            month = item["_id"]
+            monthly_data[month] = {
+                "month": month,
+                "sales_revenue": item["revenue"],
+                "sales_profit": item["profit"],
+                "sales_count": item["count"],
+                "dao_revenue": 0,
+                "dao_profit": 0,
+                "dao_count": 0
+            }
+        
+        for item in dao_monthly:
+            month = item["_id"]
+            if month in monthly_data:
+                monthly_data[month]["dao_revenue"] = item["revenue"]
+                monthly_data[month]["dao_profit"] = item["profit"]
+                monthly_data[month]["dao_count"] = item["count"]
+            else:
+                monthly_data[month] = {
+                    "month": month,
+                    "sales_revenue": 0,
+                    "sales_profit": 0,
+                    "sales_count": 0,
+                    "dao_revenue": item["revenue"],
+                    "dao_profit": item["profit"],
+                    "dao_count": item["count"]
+                }
+        
+        # Format monthly chart data
+        monthly_chart = []
+        for month_key in sorted(monthly_data.keys()):
+            data = monthly_data[month_key]
+            total_revenue = data["sales_revenue"] + data["dao_revenue"]
+            total_profit = data["sales_profit"] + data["dao_profit"]
+            
+            monthly_chart.append({
+                "month": month_key,
+                "month_display": datetime.strptime(month_key, "%Y-%m").strftime("%m/%Y"),
+                "total_revenue": total_revenue,
+                "total_profit": total_profit,
+                "sales_revenue": data["sales_revenue"],
+                "dao_revenue": data["dao_revenue"],
+                "transaction_count": data["sales_count"] + data["dao_count"]
+            })
+        
+        return {
+            "success": True,
+            "monthly_trend": monthly_chart,
+            "insights": {
+                "best_month": max(monthly_chart, key=lambda x: x["total_revenue"]) if monthly_chart else None,
+                "avg_monthly_revenue": sum(item["total_revenue"] for item in monthly_chart) / len(monthly_chart) if monthly_chart else 0,
+                "growth_trend": "stable",  # TODO: Calculate actual trend
+                "preferred_transaction_type": "bills" if len(sales_monthly) > len(dao_monthly) else "dao"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting customer analytics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
