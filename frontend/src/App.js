@@ -4614,6 +4614,73 @@ const EditCreditCardModal = ({ show, card, customers, onClose, onSubmit }) => {
   );
 };
 
+// Delete Credit Card Modal Component
+const DeleteCreditCardModal = ({ show, card, onClose, onConfirm }) => {
+  const [loading, setLoading] = useState(false);
+
+  if (!show || !card) return null;
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      await onConfirm();
+      onClose();
+    } catch (error) {
+      console.error("Error deleting card:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex items-center mb-4">
+          <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
+          <h2 className="text-xl font-semibold text-gray-900">Xác Nhận Xóa Thẻ</h2>
+        </div>
+        
+        <div className="mb-6">
+          <p className="text-gray-800 mb-3">
+            Bạn có chắc muốn xóa thẻ tín dụng <strong>{card.card_number?.slice(-4)}</strong>?
+          </p>
+          <p className="text-gray-600">
+            Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến thẻ này sẽ bị xóa vĩnh viễn.
+          </p>
+        </div>
+        
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+            disabled={loading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleDelete}
+            className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Đang xóa...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Xóa Vĩnh Viễn
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component  
 function App() {
   return (
