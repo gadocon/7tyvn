@@ -377,6 +377,10 @@ const Dashboard = ({ customerDetail, setCustomerDetail }) => {
             </Button>
             <Button variant="outline" className="h-24 flex flex-col items-center justify-center space-y-2">
               <ShoppingCart className="h-6 w-6" />
+              <span className="text-sm">Giao Dịch</span>
+            </div>
+            <div className="flex items-center space-x-3 px-6 py-3 hover:bg-gray-50">
+              <BarChart3 className="h-5 w-5 text-gray-600" />
               <span className="text-sm">Báo Cáo</span>
             </Button>
           </div>
