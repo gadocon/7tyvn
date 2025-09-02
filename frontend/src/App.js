@@ -288,8 +288,8 @@ const Navigation = () => {
                 className={`
                   flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200
                   ${isActive 
-                    ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    ? 'bg-green-50 text-green-700 border-r-4 border-green-600' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-green-50'
                   }
                 `}
               >
