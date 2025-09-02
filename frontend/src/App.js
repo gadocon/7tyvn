@@ -446,13 +446,14 @@ const Dashboard = () => {
                           <>
                             <span className="text-gray-400">•</span>
                             <button 
-                              className="text-sm text-blue-600 hover:text-blue-800 underline"
+                              className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors duration-200"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleCustomerClick(activity.customer_id);
                               }}
                             >
-                              {activity.customer_name}
+                              <Users className="h-3 w-3 mr-1" />
+                              Xem Chi Tiết
                             </button>
                           </>
                         )}
