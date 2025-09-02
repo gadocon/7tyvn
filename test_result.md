@@ -264,12 +264,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Fix Dashboard Modal Duplication Bug"
-    - "Change App Name to 7ty.vn CRM"
+    - "Bill Selling Activity Logging System"
   stuck_tasks:
     - "Real-time Status Calculation Functions"
   test_all: false
-  test_priority: "critical_bug_fixes_completed"
+  test_priority: "review_request_completed"
 
   - task: "Real-time Status Calculation Functions"
     implemented: true
