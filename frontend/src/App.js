@@ -3533,9 +3533,10 @@ const CreditCards = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredCards.slice(0, 8).map((card) => (
               <div key={card.id} className="relative">
-                {/* Credit Card Visual */}
-                <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
-                     onClick={() => setSelectedCard(card)}>
+                {/* Credit Card Visual - Fixed Aspect Ratio */}
+                <div className="w-full max-w-sm mx-auto">
+                  <div className="aspect-[1.586/1] bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-4 sm:p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105 relative"
+                       onClick={() => setSelectedCard(card)}>
                   
                   {/* Card Type Icon */}
                   <div className="flex justify-between items-start mb-8">
