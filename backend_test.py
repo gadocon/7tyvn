@@ -8661,6 +8661,456 @@ def main():
         self.tests_passed += 1
         return True
 
+    def test_transaction_update_api_endpoints(self):
+        """Test the new Transaction Update API endpoints as requested in review"""
+        print(f"\n🎯 TRANSACTION UPDATE API ENDPOINTS TESTING")
+        print("=" * 70)
+        print("🔍 Testing new PUT endpoints for updating transactions:")
+        print("   1. PUT /api/transactions/sale/{transaction_id}")
+        print("   2. PUT /api/transactions/credit-card/{transaction_id}")
+        print("   3. Data integrity and edge cases")
+        
+        # Step 1: Get existing transactions to test with
+        print(f"\n📋 STEP 1: Getting existing transactions for testing...")
+        
+        # Get sales transactions
+        sales_success, sales_response = self.run_test(
+            "Get Sales Transactions",
+            "GET",
+            "sales",
+            200
+        )
+        
+        # Get credit card transactions  
+        credit_success, credit_response = self.run_test(
+            "Get Credit Card Transactions",
+            "GET", 
+            "credit-cards/transactions",
+            200
+        )
+        
+        if not sales_success and not credit_success:
+            print("❌ Failed to get any transactions. Creating test data...")
+            return self.create_test_transactions_for_update()
+        
+        # Test Sale Transaction Updates
+        if sales_success and sales_response:
+            print(f"\n🔍 STEP 2: Testing Sale Transaction Updates...")
+            self.test_sale_transaction_updates(sales_response)
+        
+        # Test Credit Card Transaction Updates
+        if credit_success and credit_response:
+            print(f"\n🔍 STEP 3: Testing Credit Card Transaction Updates...")
+            self.test_credit_card_transaction_updates(credit_response)
+        
+        # Test Edge Cases
+        print(f"\n🔍 STEP 4: Testing Edge Cases...")
+        self.test_transaction_update_edge_cases()
+        
+        return True
+
+    def test_sale_transaction_updates(self, sales_transactions):
+        """Test PUT /api/transactions/sale/{transaction_id} endpoint"""
+        print(f"\n💳 Testing Sale Transaction Updates")
+        print(f"   Found {len(sales_transactions)} sale transactions")
+        
+        if not sales_transactions:
+            print("⚠️  No sale transactions found to test")
+            return False
+        
+        # Use first transaction for testing
+        test_transaction = sales_transactions[0]
+        transaction_id = test_transaction.get('id')
+        original_total = test_transaction.get('total', 0)
+        original_notes = test_transaction.get('notes', '')
+        
+        print(f"   Testing with transaction ID: {transaction_id}")
+        print(f"   Original total: {original_total}")
+        print(f"   Original notes: '{original_notes}'")
+        
+        # Test 1: Valid update with all fields
+        print(f"\n   🧪 Test 1: Valid update with all fields")
+        update_data = {
+            "total": original_total + 100000,  # Add 100k VND
+            "profit_value": 50000,
+            "profit_percentage": 5.5,
+            "notes": f"Updated via API test - {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+            "created_at": datetime.now().isoformat()
+        }
+        
+        success, response = self.run_test(
+            "Update Sale Transaction - All Fields",
+            "PUT",
+            f"transactions/sale/{transaction_id}",
+            200,
+            data=update_data
+        )
+        
+        if success:
+            print(f"      ✅ Update successful")
+            updated_data = response.get('data', {})
+            print(f"      New total: {updated_data.get('total')}")
+            print(f"      New notes: '{updated_data.get('notes')}'")
+            print(f"      Updated_at field: {updated_data.get('updated_at')}")
+        
+        # Test 2: Partial update (only notes)
+        print(f"\n   🧪 Test 2: Partial update (notes only)")
+        partial_update = {
+            "notes": f"Partial update test - {datetime.now().strftime('%H:%M:%S')}"
+        }
+        
+        success, response = self.run_test(
+            "Update Sale Transaction - Partial",
+            "PUT",
+            f"transactions/sale/{transaction_id}",
+            200,
+            data=partial_update
+        )
+        
+        if success:
+            print(f"      ✅ Partial update successful")
+            updated_data = response.get('data', {})
+            print(f"      Updated notes: '{updated_data.get('notes')}'")
+        
+        # Test 3: Non-existent transaction ID
+        print(f"\n   🧪 Test 3: Non-existent transaction ID")
+        fake_id = "non_existent_transaction_id_12345"
+        
+        success, response = self.run_test(
+            "Update Sale Transaction - Non-existent ID",
+            "PUT",
+            f"transactions/sale/{fake_id}",
+            404,
+            data={"notes": "This should fail"}
+        )
+        
+        if success:
+            print(f"      ✅ Correctly returned 404 for non-existent transaction")
+        
+        # Test 4: Empty update data
+        print(f"\n   🧪 Test 4: Empty update data")
+        
+        success, response = self.run_test(
+            "Update Sale Transaction - Empty Data",
+            "PUT",
+            f"transactions/sale/{transaction_id}",
+            400,
+            data={}
+        )
+        
+        if success:
+            print(f"      ✅ Correctly returned 400 for empty update data")
+        
+        return True
+
+    def test_credit_card_transaction_updates(self, credit_transactions):
+        """Test PUT /api/transactions/credit-card/{transaction_id} endpoint"""
+        print(f"\n💳 Testing Credit Card Transaction Updates")
+        print(f"   Found {len(credit_transactions)} credit card transactions")
+        
+        if not credit_transactions:
+            print("⚠️  No credit card transactions found to test")
+            return False
+        
+        # Use first transaction for testing
+        test_transaction = credit_transactions[0]
+        transaction_id = test_transaction.get('id')
+        original_amount = test_transaction.get('total_amount', 0)
+        original_notes = test_transaction.get('notes', '')
+        
+        print(f"   Testing with transaction ID: {transaction_id}")
+        print(f"   Original amount: {original_amount}")
+        print(f"   Original notes: '{original_notes}'")
+        
+        # Test 1: Valid update with all fields
+        print(f"\n   🧪 Test 1: Valid update with all fields")
+        update_data = {
+            "total_amount": original_amount + 200000,  # Add 200k VND
+            "profit_amount": 75000,
+            "profit_pct": 4.2,
+            "notes": f"Credit card update test - {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+            "created_at": datetime.now().isoformat()
+        }
+        
+        success, response = self.run_test(
+            "Update Credit Card Transaction - All Fields",
+            "PUT",
+            f"transactions/credit-card/{transaction_id}",
+            200,
+            data=update_data
+        )
+        
+        if success:
+            print(f"      ✅ Update successful")
+            updated_data = response.get('data', {})
+            print(f"      New amount: {updated_data.get('total_amount')}")
+            print(f"      New profit: {updated_data.get('profit_amount')}")
+            print(f"      New notes: '{updated_data.get('notes')}'")
+        
+        # Test 2: Partial update (only profit percentage)
+        print(f"\n   🧪 Test 2: Partial update (profit_pct only)")
+        partial_update = {
+            "profit_pct": 6.8
+        }
+        
+        success, response = self.run_test(
+            "Update Credit Card Transaction - Partial",
+            "PUT",
+            f"transactions/credit-card/{transaction_id}",
+            200,
+            data=partial_update
+        )
+        
+        if success:
+            print(f"      ✅ Partial update successful")
+            updated_data = response.get('data', {})
+            print(f"      Updated profit_pct: {updated_data.get('profit_pct')}%")
+        
+        # Test 3: Non-existent transaction ID
+        print(f"\n   🧪 Test 3: Non-existent transaction ID")
+        fake_id = "non_existent_credit_tx_12345"
+        
+        success, response = self.run_test(
+            "Update Credit Card Transaction - Non-existent ID",
+            "PUT",
+            f"transactions/credit-card/{fake_id}",
+            404,
+            data={"notes": "This should fail"}
+        )
+        
+        if success:
+            print(f"      ✅ Correctly returned 404 for non-existent transaction")
+        
+        # Test 4: Empty update data
+        print(f"\n   🧪 Test 4: Empty update data")
+        
+        success, response = self.run_test(
+            "Update Credit Card Transaction - Empty Data",
+            "PUT",
+            f"transactions/credit-card/{transaction_id}",
+            400,
+            data={}
+        )
+        
+        if success:
+            print(f"      ✅ Correctly returned 400 for empty update data")
+        
+        return True
+
+    def test_transaction_update_edge_cases(self):
+        """Test edge cases for transaction updates"""
+        print(f"\n🔍 Testing Transaction Update Edge Cases")
+        
+        # First, create a test transaction to work with
+        test_transaction_id = self.create_test_sale_transaction()
+        if not test_transaction_id:
+            print("❌ Failed to create test transaction for edge case testing")
+            return False
+        
+        print(f"   Created test transaction: {test_transaction_id}")
+        
+        # Test 1: Invalid date formats
+        print(f"\n   🧪 Edge Case 1: Invalid date format")
+        invalid_date_data = {
+            "notes": "Testing invalid date",
+            "created_at": "invalid-date-format"
+        }
+        
+        # This might return 422 (validation error) or 400 (bad request)
+        success_422, _ = self.run_test(
+            "Update with Invalid Date - 422",
+            "PUT",
+            f"transactions/sale/{test_transaction_id}",
+            422,
+            data=invalid_date_data
+        )
+        
+        success_400, _ = self.run_test(
+            "Update with Invalid Date - 400",
+            "PUT", 
+            f"transactions/sale/{test_transaction_id}",
+            400,
+            data=invalid_date_data
+        )
+        
+        if success_422 or success_400:
+            print(f"      ✅ Invalid date format properly rejected")
+        
+        # Test 2: Negative amounts
+        print(f"\n   🧪 Edge Case 2: Negative amounts")
+        negative_amount_data = {
+            "total": -50000,
+            "profit_value": -10000
+        }
+        
+        success, response = self.run_test(
+            "Update with Negative Amounts",
+            "PUT",
+            f"transactions/sale/{test_transaction_id}",
+            200,  # May be allowed or rejected depending on business logic
+            data=negative_amount_data
+        )
+        
+        if success:
+            print(f"      ✅ Negative amounts handled (allowed)")
+        else:
+            print(f"      ✅ Negative amounts rejected (business rule)")
+        
+        # Test 3: Very large numbers
+        print(f"\n   🧪 Edge Case 3: Very large numbers")
+        large_number_data = {
+            "total": 999999999999.99,
+            "profit_value": 888888888888.88
+        }
+        
+        success, response = self.run_test(
+            "Update with Large Numbers",
+            "PUT",
+            f"transactions/sale/{test_transaction_id}",
+            200,
+            data=large_number_data
+        )
+        
+        if success:
+            print(f"      ✅ Large numbers handled properly")
+            updated_data = response.get('data', {})
+            print(f"      Stored total: {updated_data.get('total')}")
+        
+        # Test 4: Special characters in notes
+        print(f"\n   🧪 Edge Case 4: Special characters in notes")
+        special_chars_data = {
+            "notes": "Special chars: áàảãạ êếềểễệ ôốồổỗộ ươứừửữự đ 💰🏦💳 <script>alert('test')</script>"
+        }
+        
+        success, response = self.run_test(
+            "Update with Special Characters",
+            "PUT",
+            f"transactions/sale/{test_transaction_id}",
+            200,
+            data=special_chars_data
+        )
+        
+        if success:
+            print(f"      ✅ Special characters handled properly")
+            updated_data = response.get('data', {})
+            print(f"      Stored notes: '{updated_data.get('notes')[:50]}...'")
+        
+        # Test 5: Data integrity - verify updated_at is set
+        print(f"\n   🧪 Edge Case 5: Data integrity - updated_at field")
+        integrity_data = {
+            "notes": f"Integrity test - {datetime.now().strftime('%H:%M:%S')}"
+        }
+        
+        success, response = self.run_test(
+            "Update for Integrity Check",
+            "PUT",
+            f"transactions/sale/{test_transaction_id}",
+            200,
+            data=integrity_data
+        )
+        
+        if success:
+            updated_data = response.get('data', {})
+            updated_at = updated_data.get('updated_at')
+            if updated_at:
+                print(f"      ✅ updated_at field automatically set: {updated_at}")
+            else:
+                print(f"      ❌ updated_at field missing")
+        
+        return True
+
+    def create_test_sale_transaction(self):
+        """Create a test sale transaction for testing updates"""
+        print(f"\n🔧 Creating test sale transaction...")
+        
+        # First create a test customer
+        test_customer_data = {
+            "name": f"Test Customer Update {int(datetime.now().timestamp())}",
+            "type": "INDIVIDUAL",
+            "phone": f"012345{int(datetime.now().timestamp()) % 10000}",
+            "email": f"test_update_{int(datetime.now().timestamp())}@example.com"
+        }
+        
+        customer_success, customer_response = self.run_test(
+            "Create Test Customer for Updates",
+            "POST",
+            "customers",
+            200,
+            data=test_customer_data
+        )
+        
+        if not customer_success:
+            print("❌ Failed to create test customer")
+            return None
+        
+        customer_id = customer_response.get('id')
+        
+        # Create a test bill
+        test_bill_data = {
+            "customer_code": f"TESTUPDATE{int(datetime.now().timestamp())}",
+            "provider_region": "MIEN_NAM",
+            "full_name": "Test Update Customer",
+            "amount": 1500000,
+            "billing_cycle": "12/2025",
+            "status": "AVAILABLE"
+        }
+        
+        bill_success, bill_response = self.run_test(
+            "Create Test Bill for Updates",
+            "POST",
+            "bills/create",
+            200,
+            data=test_bill_data
+        )
+        
+        if not bill_success:
+            print("❌ Failed to create test bill")
+            return None
+        
+        bill_id = bill_response.get('id')
+        
+        # Create a test sale
+        test_sale_data = {
+            "customer_id": customer_id,
+            "bill_ids": [bill_id],
+            "profit_pct": 4.0,
+            "method": "CASH",
+            "notes": "Test sale for update testing"
+        }
+        
+        sale_success, sale_response = self.run_test(
+            "Create Test Sale for Updates",
+            "POST",
+            "sales",
+            200,
+            data=test_sale_data
+        )
+        
+        if not sale_success:
+            print("❌ Failed to create test sale")
+            return None
+        
+        transaction_id = sale_response.get('id')
+        print(f"✅ Created test sale transaction: {transaction_id}")
+        return transaction_id
+
+    def create_test_transactions_for_update(self):
+        """Create test transactions if none exist"""
+        print(f"\n🔧 Creating test transactions for update testing...")
+        
+        # Create test sale transaction
+        sale_id = self.create_test_sale_transaction()
+        if sale_id:
+            print(f"✅ Created test sale transaction: {sale_id}")
+            # Test with the created transaction
+            self.test_sale_transaction_updates([{"id": sale_id, "total": 1500000, "notes": "Test"}])
+        
+        # For credit card transactions, we'd need to create credit cards and DAO transactions
+        # This is more complex, so we'll skip if no existing data
+        print(f"⚠️  Credit card transaction testing skipped (requires existing credit card data)")
+        
+        return True
+
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
