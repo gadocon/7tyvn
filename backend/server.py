@@ -1822,7 +1822,7 @@ async def delete_customer(customer_id: str):
             deleted_stats["bills"] = bills_delete_result.deleted_count
             
             # Delete all sales/transactions for this customer
-            sales_delete_result = await db.sales.delete_many({"customer_id": customer_id})
+            sales_delete_result = await db.sales.delete_many({"customer_id": actual_customer_id})
             deleted_stats["transactions"] = sales_delete_result.deleted_count
         
         # Finally delete the customer
