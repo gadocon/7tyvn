@@ -1793,7 +1793,7 @@ async def delete_customer(customer_id: str):
             raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
         
         # Get all sales for this customer to find related bills
-        sales = await db.sales.find({"customer_id": customer_id}).to_list(None)
+        sales = await db.sales.find({"customer_id": actual_customer_id}).to_list(None)
         
         deleted_stats = {
             "customer": 0,
