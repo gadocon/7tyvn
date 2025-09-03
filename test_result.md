@@ -153,9 +153,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Transaction Update API Endpoints"
     - "Transaction Detail Modal Edit Functionality"
-  stuck_tasks: []
+  stuck_tasks:
+    - "Transaction Update API Endpoints"
   test_all: false
   test_priority: "high_first"
 
