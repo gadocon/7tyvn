@@ -324,6 +324,31 @@ class ActivityCreate(BaseModel):
     status: str = "SUCCESS"
     metadata: Optional[Dict[str, Any]] = None
 
+# Webhook Configuration Models
+class WebhookConfig(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = Field(..., min_length=1, max_length=100)
+    url: str = Field(..., min_length=10, max_length=500)
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class WebhookConfigCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    url: str = Field(..., min_length=10, max_length=500)
+    is_active: bool = True
+
+class WebhookConfigUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    url: Optional[str] = Field(None, min_length=10, max_length=500)
+    is_active: Optional[bool] = None
+
+class WebhookTestResult(BaseModel):
+    webhook_id: str
+    success: bool
+    response_time_ms: int
+    error_message: Optional[str] = None
+
 class Sale(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     customer_id: str
