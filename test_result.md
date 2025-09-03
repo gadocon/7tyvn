@@ -105,6 +105,18 @@
 user_problem_statement: "Implement Transaction Detail Modal with edit functionality. User requested transaction detail modal that allows editing all fields including amount, profit, description, date, and status. Transaction Detail Modal should be editable and allow users to save changes back to database via API."
 
 backend:
+  - task: "Credit Card Schema Migration and Pydantic Model Alignment"
+    implemented: false
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "🚨 CRITICAL SCHEMA MISMATCH DISCOVERED IN CREDIT CARD TRANSACTIONS! Comprehensive testing reveals GET /api/credit-cards/{card_id}/detail endpoint returns 500 error due to Pydantic validation failures. ❌ ROOT CAUSE: Database contains credit card transactions with old schema fields (amount, fee, profit_amount, transaction_type) but CreditCardTransaction Pydantic model expects new schema fields (total_amount, profit_value, payback, transaction_group_id). Backend line 2842 fails when trying to create CreditCardTransaction objects from database data. ✅ WORKING ENDPOINTS: GET /api/credit-cards (200 status, 39 cards loaded), DELETE /api/credit-cards/{card_id} (dual lookup working), frontend accessibility confirmed. ❌ BROKEN ENDPOINT: GET /api/credit-cards/{card_id}/detail (500 error, Pydantic validation failure). 🔧 URGENT FIXES NEEDED: 1) Add field mapping in parse_from_mongo() function to convert old field names to new model fields, 2) Ensure transaction_group_id field is populated for existing transactions, 3) Update CreditCardTransaction model to handle both old and new schema formats, 4) Test schema migration with existing data. IMPACT: Credit card detail pages completely inaccessible, blocking frontend delete testing functionality."
+
   - task: "System-Wide ID Consistency Audit for Production Readiness"
     implemented: true
     working: true
