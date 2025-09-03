@@ -7107,7 +7107,7 @@ const CustomerDetailPage = () => {
           <CustomerOverviewTab customer={customer} metrics={metrics} credit_cards={credit_cards} recent_activities={recent_activities} />
         )}
         {activeTab === 'cards' && (
-          <CustomerCreditCardsTab customer={customer} credit_cards={credit_cards} formatCurrency={formatCurrency} />
+          <CustomerCreditCardsTab customer={customer} credit_cards={credit_cards} formatCurrency={formatCurrency} handleDaoCard={handleDaoCard} />
         )}
         {activeTab === 'transactions' && (
           <CustomerTransactionsTab customer={customer} formatCurrency={formatCurrency} formatDateTime={formatDateTime} />
