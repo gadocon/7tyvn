@@ -1730,7 +1730,7 @@ const Inventory = () => {
                               variant="outline"
                               onClick={() => activeTab === "available" 
                                 ? handleRemoveFromInventory(item.id)
-                                : handleDeleteBill(item.id)
+                                : handleDeleteBill(item.id, item)
                               }
                               className="text-red-600 hover:text-red-700"
                             >
