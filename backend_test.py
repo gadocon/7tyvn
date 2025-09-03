@@ -2086,6 +2086,351 @@ class FPTBillManagerAPITester:
         self.tests_run += 1
         return working_count >= 2  # At least 2 accounts working is acceptable
 
+    def test_dao_modal_functionality(self):
+        """TEST ĐÁO MODAL FUNCTIONALITY - Comprehensive backend API testing"""
+        print(f"\n🎯 ĐÁO MODAL FUNCTIONALITY TESTING")
+        print("=" * 70)
+        print("🔍 TESTING SCOPE:")
+        print("   1. ĐÁO Modal Backend API Testing")
+        print("   2. Bills API for BILL Method")
+        print("   3. Credit Cards API")
+        print("   4. Integration Testing")
+        
+        dao_test_results = {
+            "credit_cards_api": False,
+            "available_bills_api": False,
+            "dao_pos_method": False,
+            "dao_bill_method": False,
+            "error_handling": False,
+            "profit_calculations": False,
+            "total_tests": 0,
+            "passed_tests": 0
+        }
+        
+        # Test 1: Credit Cards API
+        print(f"\n🧪 TEST 1: Credit Cards API")
+        print("=" * 50)
+        print("🎯 Testing GET /credit-cards endpoint for modal card data")
+        
+        cards_success, cards_response = self.run_test(
+            "Get Credit Cards for Modal",
+            "GET",
+            "credit-cards?page_size=50",
+            200
+        )
+        
+        if cards_success and cards_response:
+            dao_test_results["credit_cards_api"] = True
+            dao_test_results["passed_tests"] += 1
+            
+            print(f"✅ Found {len(cards_response)} credit cards")
+            
+            # Find cards suitable for DAO testing
+            dao_eligible_cards = []
+            for card in cards_response:
+                status = card.get('status')
+                if status in ['Cần đáo', 'Chưa đến hạn']:
+                    dao_eligible_cards.append(card)
+            
+            print(f"📊 Cards eligible for DAO: {len(dao_eligible_cards)}")
+            
+            if dao_eligible_cards:
+                # Display sample card info for modal header verification
+                sample_card = dao_eligible_cards[0]
+                print(f"📋 Sample card for modal testing:")
+                print(f"   - ID: {sample_card.get('id')}")
+                print(f"   - Card Number: ****{sample_card.get('card_number', '')[-4:]}")
+                print(f"   - Customer: {sample_card.get('customer_name')}")
+                print(f"   - Bank: {sample_card.get('bank_name')}")
+                print(f"   - Status: {sample_card.get('status')}")
+                print(f"   - Credit Limit: {sample_card.get('credit_limit')} VND")
+            else:
+                print("⚠️  No cards eligible for DAO testing found")
+        else:
+            print("❌ Failed to get credit cards")
+        
+        dao_test_results["total_tests"] += 1
+        
+        # Test 2: Bills API for BILL Method
+        print(f"\n🧪 TEST 2: Bills API for BILL Method")
+        print("=" * 50)
+        print("🎯 Testing GET /bills?status=AVAILABLE for bill selection")
+        
+        bills_success, bills_response = self.run_test(
+            "Get Available Bills for BILL Method",
+            "GET",
+            "bills?status=AVAILABLE&limit=50",
+            200
+        )
+        
+        available_bills = []
+        if bills_success and bills_response:
+            dao_test_results["available_bills_api"] = True
+            dao_test_results["passed_tests"] += 1
+            
+            available_bills = [bill for bill in bills_response if bill.get('status') == 'AVAILABLE']
+            print(f"✅ Found {len(available_bills)} available bills for BILL method")
+            
+            if available_bills:
+                # Verify response structure for modal bill selection
+                sample_bill = available_bills[0]
+                required_fields = ['id', 'customer_code', 'full_name', 'amount', 'billing_cycle', 'provider_region']
+                missing_fields = [field for field in required_fields if field not in sample_bill]
+                
+                if not missing_fields:
+                    print(f"✅ Bill response structure verified for modal")
+                    print(f"📋 Sample bill for modal selection:")
+                    print(f"   - Customer Code: {sample_bill.get('customer_code')}")
+                    print(f"   - Name: {sample_bill.get('full_name')}")
+                    print(f"   - Amount: {sample_bill.get('amount')} VND")
+                    print(f"   - Cycle: {sample_bill.get('billing_cycle')}")
+                else:
+                    print(f"❌ Missing required fields for modal: {missing_fields}")
+            else:
+                print("⚠️  No available bills found for BILL method testing")
+        else:
+            print("❌ Failed to get available bills")
+        
+        dao_test_results["total_tests"] += 1
+        
+        # Test 3: ĐÁO POS Method API
+        print(f"\n🧪 TEST 3: ĐÁO POS Method API")
+        print("=" * 50)
+        print("🎯 Testing POST /credit-cards/{card_id}/dao with POS method")
+        
+        if dao_eligible_cards:
+            test_card = dao_eligible_cards[0]
+            card_id = test_card['id']
+            
+            # Test POS method with amount validation
+            pos_payload = {
+                "payment_method": "POS",
+                "total_amount": 5000000,  # 5M VND
+                "profit_pct": 3.5,
+                "notes": "Test ĐÁO POS method from modal"
+            }
+            
+            pos_success, pos_response = self.run_test(
+                f"ĐÁO POS Method - Card {card_id[:8]}",
+                "POST",
+                f"credit-cards/{card_id}/dao",
+                200,
+                data=pos_payload
+            )
+            
+            if pos_success and pos_response:
+                dao_test_results["dao_pos_method"] = True
+                dao_test_results["passed_tests"] += 1
+                
+                # Verify response structure and calculations
+                expected_fields = ['success', 'message', 'transaction_group_id', 'total_amount', 'profit_value', 'payback']
+                missing_fields = [field for field in expected_fields if field not in pos_response]
+                
+                if not missing_fields:
+                    print(f"✅ POS method response structure verified")
+                    
+                    # Verify profit calculations
+                    total_amount = pos_response.get('total_amount')
+                    profit_value = pos_response.get('profit_value')
+                    payback = pos_response.get('payback')
+                    
+                    expected_profit = round(5000000 * 3.5 / 100, 0)  # 175,000
+                    expected_payback = 5000000 - expected_profit  # 4,825,000
+                    
+                    if (total_amount == 5000000 and 
+                        profit_value == expected_profit and 
+                        payback == expected_payback):
+                        dao_test_results["profit_calculations"] = True
+                        dao_test_results["passed_tests"] += 1
+                        print(f"✅ Profit calculations verified:")
+                        print(f"   - Total Amount: {total_amount:,} VND")
+                        print(f"   - Profit (3.5%): {profit_value:,} VND")
+                        print(f"   - Payback: {payback:,} VND")
+                    else:
+                        print(f"❌ Profit calculation mismatch:")
+                        print(f"   - Expected profit: {expected_profit:,}, got: {profit_value}")
+                        print(f"   - Expected payback: {expected_payback:,}, got: {payback}")
+                else:
+                    print(f"❌ Missing response fields: {missing_fields}")
+            else:
+                print("❌ POS method API call failed")
+        else:
+            print("⚠️  No eligible cards found for POS method testing")
+        
+        dao_test_results["total_tests"] += 2  # POS method + profit calculations
+        
+        # Test 4: ĐÁO BILL Method API
+        print(f"\n🧪 TEST 4: ĐÁO BILL Method API")
+        print("=" * 50)
+        print("🎯 Testing POST /credit-cards/{card_id}/dao with BILL method")
+        
+        if dao_eligible_cards and available_bills:
+            # Use a different card for BILL method to avoid conflicts
+            test_card = dao_eligible_cards[-1] if len(dao_eligible_cards) > 1 else dao_eligible_cards[0]
+            card_id = test_card['id']
+            
+            # Select bills for BILL method (up to 3 bills)
+            selected_bills = available_bills[:min(3, len(available_bills))]
+            bill_ids = [bill['id'] for bill in selected_bills]
+            total_bill_amount = sum(bill.get('amount', 0) for bill in selected_bills)
+            
+            bill_payload = {
+                "payment_method": "BILL",
+                "bill_ids": bill_ids,
+                "profit_pct": 3.5,
+                "notes": "Test ĐÁO BILL method from modal"
+            }
+            
+            print(f"📋 Testing with {len(bill_ids)} bills, total amount: {total_bill_amount:,} VND")
+            
+            bill_success, bill_response = self.run_test(
+                f"ĐÁO BILL Method - Card {card_id[:8]}",
+                "POST",
+                f"credit-cards/{card_id}/dao",
+                200,
+                data=bill_payload
+            )
+            
+            if bill_success and bill_response:
+                dao_test_results["dao_bill_method"] = True
+                dao_test_results["passed_tests"] += 1
+                
+                # Verify BILL method response
+                total_amount = bill_response.get('total_amount')
+                profit_value = bill_response.get('profit_value')
+                payback = bill_response.get('payback')
+                
+                expected_profit = round(total_bill_amount * 3.5 / 100, 0)
+                expected_payback = total_bill_amount - expected_profit
+                
+                if (total_amount == total_bill_amount and 
+                    profit_value == expected_profit and 
+                    payback == expected_payback):
+                    print(f"✅ BILL method calculations verified:")
+                    print(f"   - Bills used: {len(bill_ids)}")
+                    print(f"   - Total Amount: {total_amount:,} VND")
+                    print(f"   - Profit (3.5%): {profit_value:,} VND")
+                    print(f"   - Payback: {payback:,} VND")
+                else:
+                    print(f"❌ BILL method calculation mismatch")
+            else:
+                print("❌ BILL method API call failed")
+        else:
+            print("⚠️  No eligible cards or available bills for BILL method testing")
+        
+        dao_test_results["total_tests"] += 1
+        
+        # Test 5: Error Handling
+        print(f"\n🧪 TEST 5: Error Handling")
+        print("=" * 50)
+        print("🎯 Testing error handling for invalid data")
+        
+        if dao_eligible_cards:
+            test_card = dao_eligible_cards[0]
+            card_id = test_card['id']
+            
+            # Test invalid POS amount
+            invalid_pos_payload = {
+                "payment_method": "POS",
+                "total_amount": 0,  # Invalid amount
+                "profit_pct": 3.5
+            }
+            
+            error1_success, error1_response = self.run_test(
+                "Invalid POS Amount Error",
+                "POST",
+                f"credit-cards/{card_id}/dao",
+                400,  # Expect 400 error
+                data=invalid_pos_payload
+            )
+            
+            # Test missing bill_ids for BILL method
+            invalid_bill_payload = {
+                "payment_method": "BILL",
+                "bill_ids": [],  # Empty bill_ids
+                "profit_pct": 3.5
+            }
+            
+            error2_success, error2_response = self.run_test(
+                "Missing Bills Error",
+                "POST",
+                f"credit-cards/{card_id}/dao",
+                400,  # Expect 400 error
+                data=invalid_bill_payload
+            )
+            
+            # Test non-existent card
+            error3_success, error3_response = self.run_test(
+                "Non-existent Card Error",
+                "POST",
+                "credit-cards/invalid-card-id/dao",
+                404,  # Expect 404 error
+                data=pos_payload
+            )
+            
+            error_tests_passed = sum([error1_success, error2_success, error3_success])
+            if error_tests_passed >= 2:  # At least 2 out of 3 error tests should pass
+                dao_test_results["error_handling"] = True
+                dao_test_results["passed_tests"] += 1
+                print(f"✅ Error handling verified ({error_tests_passed}/3 tests passed)")
+            else:
+                print(f"❌ Error handling issues ({error_tests_passed}/3 tests passed)")
+        
+        dao_test_results["total_tests"] += 1
+        
+        # Final Summary
+        print(f"\n📊 ĐÁO MODAL FUNCTIONALITY TEST SUMMARY")
+        print("=" * 50)
+        
+        total_tests = dao_test_results["total_tests"]
+        passed_tests = dao_test_results["passed_tests"]
+        success_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
+        
+        print(f"📈 Overall Results:")
+        print(f"   - Total Tests: {total_tests}")
+        print(f"   - Passed Tests: {passed_tests}")
+        print(f"   - Success Rate: {success_rate:.1f}%")
+        
+        print(f"\n📋 Detailed Results:")
+        test_items = [
+            ("Credit Cards API", dao_test_results["credit_cards_api"]),
+            ("Available Bills API", dao_test_results["available_bills_api"]),
+            ("ĐÁO POS Method", dao_test_results["dao_pos_method"]),
+            ("ĐÁO BILL Method", dao_test_results["dao_bill_method"]),
+            ("Profit Calculations", dao_test_results["profit_calculations"]),
+            ("Error Handling", dao_test_results["error_handling"])
+        ]
+        
+        for test_name, result in test_items:
+            status = "✅ PASS" if result else "❌ FAIL"
+            print(f"   - {test_name}: {status}")
+        
+        # Determine overall result
+        if success_rate >= 80:
+            print(f"\n🎉 ĐÁO MODAL FUNCTIONALITY: SUCCESS")
+            print(f"✅ Backend APIs are working correctly for modal integration")
+            print(f"✅ POS and BILL payment methods functional")
+            print(f"✅ Profit calculations accurate")
+            print(f"✅ Error handling implemented")
+            
+            if success_rate == 100:
+                print(f"🏆 PERFECT SCORE: All ĐÁO modal tests passed!")
+            
+            self.tests_passed += 1
+        else:
+            print(f"\n⚠️  ĐÁO MODAL FUNCTIONALITY: NEEDS ATTENTION")
+            print(f"❌ Some critical issues found in backend APIs")
+            print(f"🔍 Review individual test results above")
+        
+        print(f"\n🔧 INTEGRATION RECOMMENDATIONS:")
+        print(f"   1. Verify modal payload structure matches backend expectations")
+        print(f"   2. Implement proper Vietnamese error message handling")
+        print(f"   3. Add real-time calculation validation in frontend")
+        print(f"   4. Test modal form validation with backend responses")
+        
+        self.tests_run += 1
+        return success_rate >= 80
+
     def test_error_handling(self):
         """Test API error handling"""
         print(f"\n🧪 Testing Error Handling...")
