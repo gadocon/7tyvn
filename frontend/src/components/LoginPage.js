@@ -145,11 +145,11 @@ const LoginPage = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Smart Login Input - Auto-detects Username/Email/Phone */}
               <div className="space-y-2">
-                <Label htmlFor="login" className="text-gray-700 font-medium">
+                <Label htmlFor="login" className="text-white/90 font-medium">
                   {getInputLabel()}
                 </Label>
                 <div className="relative">
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-400">
                     {getIcon()}
                   </div>
                   <Input
@@ -159,13 +159,13 @@ const LoginPage = () => {
                     value={formData.login}
                     onChange={handleInputChange}
                     placeholder={getPlaceholder()}
-                    className="pl-10 bg-white/70 border-white/30 focus:bg-white/90 transition-all duration-200"
+                    className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-green-400 transition-all duration-200"
                     required
                   />
                 </div>
                 {/* Smart Detection Indicator */}
                 {formData.login && (
-                  <div className="text-xs text-gray-500 ml-1">
+                  <div className="text-xs text-green-200/80 ml-1">
                     <span className="inline-flex items-center">
                       {getIcon()}
                       <span className="ml-1">
