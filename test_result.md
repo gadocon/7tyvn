@@ -237,7 +237,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Credit Card Schema Migration and Pydantic Model Alignment"
+    - "Delete Operations UI Testing and Functionality Verification"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
