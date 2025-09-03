@@ -2696,12 +2696,25 @@ async def create_credit_card(card_data: CreditCardCreate):
 
 @api_router.put("/credit-cards/{card_id}")
 async def update_credit_card(card_id: str, card_data: CreditCardUpdate):
-    """Update credit card"""
+    """Update credit card - supports both UUID and ObjectId lookup"""
     try:
-        # Check if card exists
+        # Try to find credit card by 'id' field first (UUID format)
         existing_card = await db.credit_cards.find_one({"id": card_id})
+        actual_card_id = card_id
+        
+        # If not found and card_id looks like ObjectId, try _id field
+        if not existing_card and len(card_id) == 24 and all(c in '0123456789abcdef' for c in card_id.lower()):
+            try:
+                from bson import ObjectId
+                existing_card = await db.credit_cards.find_one({"_id": ObjectId(card_id)})
+                # If found by ObjectId, use the actual 'id' field for subsequent operations
+                if existing_card and existing_card.get('id'):
+                    actual_card_id = existing_card.get('id')
+            except:
+                pass  # Invalid ObjectId format, continue with original card_id
+        
         if not existing_card:
-            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ tín dụng")
         
         # Prepare update data
         update_data = {}
