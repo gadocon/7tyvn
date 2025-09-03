@@ -4927,5 +4927,374 @@ def main():
         print(f"\n⚠️  Tests failed - issues detected.")
         return 1
 
+    def test_delete_bill_functionality_verification(self):
+        """VERIFICATION: Test DELETE bill functionality after frontend improvements"""
+        print(f"\n🎯 VERIFICATION: DELETE Bill Functionality After Frontend Improvements")
+        print("=" * 70)
+        print("🔍 Testing DELETE /api/bills/{bill_id} endpoint with all scenarios")
+        print("📋 Verifying error response structure matches frontend expectations")
+        
+        # Step 1: Create test bills for different scenarios
+        print(f"\n📋 Step 1: Creating test bills for all scenarios...")
+        
+        # Create AVAILABLE bill (should be deletable)
+        available_bill_data = {
+            "customer_code": f"AVAIL{int(datetime.now().timestamp())}",
+            "provider_region": "MIEN_NAM",
+            "full_name": "Test Available Bill Customer",
+            "address": "Test Address",
+            "amount": 1200000,
+            "billing_cycle": "12/2025",
+            "status": "AVAILABLE"
+        }
+        
+        available_success, available_response = self.run_test(
+            "Create AVAILABLE Bill",
+            "POST",
+            "bills/create",
+            200,
+            data=available_bill_data
+        )
+        
+        if not available_success:
+            print("❌ Failed to create AVAILABLE bill")
+            return False
+            
+        available_bill_id = available_response.get('id')
+        print(f"✅ Created AVAILABLE bill: {available_bill_id}")
+        
+        # Create SOLD bill (should be protected)
+        sold_bill_data = {
+            "customer_code": f"SOLD{int(datetime.now().timestamp())}",
+            "provider_region": "MIEN_NAM",
+            "full_name": "Test Sold Bill Customer", 
+            "address": "Test Address",
+            "amount": 1500000,
+            "billing_cycle": "12/2025",
+            "status": "SOLD"
+        }
+        
+        sold_success, sold_response = self.run_test(
+            "Create SOLD Bill",
+            "POST",
+            "bills/create",
+            200,
+            data=sold_bill_data
+        )
+        
+        if not sold_success:
+            print("❌ Failed to create SOLD bill")
+            return False
+            
+        sold_bill_id = sold_response.get('id')
+        print(f"✅ Created SOLD bill: {sold_bill_id}")
+        
+        # Create CROSSED bill (should be protected)
+        crossed_bill_data = {
+            "customer_code": f"CROSSED{int(datetime.now().timestamp())}",
+            "provider_region": "MIEN_NAM",
+            "full_name": "Test Crossed Bill Customer",
+            "address": "Test Address", 
+            "amount": 0,
+            "billing_cycle": "12/2025",
+            "status": "CROSSED"
+        }
+        
+        crossed_success, crossed_response = self.run_test(
+            "Create CROSSED Bill",
+            "POST",
+            "bills/create",
+            200,
+            data=crossed_bill_data
+        )
+        
+        if not crossed_success:
+            print("❌ Failed to create CROSSED bill")
+            return False
+            
+        crossed_bill_id = crossed_response.get('id')
+        print(f"✅ Created CROSSED bill: {crossed_bill_id}")
+        
+        # Test results tracking
+        test_results = []
+        
+        # Step 2: TEST SCENARIO 1 - AVAILABLE bill deletion (should succeed)
+        print(f"\n🟢 SCENARIO 1: Delete AVAILABLE bill (should succeed with 200)")
+        print(f"   Target: {available_bill_id} (status: AVAILABLE)")
+        
+        url = f"{self.api_url}/bills/{available_bill_id}"
+        
+        try:
+            response = requests.delete(url, timeout=30)
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 200:
+                try:
+                    response_data = response.json()
+                    print(f"   Response: {response_data}")
+                    
+                    # Verify success response structure
+                    has_success_flag = 'success' in response_data
+                    has_message = 'message' in response_data
+                    success_value = response_data.get('success')
+                    message = response_data.get('message', '')
+                    
+                    print(f"   ✅ Success flag present: {has_success_flag}")
+                    print(f"   ✅ Message present: {has_message}")
+                    print(f"   ✅ Success value: {success_value}")
+                    print(f"   ✅ Message: {message}")
+                    
+                    if has_success_flag and has_message and success_value:
+                        print(f"   🎉 SCENARIO 1 PASSED: AVAILABLE bill deleted successfully")
+                        test_results.append({"scenario": 1, "passed": True, "details": "AVAILABLE bill deletion successful"})
+                        self.tests_passed += 1
+                    else:
+                        print(f"   ❌ SCENARIO 1 FAILED: Invalid success response structure")
+                        test_results.append({"scenario": 1, "passed": False, "details": "Invalid response structure"})
+                        
+                except Exception as e:
+                    print(f"   ❌ SCENARIO 1 FAILED: Could not parse response - {e}")
+                    test_results.append({"scenario": 1, "passed": False, "details": f"Parse error: {e}"})
+            else:
+                print(f"   ❌ SCENARIO 1 FAILED: Expected 200, got {response.status_code}")
+                test_results.append({"scenario": 1, "passed": False, "details": f"Wrong status code: {response.status_code}"})
+                
+        except Exception as e:
+            print(f"   ❌ SCENARIO 1 FAILED: Request error - {e}")
+            test_results.append({"scenario": 1, "passed": False, "details": f"Request error: {e}"})
+        finally:
+            self.tests_run += 1
+        
+        # Step 3: TEST SCENARIO 2 - SOLD bill deletion (should return 400)
+        print(f"\n🔴 SCENARIO 2: Delete SOLD bill (should return 400 with Vietnamese detail)")
+        print(f"   Target: {sold_bill_id} (status: SOLD)")
+        
+        url = f"{self.api_url}/bills/{sold_bill_id}"
+        
+        try:
+            response = requests.delete(url, timeout=30)
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 400:
+                try:
+                    error_data = response.json()
+                    print(f"   Error Response: {error_data}")
+                    
+                    # Verify error response structure for frontend
+                    has_detail = 'detail' in error_data
+                    detail_message = error_data.get('detail', '')
+                    
+                    print(f"   ✅ Detail field present: {has_detail}")
+                    print(f"   ✅ Detail message: {detail_message}")
+                    
+                    # Check for Vietnamese error message
+                    expected_vietnamese_phrases = [
+                        "Không thể xóa bill đã bán",
+                        "đã được tham chiếu trong giao dịch khách hàng"
+                    ]
+                    
+                    vietnamese_found = any(phrase in detail_message for phrase in expected_vietnamese_phrases)
+                    print(f"   ✅ Vietnamese message: {vietnamese_found}")
+                    
+                    if has_detail and vietnamese_found:
+                        print(f"   🎉 SCENARIO 2 PASSED: SOLD bill deletion properly blocked with Vietnamese message")
+                        test_results.append({"scenario": 2, "passed": True, "details": "SOLD bill protection working"})
+                        self.tests_passed += 1
+                    else:
+                        print(f"   ❌ SCENARIO 2 FAILED: Missing detail field or Vietnamese message")
+                        test_results.append({"scenario": 2, "passed": False, "details": "Missing detail or Vietnamese"})
+                        
+                except Exception as e:
+                    print(f"   ❌ SCENARIO 2 FAILED: Could not parse error response - {e}")
+                    test_results.append({"scenario": 2, "passed": False, "details": f"Parse error: {e}"})
+            else:
+                print(f"   ❌ SCENARIO 2 FAILED: Expected 400, got {response.status_code}")
+                test_results.append({"scenario": 2, "passed": False, "details": f"Wrong status code: {response.status_code}"})
+                
+        except Exception as e:
+            print(f"   ❌ SCENARIO 2 FAILED: Request error - {e}")
+            test_results.append({"scenario": 2, "passed": False, "details": f"Request error: {e}"})
+        finally:
+            self.tests_run += 1
+        
+        # Step 4: TEST SCENARIO 3 - CROSSED bill deletion (should return 400)
+        print(f"\n🟡 SCENARIO 3: Delete CROSSED bill (should return 400 with Vietnamese detail)")
+        print(f"   Target: {crossed_bill_id} (status: CROSSED)")
+        
+        url = f"{self.api_url}/bills/{crossed_bill_id}"
+        
+        try:
+            response = requests.delete(url, timeout=30)
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 400:
+                try:
+                    error_data = response.json()
+                    print(f"   Error Response: {error_data}")
+                    
+                    # Verify error response structure for frontend
+                    has_detail = 'detail' in error_data
+                    detail_message = error_data.get('detail', '')
+                    
+                    print(f"   ✅ Detail field present: {has_detail}")
+                    print(f"   ✅ Detail message: {detail_message}")
+                    
+                    # Check for Vietnamese error message
+                    expected_vietnamese_phrases = [
+                        "Không thể xóa bill đã gạch",
+                        "đã được xác nhận không có nợ cước"
+                    ]
+                    
+                    vietnamese_found = any(phrase in detail_message for phrase in expected_vietnamese_phrases)
+                    print(f"   ✅ Vietnamese message: {vietnamese_found}")
+                    
+                    if has_detail and vietnamese_found:
+                        print(f"   🎉 SCENARIO 3 PASSED: CROSSED bill deletion properly blocked with Vietnamese message")
+                        test_results.append({"scenario": 3, "passed": True, "details": "CROSSED bill protection working"})
+                        self.tests_passed += 1
+                    else:
+                        print(f"   ❌ SCENARIO 3 FAILED: Missing detail field or Vietnamese message")
+                        test_results.append({"scenario": 3, "passed": False, "details": "Missing detail or Vietnamese"})
+                        
+                except Exception as e:
+                    print(f"   ❌ SCENARIO 3 FAILED: Could not parse error response - {e}")
+                    test_results.append({"scenario": 3, "passed": False, "details": f"Parse error: {e}"})
+            else:
+                print(f"   ❌ SCENARIO 3 FAILED: Expected 400, got {response.status_code}")
+                test_results.append({"scenario": 3, "passed": False, "details": f"Wrong status code: {response.status_code}"})
+                
+        except Exception as e:
+            print(f"   ❌ SCENARIO 3 FAILED: Request error - {e}")
+            test_results.append({"scenario": 3, "passed": False, "details": f"Request error: {e}"})
+        finally:
+            self.tests_run += 1
+        
+        # Step 5: TEST SCENARIO 4 - Non-existent bill deletion (should return 404)
+        print(f"\n⚫ SCENARIO 4: Delete non-existent bill (should return 404)")
+        
+        fake_bill_id = f"nonexistent_{int(datetime.now().timestamp())}"
+        print(f"   Target: {fake_bill_id} (non-existent)")
+        
+        url = f"{self.api_url}/bills/{fake_bill_id}"
+        
+        try:
+            response = requests.delete(url, timeout=30)
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 404:
+                try:
+                    error_data = response.json()
+                    print(f"   Error Response: {error_data}")
+                    
+                    # Verify error response structure for frontend
+                    has_detail = 'detail' in error_data
+                    detail_message = error_data.get('detail', '')
+                    
+                    print(f"   ✅ Detail field present: {has_detail}")
+                    print(f"   ✅ Detail message: {detail_message}")
+                    
+                    if has_detail:
+                        print(f"   🎉 SCENARIO 4 PASSED: Non-existent bill returns 404 with detail field")
+                        test_results.append({"scenario": 4, "passed": True, "details": "404 error handling working"})
+                        self.tests_passed += 1
+                    else:
+                        print(f"   ❌ SCENARIO 4 FAILED: Missing detail field in 404 response")
+                        test_results.append({"scenario": 4, "passed": False, "details": "Missing detail field"})
+                        
+                except Exception as e:
+                    print(f"   ❌ SCENARIO 4 FAILED: Could not parse error response - {e}")
+                    test_results.append({"scenario": 4, "passed": False, "details": f"Parse error: {e}"})
+            else:
+                print(f"   ❌ SCENARIO 4 FAILED: Expected 404, got {response.status_code}")
+                test_results.append({"scenario": 4, "passed": False, "details": f"Wrong status code: {response.status_code}"})
+                
+        except Exception as e:
+            print(f"   ❌ SCENARIO 4 FAILED: Request error - {e}")
+            test_results.append({"scenario": 4, "passed": False, "details": f"Request error: {e}"})
+        finally:
+            self.tests_run += 1
+        
+        # Step 6: Summary and verification
+        print(f"\n📊 DELETE BILL FUNCTIONALITY VERIFICATION RESULTS:")
+        print("=" * 60)
+        
+        passed_scenarios = [r for r in test_results if r["passed"]]
+        failed_scenarios = [r for r in test_results if not r["passed"]]
+        
+        print(f"✅ PASSED SCENARIOS: {len(passed_scenarios)}/4")
+        for result in passed_scenarios:
+            print(f"   - Scenario {result['scenario']}: {result['details']}")
+            
+        if failed_scenarios:
+            print(f"\n❌ FAILED SCENARIOS: {len(failed_scenarios)}/4")
+            for result in failed_scenarios:
+                print(f"   - Scenario {result['scenario']}: {result['details']}")
+        
+        # Overall assessment
+        all_passed = len(passed_scenarios) == 4
+        
+        if all_passed:
+            print(f"\n🎉 DELETE BILL FUNCTIONALITY FULLY WORKING!")
+            print(f"✅ AVAILABLE bills can be deleted successfully (200 status, success message)")
+            print(f"✅ SOLD bills deletion properly blocked with 400 error and Vietnamese message")
+            print(f"✅ CROSSED bills deletion properly blocked with 400 error and Vietnamese message")
+            print(f"✅ Non-existent bills return 404 error with proper 'detail' field")
+            print(f"✅ Error structure: All error responses contain 'detail' field as expected by frontend")
+            print(f"✅ Vietnamese messages: Error messages are user-friendly in Vietnamese")
+            print(f"✅ Success responses: Contain success flag and message")
+            print(f"✅ HTTP status codes: All scenarios return appropriate status codes")
+            print(f"\n🔧 FRONTEND COMPATIBILITY: Backend DELETE functionality is working as designed")
+        else:
+            print(f"\n⚠️  DELETE BILL FUNCTIONALITY HAS ISSUES!")
+            print(f"❌ Some scenarios failed - check individual test results above")
+            print(f"🔧 RECOMMENDED ACTIONS:")
+            print(f"   - Fix any failing scenarios")
+            print(f"   - Ensure all error responses have 'detail' field")
+            print(f"   - Verify Vietnamese error messages")
+            print(f"   - Test frontend error handling with these responses")
+        
+        return all_passed
+
 if __name__ == "__main__":
-    sys.exit(main())
+    tester = FPTBillManagerAPITester()
+    
+    # Run specific test based on command line argument
+    if len(sys.argv) > 1:
+        test_name = sys.argv[1]
+        
+        if test_name == "check_lai":
+            tester.test_check_lai_comprehensive_investigation()
+        elif test_name == "check_lai_post_vs_query":
+            tester.test_check_lai_with_post_body_vs_query_params()
+        elif test_name == "check_lai_errors":
+            tester.test_check_lai_error_scenarios()
+        elif test_name == "bill_codes":
+            tester.test_customer_detail_with_bill_codes()
+        elif test_name == "multiple_bill_codes":
+            tester.test_multiple_customers_bill_codes()
+        elif test_name == "data_integrity":
+            tester.test_critical_data_integrity_bill_deletion()
+        elif test_name == "crossed_status":
+            tester.test_crossed_status_creation()
+        elif test_name == "crossed_deletion":
+            tester.test_crossed_bill_deletion_protection()
+        elif test_name == "crossed_comprehensive":
+            tester.test_crossed_bill_comprehensive_validation()
+        elif test_name == "inventory_improvements":
+            tester.test_inventory_page_improvements_comprehensive()
+        elif test_name == "put_endpoint":
+            tester.test_put_bill_endpoint_comprehensive()
+        elif test_name == "credit_cards":
+            tester.test_credit_card_management_comprehensive()
+        elif test_name == "credit_card_detail":
+            tester.test_credit_card_detail_comprehensive()
+        elif test_name == "credit_card_cycle":
+            tester.test_credit_card_cycle_business_logic_comprehensive()
+        elif test_name == "delete_bill_verification":
+            tester.test_delete_bill_functionality_verification()
+        else:
+            print(f"Unknown test: {test_name}")
+            print("Available tests: check_lai, check_lai_post_vs_query, check_lai_errors, bill_codes, multiple_bill_codes, data_integrity, crossed_status, crossed_deletion, crossed_comprehensive, inventory_improvements, put_endpoint, credit_cards, credit_card_detail, credit_card_cycle, delete_bill_verification")
+    else:
+        # Run the DELETE bill verification test as requested in review
+        tester.test_delete_bill_functionality_verification()
