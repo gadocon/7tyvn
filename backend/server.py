@@ -2716,6 +2716,10 @@ async def get_card_transactions(card_id: str, page: int = 1, page_size: int = 3)
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[ERROR] DAO Exception: {e}")
+        print(f"[ERROR] Exception type: {type(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/credit-cards/{card_id}/dao")
