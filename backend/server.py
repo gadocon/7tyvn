@@ -673,7 +673,7 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
     
     # Use default webhook URL
     webhook_url = "https://n8n.phamthanh.net/webhook/checkbill"
-    print(f"[DEBUG] Using webhook: {webhook_url}")
+
     
     # Mock successful response for PA2204000000
     if customer_code == "PA2204000000":
