@@ -3272,7 +3272,7 @@ const Transactions = () => {
         onClose={() => setShowDetailModal(false)}
         onUpdate={(updatedTransaction) => {
           // Refresh transactions list after update
-          fetchTransactions();
+          fetchTransactionData();
           setShowDetailModal(false);
           toast.success("Giao dịch đã được cập nhật thành công");
         }}
