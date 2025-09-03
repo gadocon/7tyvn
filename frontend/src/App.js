@@ -2338,6 +2338,14 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
                 <TableBody>
                   {customers.map((customer) => (
                     <TableRow key={customer.id}>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedCustomers.includes(customer.id)}
+                          onChange={(e) => handleSelectCustomer(customer.id, e.target.checked)}
+                          className="rounded border-gray-300"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium whitespace-nowrap">
                         <CustomerNameLink customer={customer} />
                       </TableCell>
