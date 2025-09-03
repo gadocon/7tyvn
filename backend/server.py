@@ -744,9 +744,9 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
         f"Provider: {provider_region.value}"
     )
     
-    # Get next webhook URL using rotation logic
-    webhook_url = await get_next_webhook_url()
-    print(f"[DEBUG] Selected webhook: {webhook_url}")
+    # Use default webhook URL
+    webhook_url = "https://n8n.phamthanh.net/webhook/checkbill"
+    print(f"[DEBUG] Using webhook: {webhook_url}")
     
     # Mock successful response for PA2204000000
     if customer_code == "PA2204000000":
