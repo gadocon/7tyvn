@@ -6908,6 +6908,72 @@ const CustomerDetailPage = () => {
     }
   };
 
+  // ĐÁO Modal Functions
+  const handleDaoCard = (card) => {
+    setSelectedCardForDao(card);
+    setDaoFormData({
+      total_amount: '',
+      profit_pct: 3.0,
+      bill_ids: [],
+      notes: ''
+    });
+    setDaoMethod('POS');
+    setShowDaoModal(true);
+  };
+
+  const handleCloseDaoModal = () => {
+    setShowDaoModal(false);
+    setSelectedCardForDao(null);
+    setDaoFormData({
+      total_amount: '',
+      profit_pct: 3.0,
+      bill_ids: [],
+      notes: ''
+    });
+  };
+
+  const handleDaoSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedCardForDao) {
+      toast.error("Không có thẻ được chọn");
+      return;
+    }
+
+    try {
+      setDaoLoading(true);
+      
+      const daoData = {
+        card_id: selectedCardForDao.id,
+        method: daoMethod,
+        profit_pct: parseFloat(daoFormData.profit_pct) || 0,
+        notes: daoFormData.notes || ''
+      };
+
+      if (daoMethod === 'POS') {
+        daoData.total_amount = parseFloat(daoFormData.total_amount);
+      } else if (daoMethod === 'BILL') {
+        daoData.bill_ids = daoFormData.bill_ids;
+      }
+
+      const response = await axios.post(`${API}/credit-cards/dao`, daoData);
+      
+      if (response.data.success) {
+        toast.success(response.data.message || "Đáo thẻ thành công!");
+        handleCloseDaoModal();
+        // Refresh customer data to show updated information
+        fetchCustomerDetail();
+      } else {
+        toast.error(response.data.message || "Có lỗi xảy ra khi đáo thẻ");
+      }
+    } catch (error) {
+      console.error("Error processing DAO:", error);
+      toast.error(error.response?.data?.detail || "Có lỗi xảy ra khi đáo thẻ");
+    } finally {
+      setDaoLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
