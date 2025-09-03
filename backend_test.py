@@ -2382,17 +2382,17 @@ class FPTBillManagerAPITester:
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    # Run credit card ObjectId vs UUID fix verification
-    print("🎯 RUNNING CREDIT CARD OBJECTID VS UUID FIX VERIFICATION")
-    credit_card_success = tester.test_credit_card_objectid_uuid_fix()
+    # Run credit cards API test after schema fix (review request)
+    print("🎯 RUNNING CREDIT CARDS API TEST AFTER SCHEMA FIX")
+    success = tester.test_credit_cards_api_after_schema_fix()
     
-    if credit_card_success:
-        print("\n✅ Credit card ObjectId vs UUID fix verification PASSED!")
+    if success:
+        print("\n✅ Credit Cards API schema fix verification PASSED!")
     else:
-        print("\n❌ Credit card ObjectId vs UUID fix verification FAILED!")
+        print("\n❌ Credit Cards API schema fix verification FAILED!")
     
     # Close MongoDB connection
     if tester.mongo_connected:
         tester.mongo_client.close()
     
-    sys.exit(0 if credit_card_success else 1)
+    sys.exit(0 if success else 1)
