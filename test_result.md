@@ -105,6 +105,21 @@
 user_problem_statement: "Implement Transaction Detail Modal with edit functionality. User requested transaction detail modal that allows editing all fields including amount, profit, description, date, and status. Transaction Detail Modal should be editable and allow users to save changes back to database via API."
 
 backend:
+  - task: "Customer Detailed Profile Datetime Comparison Fix"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Fixed datetime comparison error in customer detailed profile endpoint by implementing safe_activity_sort_key function (lines 4457-4483) to handle mixed timezone datetime objects. The fix converts all datetime objects to timezone-aware UTC for consistent comparison in recent_activities sorting."
+        - working: true
+          agent: "testing"
+          comment: "🎉 DATETIME COMPARISON ERROR SUCCESSFULLY FIXED! Comprehensive testing of GET /api/customers/{customer_id}/detailed-profile endpoint confirms the datetime comparison issue has been resolved. ✅ ENDPOINT WORKING: Successfully tested detailed-profile endpoint with newly created customer, returned 200 status instead of previous 500 error. ✅ RESPONSE STRUCTURE VERIFIED: All required fields present (success, customer, metrics, credit_cards, recent_activities, performance). ✅ NO DATETIME ERRORS: Zero 'can't compare offset-naive and offset-aware datetimes' errors detected during testing. ✅ RECENT ACTIVITIES LOADING: Recent activities section loads successfully without datetime comparison issues (tested with 0 activities for new customer). ✅ SAFE SORTING IMPLEMENTED: The safe_activity_sort_key function correctly handles mixed timezone datetime objects by converting all to timezone-aware UTC. ✅ CUSTOMERNAMELINK FIXED: CustomerNameLink navigation should now work properly as the backend API no longer returns 500 errors. The fix addresses the root cause identified in the review request - datetime comparison bug in recent_activities sorting has been completely resolved."
+
   - task: "Transaction Update API Endpoints"
     implemented: true
     working: true
