@@ -874,7 +874,7 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
                                             json_part = clean_message[json_start:-1]  # Remove trailing quote
                                             json_part = json_part.replace('\\"', '"')  # Unescape quotes
                                             
-                                            nested_data = json_lib.loads(json_part)
+                                            nested_data = json.loads(json_part)
                                             if "error" in nested_data and "message" in nested_data["error"]:
                                                 error_message = nested_data["error"]["message"]
                                     except Exception as e:
