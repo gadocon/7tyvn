@@ -307,7 +307,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Delete Bill Error Investigation"
+    - "JWT Authentication System with Role-Based Access Control"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
