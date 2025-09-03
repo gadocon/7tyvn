@@ -4347,10 +4347,8 @@ const CreditCards = () => {
         toast.success(`Đã đáo thẻ thành công bằng phương thức ${daoMethod}`);
         handleCloseDaoModal();
         
-        // Refresh customer data to show updated info
-        if (customerId) {
-          fetchCustomerDetail();
-        }
+        // Refresh cards data to show updated info
+        fetchCards();
       } else {
         toast.error("Có lỗi xảy ra khi đáo thẻ");
       }
