@@ -3270,6 +3270,12 @@ const Transactions = () => {
         show={showDetailModal}
         transaction={selectedTransaction}
         onClose={() => setShowDetailModal(false)}
+        onUpdate={(updatedTransaction) => {
+          // Refresh transactions list after update
+          fetchTransactions();
+          setShowDetailModal(false);
+          toast.success("Giao dịch đã được cập nhật thành công");
+        }}
       />
     </div>
   );
