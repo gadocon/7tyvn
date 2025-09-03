@@ -78,6 +78,7 @@ class CustomerType(str, Enum):
 class PaymentMethod(str, Enum):
     CASH = "CASH"
     BANK_TRANSFER = "BANK_TRANSFER"
+    OTHER = "OTHER"
 
 # Authentication Models
 class UserCreate(BaseModel):
