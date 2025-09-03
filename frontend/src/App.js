@@ -7328,7 +7328,7 @@ const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activitie
 };
 
 // Customer Credit Cards Tab Component
-const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
+const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency, handleDaoCard }) => {
   const [selectedCard, setSelectedCard] = useState(null);
 
   const getCardStyle = (cardType) => {
