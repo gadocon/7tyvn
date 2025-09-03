@@ -158,12 +158,13 @@ class DatabaseCleaner:
         return bills
 
     async def create_test_credit_cards(self, customers, cards_per_customer=2):
-        """Create consistent test credit cards"""
+        """Create consistent test credit cards with proper schema"""
         total_cards = len(customers) * cards_per_customer
         print(f"💳 CREATING {total_cards} TEST CREDIT CARDS...")
         
         banks = ["Vietcombank", "Techcombank", "BIDV", "VietinBank", "Sacombank", "ACB", "MB Bank"]
-        card_types = ["CREDIT", "DEBIT"]
+        card_types = ["VISA", "MASTERCARD", "JCB", "AMEX"]  # Valid CardType enum values
+        card_statuses = ["Đã đáo", "Cần đáo", "Chưa đến hạn", "Quá Hạn"]  # Valid CardStatus enum values
         
         cards = []
         
@@ -172,22 +173,51 @@ class DatabaseCleaner:
                 card_id = str(uuid.uuid4())
                 bank = random.choice(banks)
                 card_type = random.choice(card_types)
+                card_status = random.choice(card_statuses)
                 
-                # Generate realistic card number
-                card_number = f"4{random.randint(100, 999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}"
+                # Generate realistic card number based on card type
+                if card_type == "VISA":
+                    card_number = f"4{random.randint(100, 999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}"
+                elif card_type == "MASTERCARD":
+                    card_number = f"5{random.randint(100, 999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}"
+                elif card_type == "JCB":
+                    card_number = f"35{random.randint(10, 99)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}"
+                else:  # AMEX
+                    card_number = f"34{random.randint(10, 99)}{random.randint(100000, 999999)}{random.randint(10000, 99999)}"
+                
+                # Generate expiry date (MM/YY format)
+                current_year = datetime.now().year
+                expiry_month = random.randint(1, 12)
+                expiry_year = random.randint(current_year, current_year + 5)
+                expiry_date = f"{expiry_month:02d}/{str(expiry_year)[-2:]}"
+                
+                # Generate CCV
+                ccv = f"{random.randint(100, 999)}" if card_type != "AMEX" else f"{random.randint(1000, 9999)}"
+                
+                # Generate statement and payment due dates
+                statement_date = random.randint(1, 28)  # Day of month
+                payment_due_date = (statement_date + 15) % 28 + 1  # 15 days after statement
                 
                 card = {
                     "id": card_id,
                     "customer_id": customer["id"],
+                    "customer_name": customer["name"],  # Required field
                     "card_number": card_number,
-                    "card_holder_name": customer["name"].upper(),
+                    "cardholder_name": customer["name"].upper(),  # Required field
                     "bank_name": bank,
-                    "card_type": card_type,
-                    "limit_amount": random.choice([10000000, 20000000, 50000000, 100000000]),
-                    "available_limit": random.randint(5000000, 15000000),
-                    "interest_rate": random.uniform(1.5, 3.5),
+                    "card_type": card_type,  # Valid CardType enum
+                    "expiry_date": expiry_date,  # Required field in MM/YY format
+                    "ccv": ccv,  # Required field
+                    "statement_date": statement_date,  # Required field
+                    "payment_due_date": payment_due_date,  # Required field
+                    "credit_limit": random.choice([10000000, 20000000, 50000000, 100000000]),  # Required field
+                    "status": card_status,  # Valid CardStatus enum
                     "notes": f"Thẻ {card_type} {bank} của {customer['name']}",
-                    "is_active": True,
+                    # Cycle tracking fields
+                    "current_cycle_month": f"{datetime.now().month:02d}/{datetime.now().year}",
+                    "last_payment_date": None,
+                    "cycle_payment_count": 0,
+                    "total_cycles": 0,
                     "created_at": datetime.now(timezone.utc) - timedelta(days=random.randint(1, 60)),
                     "updated_at": datetime.now(timezone.utc)
                 }
@@ -196,7 +226,7 @@ class DatabaseCleaner:
         
         # Insert all cards
         result = await self.db.credit_cards.insert_many(cards)
-        print(f"   ✅ Created {len(result.inserted_ids)} credit cards")
+        print(f"   ✅ Created {len(result.inserted_ids)} credit cards with proper schema")
         
         # Update customer total_cards count
         for customer in customers:
