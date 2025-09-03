@@ -1259,7 +1259,7 @@ async def get_dashboard_stats():
 
 @api_router.post("/bill/check", response_model=CheckBillResponse)
 async def check_bills(request: CheckBillRequest):
-    """Check multiple bills with webhook rotation"""
+    """Check multiple bills"""
     try:
         print(f"[DEBUG] Starting batch check for {len(request.codes)} bills")
         
