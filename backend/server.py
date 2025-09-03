@@ -663,9 +663,11 @@ def parse_from_mongo(item):
 
 # External API bill checking function
 async def external_check_bill(customer_code: str, provider_region: ProviderRegion) -> CheckBillResult:
-    """Check bill via external n8n webhook with mock success data"""
-    import aiohttp
-    import json as json_lib
+    """Call external bill checking API with random delay and timeout"""
+    print(
+        f"Checking bill for customer code: {customer_code}, "
+        f"Provider: {provider_region.value}"
+    )
     
     # Mock successful response for PA2204000000
     if customer_code == "PA2204000000":
