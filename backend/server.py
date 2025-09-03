@@ -4454,8 +4454,33 @@ async def get_customer_detailed_profile(customer_id: str):
                 "card_number": card_number
             })
         
-        # Sort recent activities by date
-        recent_activities.sort(key=lambda x: x["created_at"], reverse=True)
+        # Sort recent activities by date - handle mixed timezone datetime objects
+        def safe_activity_sort_key(activity):
+            created_at = activity.get("created_at")
+            # Convert all datetime objects to timezone-aware UTC for consistent comparison
+            if isinstance(created_at, datetime):
+                if created_at.tzinfo is None:
+                    # Timezone-naive datetime - assume UTC
+                    created_at = created_at.replace(tzinfo=timezone.utc)
+                else:
+                    # Already timezone-aware - convert to UTC
+                    created_at = created_at.astimezone(timezone.utc)
+            elif isinstance(created_at, str):
+                # String datetime - parse and make timezone-aware
+                try:
+                    created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    if created_at.tzinfo is None:
+                        created_at = created_at.replace(tzinfo=timezone.utc)
+                except:
+                    # Fallback to current time if parsing fails
+                    created_at = datetime.now(timezone.utc)
+            else:
+                # Fallback to current time for unknown types
+                created_at = datetime.now(timezone.utc)
+            
+            return created_at
+        
+        recent_activities.sort(key=safe_activity_sort_key, reverse=True)
         recent_activities = recent_activities[:10]
         
         return {
