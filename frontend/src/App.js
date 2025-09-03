@@ -4314,7 +4314,7 @@ const CreditCards = () => {
   };
 
   // Phone Call Integration
-  const handlePhoneCall = (phoneNumber, customerName) => {
+  const handlePhoneCall = (phoneNumber, customerName, customerId = null) => {
     if (!phoneNumber) {
       toast.error("Số điện thoại không có sẵn");
       return;
@@ -4330,7 +4330,7 @@ const CreditCards = () => {
           type: "CUSTOMER_CALL",
           title: `Gọi điện cho khách hàng`,
           description: `Đã gọi điện cho ${customerName} (${phoneNumber})`,
-          customer_id: customer.id,
+          customer_id: customerId,
           customer_name: customerName,
           metadata: {
             phone_number: phoneNumber,
