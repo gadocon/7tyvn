@@ -2,6 +2,8 @@ import requests
 import sys
 import json
 from datetime import datetime
+import pymongo
+from pymongo import MongoClient
 
 class FPTBillManagerAPITester:
     def __init__(self, base_url="https://crm7ty.preview.emergentagent.com"):
@@ -9,6 +11,16 @@ class FPTBillManagerAPITester:
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
         self.tests_passed = 0
+        
+        # MongoDB connection for direct database debugging
+        try:
+            self.mongo_client = MongoClient("mongodb://localhost:27017")
+            self.db = self.mongo_client["test_database"]
+            self.mongo_connected = True
+            print("✅ MongoDB connection established for database debugging")
+        except Exception as e:
+            print(f"⚠️ MongoDB connection failed: {e}")
+            self.mongo_connected = False
 
     def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
         """Run a single API test"""
