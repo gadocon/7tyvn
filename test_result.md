@@ -478,13 +478,13 @@ backend:
 
 metadata:
   created_by: "testing_agent"
-  version: "18.0"
-  test_sequence: 19
+  version: "19.0"
+  test_sequence: 20
   run_ui: true
 
 test_plan:
   current_focus:
-    - "JWT Authentication System with Role-Based Access Control"
+    - "System-Wide ID Consistency Audit for Production Readiness"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
