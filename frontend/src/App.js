@@ -3013,6 +3013,26 @@ const Transactions = () => {
     });
   };
 
+  // Phone Call Integration
+  const handlePhoneCall = (phoneNumber, customerName, customerId = null) => {
+    if (!phoneNumber) {
+      toast.error("Số điện thoại không có sẵn");
+      return;
+    }
+
+    try {
+      // Attempt to initiate phone call
+      window.location.href = `tel:${phoneNumber}`;
+      
+      // Log the phone call activity (optional)
+      toast.success(`Đang gọi đến ${customerName} (${phoneNumber})`);
+      console.log(`Phone call initiated to ${customerName} at ${phoneNumber}`);
+    } catch (error) {
+      console.error("Error initiating phone call:", error);
+      toast.error("Không thể thực hiện cuộc gọi");
+    }
+  };
+
   const handleViewDetail = (transaction) => {
     setSelectedTransaction(transaction);
     setShowDetailModal(true);
