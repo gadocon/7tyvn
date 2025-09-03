@@ -118,9 +118,9 @@ const LoginPage = () => {
         <div className="absolute -bottom-60 -left-60 w-96 h-96 bg-gradient-to-tr from-green-500/5 to-green-700/10 rounded-full blur-3xl animate-pulse-slow delay-1000"></div>
       </div>
 
-      {/* Glassmorphism Login Card */}
+      {/* Enhanced Glassmorphism Login Card */}
       <div className="relative z-10 w-full max-w-md mx-4">
-        <Card className="backdrop-blur-xl bg-white/30 border border-white/20 shadow-2xl">
+        <Card className="backdrop-blur-xl bg-white/10 border border-white/20 shadow-2xl hover:shadow-3xl transition-all duration-500">
           <CardHeader className="text-center pb-2">
             {/* Logo */}
             <div className="flex justify-center mb-4">
