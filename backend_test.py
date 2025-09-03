@@ -266,6 +266,219 @@ class FPTBillManagerAPITester:
         else:
             return False
 
+    def test_specific_customer_id_debug(self):
+        """Debug specific customer ID 68b86b157a314c251c8c863b that's returning 404"""
+        print(f"\n🚨 URGENT DEBUG: Customer ID 68b86b157a314c251c8c863b Investigation")
+        print("=" * 80)
+        print("🎯 DEBUGGING OBJECTIVES:")
+        print("   1. Test GET /api/customers/68b86b157a314c251c8c863b/detailed-profile directly")
+        print("   2. Check if this customer ID exists in database")
+        print("   3. List all customers to see ID formats")
+        print("   4. Check for mixed ObjectId/UUID format issues")
+        print("   5. Debug backend query logic for customer lookup")
+        
+        target_customer_id = "68b86b157a314c251c8c863b"
+        
+        # Step 1: Direct test of the problematic endpoint
+        print(f"\n🔍 STEP 1: Direct test of problematic endpoint")
+        print(f"   Testing: GET /api/customers/{target_customer_id}/detailed-profile")
+        
+        detailed_profile_success, detailed_profile_response = self.run_test(
+            f"Customer Detailed Profile - {target_customer_id}",
+            "GET",
+            f"customers/{target_customer_id}/detailed-profile",
+            200  # We expect this to fail with 404, but let's see what we get
+        )
+        
+        if not detailed_profile_success:
+            print(f"❌ CONFIRMED: Customer ID {target_customer_id} returns error")
+            print(f"   This confirms the user's 404 error report")
+        else:
+            print(f"✅ UNEXPECTED: Customer ID {target_customer_id} found!")
+            print(f"   Response structure: {list(detailed_profile_response.keys()) if isinstance(detailed_profile_response, dict) else 'Non-dict response'}")
+        
+        # Step 2: Check if customer exists in regular customers endpoint
+        print(f"\n🔍 STEP 2: Check if customer exists in regular endpoint")
+        print(f"   Testing: GET /api/customers/{target_customer_id}")
+        
+        customer_success, customer_response = self.run_test(
+            f"Customer Basic Info - {target_customer_id}",
+            "GET",
+            f"customers/{target_customer_id}",
+            200
+        )
+        
+        if not customer_success:
+            print(f"❌ CONFIRMED: Customer ID {target_customer_id} not found in basic endpoint either")
+        else:
+            print(f"✅ FOUND: Customer exists in basic endpoint!")
+            print(f"   Customer name: {customer_response.get('name', 'Unknown')}")
+            print(f"   Customer type: {customer_response.get('type', 'Unknown')}")
+            print(f"   Customer ID format: {len(target_customer_id)} characters")
+        
+        # Step 3: List all customers to analyze ID formats
+        print(f"\n🔍 STEP 3: Analyzing all customer ID formats")
+        print(f"   Getting complete customer list...")
+        
+        all_customers_success, all_customers_response = self.run_test(
+            "Get All Customers for ID Analysis",
+            "GET",
+            "customers?page_size=100",  # Get more customers
+            200
+        )
+        
+        target_found = False
+        if all_customers_success and all_customers_response:
+            print(f"✅ Found {len(all_customers_response)} customers in database")
+            
+            # Analyze ID formats
+            id_formats = {
+                "uuid_format": [],  # Standard UUID format (36 chars with dashes)
+                "objectid_format": [],  # MongoDB ObjectId format (24 hex chars)
+                "other_format": []  # Any other format
+            }
+            
+            similar_ids = []
+            
+            for customer in all_customers_response:
+                customer_id = customer.get('id', '')
+                customer_name = customer.get('name', 'Unknown')
+                
+                # Check if this is our target customer
+                if customer_id == target_customer_id:
+                    target_found = True
+                    print(f"🎯 FOUND TARGET CUSTOMER: {customer_name} (ID: {customer_id})")
+                
+                # Check for similar IDs (same length, similar pattern)
+                if len(customer_id) == len(target_customer_id):
+                    similar_ids.append({"id": customer_id, "name": customer_name})
+                
+                # Categorize ID format
+                if len(customer_id) == 36 and customer_id.count('-') == 4:
+                    id_formats["uuid_format"].append({"id": customer_id, "name": customer_name})
+                elif len(customer_id) == 24 and all(c in '0123456789abcdef' for c in customer_id.lower()):
+                    id_formats["objectid_format"].append({"id": customer_id, "name": customer_name})
+                else:
+                    id_formats["other_format"].append({"id": customer_id, "name": customer_name, "length": len(customer_id)})
+            
+            # Report ID format analysis
+            print(f"\n📊 ID FORMAT ANALYSIS:")
+            print(f"   UUID Format (36 chars with dashes): {len(id_formats['uuid_format'])} customers")
+            print(f"   ObjectId Format (24 hex chars): {len(id_formats['objectid_format'])} customers")
+            print(f"   Other Formats: {len(id_formats['other_format'])} customers")
+            
+            # Show examples of each format
+            if id_formats["uuid_format"]:
+                example_uuid = id_formats["uuid_format"][0]
+                print(f"   UUID Example: {example_uuid['id']} ({example_uuid['name']})")
+            
+            if id_formats["objectid_format"]:
+                example_objectid = id_formats["objectid_format"][0]
+                print(f"   ObjectId Example: {example_objectid['id']} ({example_objectid['name']})")
+            
+            if id_formats["other_format"]:
+                for other in id_formats["other_format"][:3]:  # Show first 3 examples
+                    print(f"   Other Format: {other['id']} ({other['name']}) - {other['length']} chars")
+            
+            # Analyze target customer ID format
+            print(f"\n🔍 TARGET CUSTOMER ID ANALYSIS:")
+            print(f"   Target ID: {target_customer_id}")
+            print(f"   Length: {len(target_customer_id)} characters")
+            print(f"   Contains dashes: {'-' in target_customer_id}")
+            print(f"   All hex chars: {all(c in '0123456789abcdef' for c in target_customer_id.lower())}")
+            
+            if len(target_customer_id) == 24:
+                print(f"   🔍 ANALYSIS: Looks like MongoDB ObjectId format")
+            elif len(target_customer_id) == 36:
+                print(f"   🔍 ANALYSIS: Looks like UUID format")
+            else:
+                print(f"   🔍 ANALYSIS: Unknown ID format")
+            
+            # Check for similar length IDs
+            if similar_ids:
+                print(f"\n📋 CUSTOMERS WITH SIMILAR ID LENGTH ({len(target_customer_id)} chars):")
+                for similar in similar_ids[:5]:  # Show first 5
+                    print(f"   - {similar['id']} ({similar['name']})")
+                if len(similar_ids) > 5:
+                    print(f"   ... and {len(similar_ids) - 5} more")
+            
+            # Final determination
+            if target_found:
+                print(f"\n✅ CONCLUSION: Customer {target_customer_id} EXISTS in database!")
+                print(f"   🚨 CRITICAL: This means the detailed-profile endpoint has a bug!")
+                print(f"   🔧 ACTION NEEDED: Debug the detailed-profile endpoint logic")
+            else:
+                print(f"\n❌ CONCLUSION: Customer {target_customer_id} NOT FOUND in database")
+                print(f"   💡 POSSIBLE CAUSES:")
+                print(f"      1. Customer was deleted")
+                print(f"      2. ID was mistyped by user")
+                print(f"      3. Customer exists in different database/collection")
+                print(f"      4. ID format mismatch (ObjectId vs UUID)")
+        
+        # Step 4: Test with similar format IDs to see if endpoint works
+        print(f"\n🔍 STEP 4: Testing detailed-profile endpoint with known good IDs")
+        
+        if all_customers_success and all_customers_response and len(all_customers_response) > 0:
+            # Test with first 3 customers to see if endpoint works at all
+            test_customers = all_customers_response[:3]
+            
+            for i, test_customer in enumerate(test_customers):
+                test_id = test_customer.get('id')
+                test_name = test_customer.get('name', 'Unknown')
+                
+                print(f"\n   Test {i+1}: Testing with customer {test_name} (ID: {test_id})")
+                
+                test_success, test_response = self.run_test(
+                    f"Detailed Profile Test - {test_name}",
+                    "GET",
+                    f"customers/{test_id}/detailed-profile",
+                    200
+                )
+                
+                if test_success:
+                    print(f"   ✅ SUCCESS: Detailed-profile endpoint works with {test_name}")
+                    print(f"   Response fields: {list(test_response.keys()) if isinstance(test_response, dict) else 'Non-dict'}")
+                    
+                    # Check if response has expected structure
+                    expected_fields = ['success', 'customer', 'metrics', 'credit_cards', 'recent_activities']
+                    missing_fields = [field for field in expected_fields if field not in test_response]
+                    if missing_fields:
+                        print(f"   ⚠️  Missing expected fields: {missing_fields}")
+                    else:
+                        print(f"   ✅ All expected fields present")
+                else:
+                    print(f"   ❌ FAILED: Detailed-profile endpoint failed with {test_name}")
+                    print(f"   🚨 This suggests the endpoint has general issues!")
+        
+        # Step 5: Summary and recommendations
+        print(f"\n📊 DEBUGGING SUMMARY")
+        print("=" * 50)
+        
+        print(f"🔍 FINDINGS:")
+        print(f"   1. Target customer {target_customer_id}: {'FOUND' if target_found else 'NOT FOUND'} in database")
+        print(f"   2. Database contains {len(all_customers_response) if all_customers_success else 'unknown'} customers")
+        print(f"   3. ID formats in use: UUID({len(id_formats.get('uuid_format', []))}), ObjectId({len(id_formats.get('objectid_format', []))}), Other({len(id_formats.get('other_format', []))})")
+        
+        print(f"\n🔧 RECOMMENDATIONS:")
+        if not target_found:
+            print(f"   1. ❌ Customer {target_customer_id} does not exist in database")
+            print(f"   2. 💡 User may have incorrect customer ID")
+            print(f"   3. 🔍 Check if customer was deleted or moved")
+            print(f"   4. 📝 Verify customer ID format matches database format")
+        else:
+            print(f"   1. 🚨 CRITICAL BUG: Customer exists but detailed-profile endpoint fails")
+            print(f"   2. 🔧 Debug the detailed-profile endpoint implementation")
+            print(f"   3. 🔍 Check for query logic issues in backend")
+            print(f"   4. 📝 Verify database connection and collection access")
+        
+        # Update test counters
+        self.tests_run += 1
+        if target_found or (all_customers_success and len(all_customers_response) > 0):
+            self.tests_passed += 1
+            return True
+        else:
+            return False
+
     def test_check_lai_comprehensive_investigation(self):
         """COMPREHENSIVE CHECK LẠI BUTTON INVESTIGATION - As requested in review"""
         print(f"\n🎯 COMPREHENSIVE CHECK LẠI BUTTON INVESTIGATION")
