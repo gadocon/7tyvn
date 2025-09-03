@@ -1725,8 +1725,13 @@ const Inventory = () => {
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                // For both tabs, delete the bill directly
-                                handleDeleteBill(item.id, item);
+                                if (activeTab === "available") {
+                                  // In inventory tab, remove from inventory (soft delete)
+                                  handleRemoveFromInventory(item.id);
+                                } else {
+                                  // In all bills tab, delete bill completely (hard delete)
+                                  handleDeleteBill(item.bill_id || item.id, item);
+                                }
                               }}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 hover:border-red-400"
                               title={`Xóa bill ${item.customer_code} - Chỉ có thể xóa bill chưa bán`}
