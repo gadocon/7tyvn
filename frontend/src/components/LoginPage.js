@@ -124,19 +124,19 @@ const LoginPage = () => {
           <CardHeader className="text-center pb-2">
             {/* Logo */}
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
                 <img 
                   src="https://customer-assets.emergentagent.com/job_crm-analytics-2/artifacts/1sk73ms1_logo7ty.svg" 
                   alt="7ty.vn Logo" 
-                  className="w-10 h-10 text-white"
+                  className="w-10 h-10 text-white filter brightness-0 invert"
                 />
               </div>
             </div>
             
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">
               7ty.vn CRM
             </h1>
-            <p className="text-gray-600 text-sm mt-1">
+            <p className="text-green-100/80 text-sm mt-1">
               Đăng nhập để truy cập hệ thống
             </p>
           </CardHeader>
