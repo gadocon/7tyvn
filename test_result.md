@@ -420,13 +420,16 @@ test_plan:
     implemented: false
     working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "critical"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "main"
           comment: "CRITICAL BUG: POST /api/credit-cards/{id}/dao returns 500 error with detail 'OTHER'. Frontend successfully calls handleViewCard with card details and API responses work. However, DAO processing fails with server error. Need to investigate backend DAO endpoint logic and fix the 500 error cause."
+        - working: false
+          agent: "testing"
+          comment: "🎯 ROOT CAUSE IDENTIFIED: Successfully reproduced 500 error with both POS and BILL payment methods. ✅ ERROR REPRODUCED: POST /api/credit-cards/{card_id}/dao returns 500 status with 'OTHER' detail for both payment methods. ✅ ROOT CAUSE FOUND: AttributeError on line 2860 in /app/backend/server.py - code attempts to use 'PaymentMethod.OTHER' but this enum value does not exist. ✅ ENUM ANALYSIS: PaymentMethod enum only contains 'CASH' and 'BANK_TRANSFER' values, missing 'OTHER'. ✅ EXACT LOCATION: Error occurs in Sale record creation where method=PaymentMethod.OTHER is assigned. 🔧 SOLUTION REQUIRED: Add 'OTHER = \"OTHER\"' to PaymentMethod enum (line 78-80) OR change line 2860 to use existing enum value like PaymentMethod.CASH. ✅ COMPREHENSIVE TESTING: Tested with 20 credit cards, 5 available bills, confirmed error affects all DAO operations. Backend logs show: 'AttributeError: OTHER' confirming enum issue. URGENT FIX NEEDED for DAO functionality to work."
 
   - task: "Check Lại Button API Error Fix"
     implemented: true
