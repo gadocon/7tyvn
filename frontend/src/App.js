@@ -63,7 +63,8 @@ import {
   Target,
   MapPin,
   UserPlus,
-  Crown
+  Crown,
+  Settings
 } from "lucide-react";
 import { 
   LineChart, 
