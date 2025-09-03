@@ -1076,16 +1076,57 @@ const Inventory = () => {
     fetchInventoryData(); // Refresh data
   };
 
-  const handleDeleteBill = async (billId) => {
-    // Use toast for simple confirmation instead of confirm()
+  const handleDeleteBill = async (billId, billInfo = null) => {
     try {
-      await axios.delete(`${API}/bills/${billId}`);
-      toast.success("Đã xóa bill thành công");
+      // Add confirmation dialog for better UX
+      const billDisplay = billInfo ? `${billInfo.customer_code} (${billInfo.full_name})` : billId;
+      const confirmed = window.confirm(`Bạn có chắc chắn muốn xóa bill ${billDisplay}?\n\nLưu ý: Chỉ có thể xóa bill chưa bán (AVAILABLE).`);
+      
+      if (!confirmed) {
+        return;
+      }
+
+      console.log(`Attempting to delete bill: ${billId}`);
+      const response = await axios.delete(`${API}/bills/${billId}`);
+      
+      console.log('Delete response:', response.data);
+      
+      if (response.data.success) {
+        toast.success(response.data.message || "Đã xóa bill thành công");
+      } else {
+        toast.success("Đã xóa bill thành công");
+      }
+      
       fetchInventoryData();
     } catch (error) {
       console.error("Error deleting bill:", error);
-      // Show specific error message from backend
-      const errorMessage = error.response?.data?.detail || "Có lỗi xảy ra khi xóa bill";
+      console.error("Error response:", error.response?.data);
+      
+      // Enhanced error handling with specific messages
+      let errorMessage = "Có lỗi xảy ra khi xóa bill";
+      
+      if (error.response) {
+        const status = error.response.status;
+        const detail = error.response.data?.detail;
+        
+        console.log(`HTTP ${status} error:`, detail);
+        
+        if (status === 400) {
+          // Business logic error (SOLD, CROSSED, or referenced bills)
+          errorMessage = detail || "Không thể xóa bill này";
+        } else if (status === 404) {
+          errorMessage = "Không tìm thấy bill để xóa";
+        } else if (status === 500) {
+          errorMessage = "Lỗi hệ thống khi xóa bill";
+        } else {
+          errorMessage = detail || `Lỗi HTTP ${status}`;
+        }
+      } else if (error.request) {
+        errorMessage = "Không thể kết nối đến server";
+      } else {
+        errorMessage = error.message || "Lỗi không xác định";
+      }
+      
       toast.error(errorMessage);
     }
   };
