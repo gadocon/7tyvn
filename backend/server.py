@@ -759,11 +759,11 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
         timeout = aiohttp.ClientTimeout(total=30, connect=10)
         
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            print(f"[DEBUG] Making external API call to: {webhook_url}")
+            print(f"[DEBUG] Making external API call to: https://n8n.phamthanh.net/webhook/checkbill")
             print(f"[DEBUG] Payload: {payload}")
             
             async with session.post(
-                webhook_url,  # Use dynamic webhook URL
+                "https://n8n.phamthanh.net/webhook/checkbill",
                 json=payload,
                 headers={"Content-Type": "application/json"}
             ) as response:
