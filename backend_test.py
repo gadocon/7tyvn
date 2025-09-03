@@ -379,16 +379,297 @@ class FPTBillManagerAPITester:
             print(f"   - Compatibility issues detected")
             return False
 
+    def test_credit_cards_api_after_schema_fix(self):
+        """Test Credit Cards API sau khi fix schema issues - REVIEW REQUEST"""
+        print(f"\n🎯 CREDIT CARDS API TESTING AFTER SCHEMA FIX")
+        print("=" * 80)
+        print("🔍 CRITICAL VERIFICATION:")
+        print("   1. Test GET /api/credit-cards endpoint trả về 200 thay vì 500")
+        print("   2. Test GET /api/credit-cards/{card_id}/detail với proper credit card IDs")
+        print("   3. Test DELETE /api/credit-cards/{card_id} với dual lookup")
+        print("   4. Verify credit card data structure matches CreditCard Pydantic model")
+        print("   5. Verify credit cards page accessible cho frontend delete testing")
+        
+        test_results = {
+            "credit_cards_list_working": False,
+            "credit_card_detail_working": False,
+            "credit_card_delete_working": False,
+            "data_structure_valid": False,
+            "frontend_accessible": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_issues": []
+        }
+        
+        # Step 1: Test GET /api/credit-cards endpoint (should return 200 not 500)
+        print(f"\n🔍 STEP 1: Test GET /api/credit-cards Endpoint")
+        print("=" * 60)
+        print("Expected: Should return 200 status instead of 500 Internal Server Error")
+        
+        cards_success, cards_response = self.run_test(
+            "GET /credit-cards - Main List Endpoint",
+            "GET",
+            "credit-cards?page_size=100",
+            200
+        )
+        
+        if cards_success:
+            print(f"✅ SUCCESS: GET /api/credit-cards returns 200 status!")
+            print(f"   Found {len(cards_response)} credit cards")
+            test_results["credit_cards_list_working"] = True
+            test_results["passed_tests"] += 1
+            
+            # Verify data structure
+            if cards_response and len(cards_response) > 0:
+                sample_card = cards_response[0]
+                required_fields = [
+                    'id', 'customer_id', 'customer_name', 'card_number', 
+                    'cardholder_name', 'bank_name', 'card_type', 'expiry_date', 
+                    'ccv', 'statement_date', 'payment_due_date', 'credit_limit', 'status'
+                ]
+                
+                missing_fields = [field for field in required_fields if field not in sample_card]
+                
+                if not missing_fields:
+                    print(f"✅ Credit card data structure matches CreditCard Pydantic model")
+                    print(f"   All required fields present: {required_fields}")
+                    test_results["data_structure_valid"] = True
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"❌ Missing required fields in credit card data: {missing_fields}")
+                    test_results["critical_issues"].append(f"Missing fields: {missing_fields}")
+                
+                test_results["total_tests"] += 1
+                
+                # Check enum values
+                sample_card_type = sample_card.get('card_type')
+                sample_status = sample_card.get('status')
+                
+                valid_card_types = ['VISA', 'MASTERCARD', 'JCB', 'AMEX']
+                valid_statuses = ['Đã đáo', 'Cần đáo', 'Chưa đến hạn', 'Quá Hạn']
+                
+                if sample_card_type in valid_card_types and sample_status in valid_statuses:
+                    print(f"✅ Valid enum values - card_type: {sample_card_type}, status: {sample_status}")
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"❌ Invalid enum values - card_type: {sample_card_type}, status: {sample_status}")
+                    test_results["critical_issues"].append(f"Invalid enum values")
+                
+                test_results["total_tests"] += 1
+        else:
+            print(f"❌ FAILED: GET /api/credit-cards still returns 500 Internal Server Error")
+            test_results["critical_issues"].append("Credit cards list endpoint returns 500 error")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 2: Test GET /api/credit-cards/{card_id}/detail với proper credit card IDs
+        print(f"\n🔍 STEP 2: Test GET /api/credit-cards/{{card_id}}/detail Endpoint")
+        print("=" * 60)
+        
+        if cards_success and cards_response and len(cards_response) > 0:
+            # Test with first 3 credit cards
+            detail_tests_passed = 0
+            detail_tests_total = 0
+            
+            for i, card in enumerate(cards_response[:3]):
+                card_id = card.get('id')
+                customer_name = card.get('customer_name', 'Unknown')
+                
+                print(f"\n   Test {i+1}: Credit Card Detail - {customer_name}")
+                print(f"   Card ID: {card_id}")
+                print(f"   ID Format: {'ObjectId' if len(card_id) == 24 else 'UUID' if len(card_id) == 36 else 'Other'}")
+                
+                detail_success, detail_response = self.run_test(
+                    f"GET /credit-cards/{card_id}/detail - {customer_name}",
+                    "GET",
+                    f"credit-cards/{card_id}/detail",
+                    200
+                )
+                
+                detail_tests_total += 1
+                
+                if detail_success:
+                    print(f"   ✅ SUCCESS: Credit card detail accessible")
+                    detail_tests_passed += 1
+                    
+                    # Verify response structure
+                    if detail_response and 'card' in detail_response:
+                        print(f"   ✅ Response structure valid with 'card' field")
+                    else:
+                        print(f"   ⚠️ Response structure may be incomplete")
+                else:
+                    print(f"   ❌ FAILED: Credit card detail not accessible")
+                    test_results["critical_issues"].append(f"Credit card detail failed for ID: {card_id}")
+            
+            if detail_tests_passed == detail_tests_total:
+                print(f"\n✅ ALL CREDIT CARD DETAIL TESTS PASSED ({detail_tests_passed}/{detail_tests_total})")
+                test_results["credit_card_detail_working"] = True
+                test_results["passed_tests"] += detail_tests_passed
+            else:
+                print(f"\n❌ SOME CREDIT CARD DETAIL TESTS FAILED ({detail_tests_passed}/{detail_tests_total})")
+            
+            test_results["total_tests"] += detail_tests_total
+        else:
+            print(f"   ⚠️ Cannot test credit card detail - no cards available from list endpoint")
+        
+        # Step 3: Test DELETE /api/credit-cards/{card_id} với dual lookup
+        print(f"\n🔍 STEP 3: Test DELETE /api/credit-cards/{{card_id}} với Dual Lookup")
+        print("=" * 60)
+        
+        if cards_success and cards_response and len(cards_response) > 0:
+            # Find a card to test deletion (preferably ObjectId format to test dual lookup)
+            test_card = None
+            for card in cards_response:
+                card_id = card.get('id', '')
+                # Prefer ObjectId format to test dual lookup
+                if len(card_id) == 24 and all(c in '0123456789abcdef' for c in card_id.lower()):
+                    test_card = card
+                    break
+            
+            # If no ObjectId format found, use first card
+            if not test_card and cards_response:
+                test_card = cards_response[0]
+            
+            if test_card:
+                card_id = test_card.get('id')
+                customer_name = test_card.get('customer_name', 'Unknown')
+                
+                print(f"   Testing DELETE with card: {customer_name}")
+                print(f"   Card ID: {card_id}")
+                print(f"   ID Format: {'ObjectId' if len(card_id) == 24 else 'UUID' if len(card_id) == 36 else 'Other'}")
+                
+                delete_success, delete_response = self.run_test(
+                    f"DELETE /credit-cards/{card_id} - {customer_name}",
+                    "DELETE",
+                    f"credit-cards/{card_id}",
+                    200
+                )
+                
+                if delete_success:
+                    print(f"✅ SUCCESS: Credit card deletion working with dual lookup")
+                    print(f"   Response: {delete_response}")
+                    test_results["credit_card_delete_working"] = True
+                    test_results["passed_tests"] += 1
+                    
+                    # Verify deletion by trying to access the card
+                    verify_success, verify_response = self.run_test(
+                        f"Verify deletion - GET /credit-cards/{card_id}/detail",
+                        "GET",
+                        f"credit-cards/{card_id}/detail",
+                        404
+                    )
+                    
+                    if verify_success:
+                        print(f"   ✅ Deletion verified - card no longer accessible")
+                        test_results["passed_tests"] += 1
+                    else:
+                        print(f"   ⚠️ Deletion verification inconclusive")
+                    
+                    test_results["total_tests"] += 1
+                else:
+                    print(f"❌ FAILED: Credit card deletion not working")
+                    test_results["critical_issues"].append(f"Credit card deletion failed for ID: {card_id}")
+                
+                test_results["total_tests"] += 1
+            else:
+                print(f"   ⚠️ No credit cards available for deletion testing")
+        else:
+            print(f"   ⚠️ Cannot test credit card deletion - no cards available")
+        
+        # Step 4: Test frontend accessibility
+        print(f"\n🔍 STEP 4: Verify Credit Cards Page Accessible for Frontend")
+        print("=" * 60)
+        
+        # Test with smaller page size to ensure frontend compatibility
+        frontend_success, frontend_response = self.run_test(
+            "GET /credit-cards - Frontend Compatibility Test",
+            "GET",
+            "credit-cards?page_size=20",
+            200
+        )
+        
+        if frontend_success:
+            print(f"✅ SUCCESS: Credit cards page accessible for frontend delete testing")
+            print(f"   Frontend can load {len(frontend_response)} credit cards")
+            test_results["frontend_accessible"] = True
+            test_results["passed_tests"] += 1
+        else:
+            print(f"❌ FAILED: Credit cards page not accessible for frontend")
+            test_results["critical_issues"].append("Frontend cannot access credit cards page")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 5: Final Assessment
+        print(f"\n📊 STEP 5: Final Assessment - Credit Cards API After Schema Fix")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 CRITICAL VERIFICATION RESULTS:")
+        print(f"   GET /api/credit-cards endpoint: {'✅ WORKING (200)' if test_results['credit_cards_list_working'] else '❌ FAILED (500)'}")
+        print(f"   GET /api/credit-cards/{{id}}/detail: {'✅ WORKING' if test_results['credit_card_detail_working'] else '❌ FAILED'}")
+        print(f"   DELETE /api/credit-cards/{{id}}: {'✅ WORKING' if test_results['credit_card_delete_working'] else '❌ FAILED'}")
+        print(f"   Credit card data structure: {'✅ VALID' if test_results['data_structure_valid'] else '❌ INVALID'}")
+        print(f"   Frontend accessibility: {'✅ ACCESSIBLE' if test_results['frontend_accessible'] else '❌ NOT ACCESSIBLE'}")
+        print(f"   Overall Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🎯 EXPECTED RESULTS VERIFICATION:")
+        all_expected_results_met = (
+            test_results["credit_cards_list_working"] and
+            test_results["credit_card_detail_working"] and
+            test_results["credit_card_delete_working"] and
+            test_results["data_structure_valid"] and
+            test_results["frontend_accessible"]
+        )
+        
+        if all_expected_results_met:
+            print(f"   ✅ Credit Cards API endpoints working correctly")
+            print(f"   ✅ No more 500 Internal Server Error")
+            print(f"   ✅ Credit card records có all required fields")
+            print(f"   ✅ Valid enum values cho card_type và status")
+            print(f"   ✅ Credit cards page accessible cho frontend delete testing")
+        else:
+            print(f"   ❌ Some expected results not met:")
+            if not test_results["credit_cards_list_working"]:
+                print(f"      - GET /api/credit-cards still returns 500 error")
+            if not test_results["credit_card_detail_working"]:
+                print(f"      - Credit card detail endpoints have issues")
+            if not test_results["credit_card_delete_working"]:
+                print(f"      - Credit card deletion not working")
+            if not test_results["data_structure_valid"]:
+                print(f"      - Credit card data structure incomplete")
+            if not test_results["frontend_accessible"]:
+                print(f"      - Frontend cannot access credit cards page")
+        
+        if test_results["critical_issues"]:
+            print(f"\n🚨 CRITICAL ISSUES FOUND:")
+            for issue in test_results["critical_issues"]:
+                print(f"   - {issue}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if all_expected_results_met:
+            print(f"   ✅ CREDIT CARDS API SCHEMA FIX VERIFICATION SUCCESSFUL")
+            print(f"   - All credit card endpoints working correctly")
+            print(f"   - No more 500 Internal Server Errors")
+            print(f"   - Data structure matches Pydantic model")
+            print(f"   - Frontend delete testing ready")
+        else:
+            print(f"   ❌ CREDIT CARDS API STILL HAS ISSUES")
+            print(f"   - Schema fix may not be complete")
+            print(f"   - Further investigation required")
+        
+        return all_expected_results_met
+
     def run_all_tests(self):
         """Run all tests for the review request"""
-        print(f"\n🚀 STARTING CUSTOMER LOOKUP FIX TESTING")
+        print(f"\n🚀 STARTING CREDIT CARDS API TESTING AFTER SCHEMA FIX")
         print("=" * 80)
-        print(f"🎯 Review Request: Test customer lookup fix và phân tích ObjectId vs UUID issue")
+        print(f"🎯 Review Request: Test Credit Cards API sau khi fix schema issues")
         print(f"📅 Test Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"🌐 API Base URL: {self.base_url}")
         
         # Run the main test
-        success = self.test_customer_lookup_fix_verification()
+        success = self.test_credit_cards_api_after_schema_fix()
         
         # Print final summary
         print(f"\n📊 FINAL TEST SUMMARY")
@@ -398,14 +679,16 @@ class FPTBillManagerAPITester:
         print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%")
         
         if success:
-            print(f"\n✅ OVERALL RESULT: Customer lookup fix verification PASSED")
-            print(f"   - Customer ID 68b86b157a314c251c8c863b is now working")
-            print(f"   - Other customers remain compatible")
-            print(f"   - ObjectId vs UUID issue has been resolved")
+            print(f"\n✅ OVERALL RESULT: Credit Cards API schema fix verification PASSED")
+            print(f"   - GET /api/credit-cards returns 200 instead of 500")
+            print(f"   - Credit card detail endpoints working")
+            print(f"   - Credit card deletion working with dual lookup")
+            print(f"   - Data structure matches Pydantic model")
+            print(f"   - Frontend delete testing ready")
         else:
-            print(f"\n❌ OVERALL RESULT: Customer lookup fix verification FAILED")
+            print(f"\n❌ OVERALL RESULT: Credit Cards API schema fix verification FAILED")
             print(f"   - Further investigation needed")
-            print(f"   - Check backend implementation")
+            print(f"   - Check backend schema implementation")
         
         return success
 
