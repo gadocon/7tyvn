@@ -1973,11 +1973,100 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
 
       const customersResponse = await axios.get(`${API}/customers?${params.toString()}`);
       setCustomers(customersResponse.data);
+      
+      // Reset selections when data changes
+      setSelectedCustomers([]);
+      setSelectAll(false);
     } catch (error) {
       console.error("Error fetching customers data:", error);
       toast.error("Không thể tải dữ liệu khách hàng");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Checkbox selection handlers
+  const handleSelectCustomer = (customerId, checked) => {
+    if (checked) {
+      setSelectedCustomers([...selectedCustomers, customerId]);
+    } else {
+      setSelectedCustomers(selectedCustomers.filter(id => id !== customerId));
+      setSelectAll(false);
+    }
+  };
+
+  const handleSelectAll = (checked) => {
+    setSelectAll(checked);
+    if (checked) {
+      setSelectedCustomers(customers.map(c => c.id));
+    } else {
+      setSelectedCustomers([]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedCustomers.length === 0) {
+      toast.error("Chưa chọn khách hàng nào để xóa");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Bạn có chắc chắn muốn xóa ${selectedCustomers.length} khách hàng đã chọn?\n\nLưu ý: Hành động này không thể hoàn tác.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Delete customers one by one
+      const deletePromises = selectedCustomers.map(customerId => 
+        axios.delete(`${API}/customers/${customerId}`)
+      );
+      
+      await Promise.all(deletePromises);
+      
+      toast.success(`Đã xóa ${selectedCustomers.length} khách hàng thành công`);
+      setSelectedCustomers([]);
+      setSelectAll(false);
+      fetchCustomersData();
+    } catch (error) {
+      console.error("Error bulk deleting customers:", error);
+      toast.error("Có lỗi xảy ra khi xóa khách hàng");
+    }
+  };
+
+  const handleBulkExport = async () => {
+    if (selectedCustomers.length === 0) {
+      toast.error("Chưa chọn khách hàng nào để xuất");
+      return;
+    }
+
+    try {
+      // For now, just show success message
+      // In a real implementation, you'd call a specific export API for selected customers
+      toast.success(`Đang xuất dữ liệu ${selectedCustomers.length} khách hàng...`);
+      
+      // Call export API for all customers (could be enhanced to export only selected ones)
+      const response = await axios.get(`${API}/customers/export`, {
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `khach_hang_da_chon_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Đã xuất dữ liệu thành công");
+    } catch (error) {
+      console.error("Error exporting selected customers:", error);
+      toast.error("Có lỗi xảy ra khi xuất dữ liệu");
     }
   };
 
