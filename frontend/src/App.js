@@ -8652,6 +8652,7 @@ const MainApp = () => {
                       <Route path="/credit-cards" element={<CreditCards />} />
                       <Route path="/transactions" element={<Transactions />} />
                       <Route path="/reports" element={<Reports />} />
+                      <Route path="/admin/settings" element={<AdminSettings />} />
                       <Route path="/profile" element={<UserProfile />} />
                     </Routes>
                   </div>
