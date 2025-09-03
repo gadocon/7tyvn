@@ -5016,3 +5016,6 @@ async def test_all_webhooks(current_user: dict = admin_required):
     except Exception as e:
         logger.error(f"Error testing all webhooks: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Include the router in the main app (must be after all route definitions)
+app.include_router(api_router)
