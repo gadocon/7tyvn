@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "User reports error when deleting bills in inventory (Kho Bill page). Need to investigate and fix the delete bill functionality."
+user_problem_statement: "500 Server Error on credit card DAO functionality. API call to /api/credit-cards/{id}/dao returns 500 status with 'OTHER' detail message. DAO feature is broken for credit cards."
 
 backend:
   - task: "Delete Bill Error Investigation"
