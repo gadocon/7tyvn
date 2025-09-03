@@ -898,12 +898,27 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
                         errors={"code": "PARSE_ERROR", "message": "Không thể phân tích phản hồi"}
                     )
                     
-    except Exception as e:
-        logger.error(f"Error calling external webhook for {customer_code}: {str(e)}")
+    except asyncio.TimeoutError:
+        print(f"[ERROR] External API timeout for customer code: {customer_code}")
         return CheckBillResult(
             customer_code=customer_code,
             status="ERROR",
-            errors={"code": "CONNECTION_ERROR", "message": f"Lỗi kết nối: {str(e)}"}
+            errors={"code": "TIMEOUT_ERROR", "message": "Hết thời gian chờ phản hồi từ hệ thống"}
+        )
+    except aiohttp.ClientError as e:
+        print(f"[ERROR] External API client error for {customer_code}: {str(e)}")
+        return CheckBillResult(
+            customer_code=customer_code,
+            status="ERROR", 
+            errors={"code": "CONNECTION_ERROR", "message": f"Lỗi kết nối mạng: {str(e)}"}
+        )
+    except Exception as e:
+        logger.error(f"Error calling external webhook for {customer_code}: {str(e)}")
+        print(f"[ERROR] Unexpected error for {customer_code}: {str(e)}")
+        return CheckBillResult(
+            customer_code=customer_code,
+            status="ERROR",
+            errors={"code": "UNKNOWN_ERROR", "message": f"Lỗi không xác định: {str(e)}"}
         )
 
 # =============================================================================
