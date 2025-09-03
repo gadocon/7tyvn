@@ -2431,6 +2431,407 @@ class FPTBillManagerAPITester:
         self.tests_run += 1
         return success_rate >= 80
 
+    def test_transaction_update_objectid_serialization_fix(self):
+        """Test Transaction Update API endpoints to verify ObjectId serialization fix"""
+        print(f"\n🎯 TRANSACTION UPDATE API - OBJECTID SERIALIZATION FIX VERIFICATION")
+        print("=" * 80)
+        print("🔍 TESTING OBJECTIVES:")
+        print("   1. Test PUT /api/transactions/sale/{transaction_id} with simple update")
+        print("   2. Test PUT /api/transactions/credit-card/{transaction_id} with simple update")
+        print("   3. Verify 500 JSON serialization errors are resolved")
+        print("   4. Verify responses return properly formatted JSON data")
+        print("   5. Test endpoint validation (404 for non-existent IDs)")
+        
+        serialization_results = {
+            "sale_transaction_tests": [],
+            "credit_card_transaction_tests": [],
+            "total_tests": 0,
+            "passed_tests": 0,
+            "serialization_errors": 0
+        }
+        
+        # Step 1: Get existing transactions to test with
+        print(f"\n📋 STEP 1: Finding existing transactions to test...")
+        
+        # Try to get existing sales transactions
+        sales_success, sales_response = self.run_test(
+            "Get Sales Transactions",
+            "GET",
+            "sales",
+            200
+        )
+        
+        existing_sale_id = None
+        if sales_success and sales_response and len(sales_response) > 0:
+            existing_sale_id = sales_response[0].get('id')
+            print(f"✅ Found existing sale transaction: {existing_sale_id}")
+        else:
+            print("⚠️  No existing sale transactions found")
+        
+        # Try to get existing credit card transactions
+        credit_tx_success, credit_tx_response = self.run_test(
+            "Get Credit Card Transactions", 
+            "GET",
+            "credit-cards/transactions",
+            200
+        )
+        
+        existing_credit_tx_id = None
+        if credit_tx_success and credit_tx_response and len(credit_tx_response) > 0:
+            existing_credit_tx_id = credit_tx_response[0].get('id')
+            print(f"✅ Found existing credit card transaction: {existing_credit_tx_id}")
+        else:
+            print("⚠️  No existing credit card transactions found")
+        
+        # Step 2: Test Sale Transaction Update Endpoint
+        print(f"\n🧪 STEP 2: Testing Sale Transaction Update Endpoint")
+        print("=" * 60)
+        
+        # Test 2a: Update existing sale transaction (if available)
+        if existing_sale_id:
+            print(f"\n   🔍 Test 2a: Update existing sale transaction")
+            print(f"      Transaction ID: {existing_sale_id}")
+            
+            update_data = {
+                "notes": f"Updated via API test - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            }
+            
+            try:
+                url = f"{self.api_url}/transactions/sale/{existing_sale_id}"
+                print(f"      URL: {url}")
+                print(f"      Update Data: {update_data}")
+                
+                start_time = datetime.now()
+                response = requests.put(url, json=update_data, timeout=30)
+                end_time = datetime.now()
+                response_time = (end_time - start_time).total_seconds()
+                
+                print(f"      📊 Response Time: {response_time:.3f} seconds")
+                print(f"      📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    try:
+                        response_data = response.json()
+                        print(f"      ✅ SUCCESS: Sale transaction updated successfully")
+                        print(f"      📄 Response Structure: {list(response_data.keys())}")
+                        
+                        # Verify response structure
+                        if 'success' in response_data and 'data' in response_data:
+                            print(f"      ✅ SERIALIZATION: JSON response properly formatted")
+                            print(f"      📊 Success: {response_data.get('success')}")
+                            print(f"      📊 Message: {response_data.get('message')}")
+                            
+                            # Check if data contains the updated transaction
+                            updated_data = response_data.get('data', {})
+                            if 'id' in updated_data and 'notes' in updated_data:
+                                print(f"      ✅ DATA INTEGRITY: Updated transaction data returned")
+                                print(f"      📝 Updated Notes: {updated_data.get('notes')}")
+                                serialization_results["passed_tests"] += 1
+                            else:
+                                print(f"      ❌ DATA MISSING: Transaction data incomplete")
+                        else:
+                            print(f"      ❌ STRUCTURE: Invalid response structure")
+                            
+                    except json.JSONDecodeError as e:
+                        print(f"      ❌ SERIALIZATION ERROR: Could not parse JSON response")
+                        print(f"      🚨 This indicates ObjectId serialization is still broken!")
+                        print(f"      Error: {e}")
+                        serialization_results["serialization_errors"] += 1
+                        
+                elif response.status_code == 500:
+                    print(f"      ❌ CRITICAL: 500 Internal Server Error")
+                    print(f"      🚨 This likely indicates ObjectId serialization error!")
+                    try:
+                        error_data = response.json()
+                        print(f"      Error Details: {error_data}")
+                        if 'ObjectId' in str(error_data) or 'not JSON serializable' in str(error_data):
+                            print(f"      🚨 CONFIRMED: ObjectId serialization error detected!")
+                            serialization_results["serialization_errors"] += 1
+                    except:
+                        print(f"      Raw Error: {response.text}")
+                        
+                elif response.status_code == 404:
+                    print(f"      ❌ NOT FOUND: Transaction not found (404)")
+                    print(f"      💡 This could mean the transaction ID is invalid")
+                    
+                else:
+                    print(f"      ❌ UNEXPECTED: Status code {response.status_code}")
+                    print(f"      Response: {response.text[:200]}")
+                
+                serialization_results["sale_transaction_tests"].append({
+                    "test": "Update existing sale",
+                    "transaction_id": existing_sale_id,
+                    "status_code": response.status_code,
+                    "success": response.status_code == 200,
+                    "serialization_ok": response.status_code != 500
+                })
+                
+                serialization_results["total_tests"] += 1
+                
+            except Exception as e:
+                print(f"      ❌ ERROR: {e}")
+                serialization_results["total_tests"] += 1
+        
+        # Test 2b: Test with non-existent sale transaction ID (should return 404)
+        print(f"\n   🔍 Test 2b: Update non-existent sale transaction (404 test)")
+        fake_sale_id = "non-existent-sale-id-12345"
+        
+        update_data = {"notes": "This should return 404"}
+        
+        try:
+            url = f"{self.api_url}/transactions/sale/{fake_sale_id}"
+            response = requests.put(url, json=update_data, timeout=30)
+            
+            print(f"      📊 Status Code: {response.status_code}")
+            
+            if response.status_code == 404:
+                print(f"      ✅ CORRECT: Non-existent transaction returns 404")
+                try:
+                    error_data = response.json()
+                    print(f"      📄 Error Message: {error_data.get('detail', 'No detail')}")
+                    serialization_results["passed_tests"] += 1
+                except:
+                    print(f"      📄 Raw Response: {response.text}")
+                    serialization_results["passed_tests"] += 1
+            elif response.status_code == 500:
+                print(f"      ❌ CRITICAL: 500 error for non-existent ID")
+                print(f"      🚨 This could indicate serialization issues in error handling!")
+                serialization_results["serialization_errors"] += 1
+            else:
+                print(f"      ❌ UNEXPECTED: Expected 404, got {response.status_code}")
+            
+            serialization_results["sale_transaction_tests"].append({
+                "test": "Update non-existent sale",
+                "transaction_id": fake_sale_id,
+                "status_code": response.status_code,
+                "success": response.status_code == 404,
+                "serialization_ok": response.status_code != 500
+            })
+            
+            serialization_results["total_tests"] += 1
+            
+        except Exception as e:
+            print(f"      ❌ ERROR: {e}")
+            serialization_results["total_tests"] += 1
+        
+        # Step 3: Test Credit Card Transaction Update Endpoint
+        print(f"\n🧪 STEP 3: Testing Credit Card Transaction Update Endpoint")
+        print("=" * 60)
+        
+        # Test 3a: Update existing credit card transaction (if available)
+        if existing_credit_tx_id:
+            print(f"\n   🔍 Test 3a: Update existing credit card transaction")
+            print(f"      Transaction ID: {existing_credit_tx_id}")
+            
+            update_data = {
+                "notes": f"Updated credit card transaction - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            }
+            
+            try:
+                url = f"{self.api_url}/transactions/credit-card/{existing_credit_tx_id}"
+                print(f"      URL: {url}")
+                print(f"      Update Data: {update_data}")
+                
+                start_time = datetime.now()
+                response = requests.put(url, json=update_data, timeout=30)
+                end_time = datetime.now()
+                response_time = (end_time - start_time).total_seconds()
+                
+                print(f"      📊 Response Time: {response_time:.3f} seconds")
+                print(f"      📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    try:
+                        response_data = response.json()
+                        print(f"      ✅ SUCCESS: Credit card transaction updated successfully")
+                        print(f"      📄 Response Structure: {list(response_data.keys())}")
+                        
+                        # Verify response structure
+                        if 'success' in response_data and 'data' in response_data:
+                            print(f"      ✅ SERIALIZATION: JSON response properly formatted")
+                            print(f"      📊 Success: {response_data.get('success')}")
+                            print(f"      📊 Message: {response_data.get('message')}")
+                            
+                            # Check if data contains the updated transaction
+                            updated_data = response_data.get('data', {})
+                            if 'id' in updated_data and 'notes' in updated_data:
+                                print(f"      ✅ DATA INTEGRITY: Updated transaction data returned")
+                                print(f"      📝 Updated Notes: {updated_data.get('notes')}")
+                                serialization_results["passed_tests"] += 1
+                            else:
+                                print(f"      ❌ DATA MISSING: Transaction data incomplete")
+                        else:
+                            print(f"      ❌ STRUCTURE: Invalid response structure")
+                            
+                    except json.JSONDecodeError as e:
+                        print(f"      ❌ SERIALIZATION ERROR: Could not parse JSON response")
+                        print(f"      🚨 This indicates ObjectId serialization is still broken!")
+                        print(f"      Error: {e}")
+                        serialization_results["serialization_errors"] += 1
+                        
+                elif response.status_code == 500:
+                    print(f"      ❌ CRITICAL: 500 Internal Server Error")
+                    print(f"      🚨 This likely indicates ObjectId serialization error!")
+                    try:
+                        error_data = response.json()
+                        print(f"      Error Details: {error_data}")
+                        if 'ObjectId' in str(error_data) or 'not JSON serializable' in str(error_data):
+                            print(f"      🚨 CONFIRMED: ObjectId serialization error detected!")
+                            serialization_results["serialization_errors"] += 1
+                    except:
+                        print(f"      Raw Error: {response.text}")
+                        
+                elif response.status_code == 404:
+                    print(f"      ❌ NOT FOUND: Transaction not found (404)")
+                    print(f"      💡 This could mean the transaction ID is invalid")
+                    
+                else:
+                    print(f"      ❌ UNEXPECTED: Status code {response.status_code}")
+                    print(f"      Response: {response.text[:200]}")
+                
+                serialization_results["credit_card_transaction_tests"].append({
+                    "test": "Update existing credit card transaction",
+                    "transaction_id": existing_credit_tx_id,
+                    "status_code": response.status_code,
+                    "success": response.status_code == 200,
+                    "serialization_ok": response.status_code != 500
+                })
+                
+                serialization_results["total_tests"] += 1
+                
+            except Exception as e:
+                print(f"      ❌ ERROR: {e}")
+                serialization_results["total_tests"] += 1
+        
+        # Test 3b: Test with non-existent credit card transaction ID (should return 404)
+        print(f"\n   🔍 Test 3b: Update non-existent credit card transaction (404 test)")
+        fake_credit_tx_id = "non-existent-credit-tx-id-12345"
+        
+        update_data = {"notes": "This should return 404"}
+        
+        try:
+            url = f"{self.api_url}/transactions/credit-card/{fake_credit_tx_id}"
+            response = requests.put(url, json=update_data, timeout=30)
+            
+            print(f"      📊 Status Code: {response.status_code}")
+            
+            if response.status_code == 404:
+                print(f"      ✅ CORRECT: Non-existent transaction returns 404")
+                try:
+                    error_data = response.json()
+                    print(f"      📄 Error Message: {error_data.get('detail', 'No detail')}")
+                    serialization_results["passed_tests"] += 1
+                except:
+                    print(f"      📄 Raw Response: {response.text}")
+                    serialization_results["passed_tests"] += 1
+            elif response.status_code == 500:
+                print(f"      ❌ CRITICAL: 500 error for non-existent ID")
+                print(f"      🚨 This could indicate serialization issues in error handling!")
+                serialization_results["serialization_errors"] += 1
+            else:
+                print(f"      ❌ UNEXPECTED: Expected 404, got {response.status_code}")
+            
+            serialization_results["credit_card_transaction_tests"].append({
+                "test": "Update non-existent credit card transaction",
+                "transaction_id": fake_credit_tx_id,
+                "status_code": response.status_code,
+                "success": response.status_code == 404,
+                "serialization_ok": response.status_code != 500
+            })
+            
+            serialization_results["total_tests"] += 1
+            
+        except Exception as e:
+            print(f"      ❌ ERROR: {e}")
+            serialization_results["total_tests"] += 1
+        
+        # Step 4: Test with empty update data (should return 400)
+        print(f"\n🧪 STEP 4: Testing Empty Update Data Validation")
+        print("=" * 60)
+        
+        # Test empty data for sale transaction
+        print(f"\n   🔍 Test 4a: Empty update data for sale transaction")
+        try:
+            url = f"{self.api_url}/transactions/sale/test-id"
+            response = requests.put(url, json={}, timeout=30)
+            
+            print(f"      📊 Status Code: {response.status_code}")
+            
+            if response.status_code == 400:
+                print(f"      ✅ CORRECT: Empty data returns 400 validation error")
+                serialization_results["passed_tests"] += 1
+            elif response.status_code == 500:
+                print(f"      ❌ CRITICAL: 500 error for empty data")
+                serialization_results["serialization_errors"] += 1
+            else:
+                print(f"      📝 INFO: Status {response.status_code} (may be valid)")
+            
+            serialization_results["total_tests"] += 1
+            
+        except Exception as e:
+            print(f"      ❌ ERROR: {e}")
+            serialization_results["total_tests"] += 1
+        
+        # Final Analysis and Summary
+        print(f"\n📊 OBJECTID SERIALIZATION FIX VERIFICATION SUMMARY")
+        print("=" * 70)
+        
+        total_tests = serialization_results["total_tests"]
+        passed_tests = serialization_results["passed_tests"]
+        serialization_errors = serialization_results["serialization_errors"]
+        success_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
+        
+        print(f"📈 Overall Results:")
+        print(f"   - Total Tests: {total_tests}")
+        print(f"   - Passed Tests: {passed_tests}")
+        print(f"   - Serialization Errors: {serialization_errors}")
+        print(f"   - Success Rate: {success_rate:.1f}%")
+        
+        print(f"\n📋 Sale Transaction Tests:")
+        for test in serialization_results["sale_transaction_tests"]:
+            status = "✅ PASS" if test["success"] and test["serialization_ok"] else "❌ FAIL"
+            serialization_status = "✅ OK" if test["serialization_ok"] else "❌ SERIALIZATION ERROR"
+            print(f"   - {test['test']}: Status {test['status_code']} {status} {serialization_status}")
+        
+        print(f"\n📋 Credit Card Transaction Tests:")
+        for test in serialization_results["credit_card_transaction_tests"]:
+            status = "✅ PASS" if test["success"] and test["serialization_ok"] else "❌ FAIL"
+            serialization_status = "✅ OK" if test["serialization_ok"] else "❌ SERIALIZATION ERROR"
+            print(f"   - {test['test']}: Status {test['status_code']} {status} {serialization_status}")
+        
+        # Determine overall result
+        if serialization_errors == 0:
+            print(f"\n🎉 OBJECTID SERIALIZATION FIX: SUCCESS")
+            print(f"✅ No JSON serialization errors detected")
+            print(f"✅ All endpoints return properly formatted JSON")
+            print(f"✅ Transaction update functionality working correctly")
+            
+            if success_rate >= 80:
+                print(f"🏆 HIGH SUCCESS RATE: {success_rate:.1f}% of tests passed")
+                self.tests_passed += 1
+            else:
+                print(f"⚠️  MODERATE SUCCESS: {success_rate:.1f}% success rate")
+                
+        else:
+            print(f"\n❌ OBJECTID SERIALIZATION FIX: FAILED")
+            print(f"🚨 {serialization_errors} serialization errors detected")
+            print(f"🔧 ObjectId serialization issue still exists")
+            print(f"💡 Main agent needs to fix JSON serialization in transaction update endpoints")
+        
+        print(f"\n🔧 RECOMMENDATIONS:")
+        if serialization_errors > 0:
+            print(f"   1. 🚨 URGENT: Fix ObjectId serialization in transaction update endpoints")
+            print(f"   2. Ensure parse_from_mongo() function is called before returning data")
+            print(f"   3. Convert all MongoDB ObjectId fields to strings")
+            print(f"   4. Test with actual transaction data to verify fix")
+        else:
+            print(f"   1. ✅ ObjectId serialization fix is working correctly")
+            print(f"   2. Monitor for any future serialization issues")
+            print(f"   3. Consider adding automated tests for serialization")
+        
+        self.tests_run += 1
+        return serialization_errors == 0 and success_rate >= 80
+
     def test_error_handling(self):
         """Test API error handling"""
         print(f"\n🧪 Testing Error Handling...")
