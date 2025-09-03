@@ -1826,7 +1826,7 @@ async def delete_customer(customer_id: str):
             deleted_stats["transactions"] = sales_delete_result.deleted_count
         
         # Finally delete the customer
-        customer_delete_result = await db.customers.delete_one({"id": customer_id})
+        customer_delete_result = await db.customers.delete_one({"id": actual_customer_id})
         deleted_stats["customer"] = customer_delete_result.deleted_count
         
         if customer_delete_result.deleted_count == 0:
