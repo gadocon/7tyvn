@@ -3650,6 +3650,8 @@ async def update_sale_transaction(transaction_id: str, update_data: SaleUpdate):
         
         # Get updated transaction
         updated_sale = await db.sales.find_one({"id": transaction_id})
+        # Convert MongoDB document to JSON-serializable format
+        updated_sale = parse_from_mongo(updated_sale)
         return {"success": True, "message": "Cập nhật giao dịch thành công", "data": updated_sale}
         
     except HTTPException:
