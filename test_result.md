@@ -180,9 +180,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Transaction Detail Modal Edit Functionality"
-  stuck_tasks:
-    - "Transaction Update API Endpoints"
+    - "JWT Authentication System with Role-Based Access Control"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
