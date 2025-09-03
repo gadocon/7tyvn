@@ -1949,6 +1949,11 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState(null);
+  
+  // New checkbox selection states
+  const [selectedCustomers, setSelectedCustomers] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   useEffect(() => {
     fetchCustomersData();
