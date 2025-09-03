@@ -2316,6 +2316,15 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
               <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectAll}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="rounded border-gray-300"
+                        title="Chọn tất cả"
+                      />
+                    </TableHead>
                     <TableHead className="whitespace-nowrap">Tên</TableHead>
                     <TableHead className="whitespace-nowrap">Loại</TableHead>
                     <TableHead className="whitespace-nowrap">Điện Thoại</TableHead>
