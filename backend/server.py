@@ -2730,12 +2730,12 @@ async def update_credit_card(card_id: str, card_data: CreditCardUpdate):
             
             # Update card
             await db.credit_cards.update_one(
-                {"id": card_id},
+                {"id": actual_card_id},
                 {"$set": prepare_for_mongo(update_data)}
             )
         
         # Get updated card
-        updated_card = await db.credit_cards.find_one({"id": card_id})
+        updated_card = await db.credit_cards.find_one({"id": actual_card_id})
         return CreditCard(**parse_from_mongo(updated_card))
         
     except HTTPException:
