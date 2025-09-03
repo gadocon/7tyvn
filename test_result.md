@@ -105,6 +105,22 @@
 user_problem_statement: "500 Server Error on credit card DAO functionality. API call to /api/credit-cards/{id}/dao returns 500 status with 'OTHER' detail message. DAO feature is broken for credit cards."
 
 backend:
+  - task: "Credit Card DAO PaymentMethod.OTHER Enum Fix"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Fixed PaymentMethod.OTHER enum bug by adding OTHER = 'OTHER' to PaymentMethod enum at line 81. The backend was failing because Sale record creation used PaymentMethod.OTHER but this enum value didn't exist, causing 500 errors with 'OTHER' detail message."
+        - working: true
+          agent: "testing"
+          comment: "✅ PAYMENTMETHOD.OTHER ENUM FIX VERIFICATION COMPLETED - 100% SUCCESS! Comprehensive testing of credit card DAO functionality after PaymentMethod.OTHER enum bug fix shows complete resolution (4/4 tests passed, 100% success rate). 🎯 POS PAYMENT METHOD: Working perfectly after enum fix - POST /api/credit-cards/{id}/dao with POS method returns 200 success, proper response structure with success=true, transaction_group_id generated correctly, profit calculations accurate (5M VND amount, 3.5% profit = 175K profit, 4.825M payback). 🎯 BILL PAYMENT METHOD: Working perfectly after enum fix - POST /api/credit-cards/{id}/dao with BILL method returns 200 success, proper response structure with success=true, uses available bills correctly (782,471 VND bill, 3.5% profit = 27,386 profit, 755,085 payback). 🎯 DATABASE UPDATES VERIFIED: Card status correctly updated from 'Cần đáo' to 'Đã đáo' after successful DAO processing, transaction records created properly with correct group IDs. 🎯 NO MORE 500 ERRORS: Zero instances of 500 errors with 'OTHER' detail message detected, PaymentMethod.OTHER enum now properly defined and working. The enum fix has completely resolved the DAO functionality issue - both POS and BILL payment methods are working correctly with proper database updates and no server errors."
+
+backend:
   - task: "Delete Bill Error Investigation"
     implemented: true
     working: true
