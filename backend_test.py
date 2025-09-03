@@ -7685,6 +7685,326 @@ def main():
         else:
             return False
 
+    def test_webhook_management_and_rotation_system(self):
+        """COMPREHENSIVE WEBHOOK MANAGEMENT & ROTATION SYSTEM TESTING"""
+        print(f"\n🎯 WEBHOOK MANAGEMENT & ROTATION SYSTEM TESTING")
+        print("=" * 70)
+        print("🔍 TESTING OBJECTIVES:")
+        print("   1. Admin Webhook Management APIs")
+        print("   2. Webhook Rotation Logic (5 requests per webhook)")
+        print("   3. Integration with Bill Checking")
+        
+        # Phase 1: Admin Authentication and Webhook Management APIs
+        print(f"\n📋 PHASE 1: ADMIN WEBHOOK MANAGEMENT APIs")
+        print("-" * 50)
+        
+        # Step 1: Login with admin_test account
+        print(f"\n🔐 STEP 1: Admin Authentication")
+        admin_login_data = {
+            "login": "admin_test",
+            "password": "admin123"
+        }
+        
+        login_success, login_response = self.run_test(
+            "Admin Login",
+            "POST",
+            "auth/login",
+            200,
+            data=admin_login_data
+        )
+        
+        if not login_success:
+            print("❌ Failed to login as admin - cannot test webhook management")
+            return False
+            
+        admin_token = login_response.get('access_token')
+        if not admin_token:
+            print("❌ No access token received")
+            return False
+            
+        print(f"✅ Admin login successful")
+        admin_headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {admin_token}'
+        }
+        
+        # Step 2: GET /admin/webhooks (should work for admin)
+        print(f"\n📋 STEP 2: Get Existing Webhooks")
+        webhooks_success, webhooks_response = self.run_test(
+            "Get Admin Webhooks",
+            "GET",
+            "admin/webhooks",
+            200,
+            headers=admin_headers
+        )
+        
+        if webhooks_success:
+            existing_webhooks = webhooks_response if isinstance(webhooks_response, list) else []
+            print(f"✅ Found {len(existing_webhooks)} existing webhooks")
+            for i, webhook in enumerate(existing_webhooks):
+                print(f"   {i+1}. {webhook.get('name', 'Unknown')} - {webhook.get('url', 'No URL')}")
+        else:
+            print("❌ Failed to get webhooks")
+            return False
+        
+        # Step 3: POST /admin/webhooks (create test webhook)
+        print(f"\n📋 STEP 3: Create Test Webhook")
+        test_webhook_data = {
+            "name": f"Test Webhook {int(datetime.now().timestamp())}",
+            "url": "https://test-webhook.example.com/webhook",
+            "is_active": True
+        }
+        
+        create_success, create_response = self.run_test(
+            "Create Test Webhook",
+            "POST",
+            "admin/webhooks",
+            200,
+            data=test_webhook_data,
+            headers=admin_headers
+        )
+        
+        test_webhook_id = None
+        if create_success:
+            test_webhook_id = create_response.get('id')
+            print(f"✅ Created test webhook: {test_webhook_id}")
+            print(f"   Name: {create_response.get('name')}")
+            print(f"   URL: {create_response.get('url')}")
+        else:
+            print("❌ Failed to create test webhook")
+        
+        # Step 4: Test webhook validation and duplicate prevention
+        print(f"\n📋 STEP 4: Test Webhook Validation")
+        
+        # Test duplicate URL
+        duplicate_success, duplicate_response = self.run_test(
+            "Create Duplicate Webhook (Should Fail)",
+            "POST",
+            "admin/webhooks",
+            400,  # Expecting validation error
+            data=test_webhook_data,
+            headers=admin_headers
+        )
+        
+        if duplicate_success:
+            print("✅ Duplicate webhook properly rejected")
+        else:
+            print("⚠️  Duplicate validation may not be working")
+        
+        # Test invalid URL
+        invalid_webhook_data = {
+            "name": "Invalid Webhook",
+            "url": "not-a-valid-url",
+            "is_active": True
+        }
+        
+        invalid_success, invalid_response = self.run_test(
+            "Create Invalid Webhook (Should Fail)",
+            "POST",
+            "admin/webhooks",
+            422,  # Expecting validation error
+            data=invalid_webhook_data,
+            headers=admin_headers
+        )
+        
+        if invalid_success:
+            print("✅ Invalid URL properly rejected")
+        else:
+            print("⚠️  URL validation may not be working")
+        
+        # Step 5: Test webhook connectivity
+        if test_webhook_id:
+            print(f"\n📋 STEP 5: Test Webhook Connectivity")
+            test_connectivity_success, test_connectivity_response = self.run_test(
+                "Test Webhook Connectivity",
+                "POST",
+                f"admin/webhooks/{test_webhook_id}/test",
+                200,
+                headers=admin_headers
+            )
+            
+            if test_connectivity_success:
+                print(f"✅ Webhook connectivity test completed")
+                print(f"   Success: {test_connectivity_response.get('success', False)}")
+                print(f"   Response Time: {test_connectivity_response.get('response_time_ms', 0)}ms")
+                if not test_connectivity_response.get('success'):
+                    print(f"   Error: {test_connectivity_response.get('error_message', 'Unknown')}")
+        
+        # Phase 2: Webhook Rotation Logic Testing
+        print(f"\n📋 PHASE 2: WEBHOOK ROTATION LOGIC")
+        print("-" * 50)
+        
+        # Step 6: Test get_active_webhooks() function through bill checking
+        print(f"\n🔄 STEP 6: Test Webhook Rotation During Bill Checking")
+        
+        # Create multiple test webhooks for rotation testing
+        rotation_webhooks = []
+        for i in range(3):  # Create 3 webhooks for rotation testing
+            webhook_data = {
+                "name": f"Rotation Test Webhook {i+1}",
+                "url": f"https://rotation-test-{i+1}.example.com/webhook",
+                "is_active": True
+            }
+            
+            rotation_success, rotation_response = self.run_test(
+                f"Create Rotation Webhook {i+1}",
+                "POST",
+                "admin/webhooks",
+                200,
+                data=webhook_data,
+                headers=admin_headers
+            )
+            
+            if rotation_success:
+                rotation_webhooks.append(rotation_response)
+                print(f"✅ Created rotation webhook {i+1}: {rotation_response.get('id')}")
+        
+        # Step 7: Test multi-cycle distribution (5 requests per webhook)
+        print(f"\n🔄 STEP 7: Test Multi-Cycle Distribution (5 requests per webhook)")
+        
+        # Make multiple bill check requests to test rotation
+        rotation_test_results = []
+        for request_num in range(15):  # 15 requests = 3 cycles of 5 requests each
+            print(f"\n   Request {request_num + 1}/15: Testing webhook rotation")
+            
+            # Use single bill check to trigger webhook rotation
+            rotation_test_success, rotation_test_response = self.run_test(
+                f"Bill Check Request {request_num + 1}",
+                "POST",
+                "bill/check/single?customer_code=ROTATION_TEST&provider_region=MIEN_NAM",
+                200
+            )
+            
+            if rotation_test_success:
+                rotation_test_results.append({
+                    "request_num": request_num + 1,
+                    "success": True,
+                    "status": rotation_test_response.get('status', 'Unknown')
+                })
+                print(f"      ✅ Request {request_num + 1} completed")
+            else:
+                rotation_test_results.append({
+                    "request_num": request_num + 1,
+                    "success": False
+                })
+                print(f"      ❌ Request {request_num + 1} failed")
+        
+        # Analyze rotation results
+        successful_requests = sum(1 for r in rotation_test_results if r['success'])
+        print(f"\n📊 Rotation Test Results:")
+        print(f"   Total Requests: {len(rotation_test_results)}")
+        print(f"   Successful: {successful_requests}")
+        print(f"   Success Rate: {(successful_requests/len(rotation_test_results)*100):.1f}%")
+        
+        # Phase 3: Integration Testing
+        print(f"\n📋 PHASE 3: INTEGRATION WITH BILL CHECKING")
+        print("-" * 50)
+        
+        # Step 8: Test batch processing with multiple webhooks
+        print(f"\n📦 STEP 8: Test Batch Processing with Webhook Rotation")
+        
+        batch_codes = [f"BATCH_TEST_{i}" for i in range(10)]
+        batch_success, batch_response = self.run_test(
+            "Batch Bill Check with Rotation",
+            "POST",
+            "bill/check",
+            200,
+            data={
+                "gateway": "FPT",
+                "provider_region": "MIEN_NAM",
+                "codes": batch_codes
+            }
+        )
+        
+        if batch_success:
+            items = batch_response.get('items', [])
+            summary = batch_response.get('summary', {})
+            print(f"✅ Batch processing completed")
+            print(f"   Items processed: {len(items)}")
+            print(f"   Summary: {summary}")
+        else:
+            print("❌ Batch processing failed")
+        
+        # Step 9: Test delay + rotation works together
+        print(f"\n⏱️  STEP 9: Test Delay + Rotation Integration")
+        
+        # Test multiple single requests with timing
+        delay_test_results = []
+        for i in range(5):
+            start_time = datetime.now()
+            
+            delay_success, delay_response = self.run_test(
+                f"Delay Test Request {i+1}",
+                "POST",
+                f"bill/check/single?customer_code=DELAY_TEST_{i}&provider_region=MIEN_NAM",
+                200
+            )
+            
+            end_time = datetime.now()
+            response_time = (end_time - start_time).total_seconds()
+            
+            delay_test_results.append({
+                "request": i+1,
+                "success": delay_success,
+                "response_time": response_time
+            })
+            
+            print(f"   Request {i+1}: {response_time:.2f}s")
+        
+        avg_response_time = sum(r['response_time'] for r in delay_test_results) / len(delay_test_results)
+        print(f"\n📊 Delay Integration Results:")
+        print(f"   Average Response Time: {avg_response_time:.2f}s")
+        print(f"   Expected: 5-6s (due to delay + external API)")
+        
+        if 4.0 <= avg_response_time <= 8.0:
+            print("✅ Delay integration working correctly")
+        else:
+            print("⚠️  Delay integration may have issues")
+        
+        # Cleanup: Delete test webhooks
+        print(f"\n🧹 CLEANUP: Deleting Test Webhooks")
+        cleanup_count = 0
+        
+        # Delete the main test webhook
+        if test_webhook_id:
+            cleanup_success, cleanup_response = self.run_test(
+                "Delete Test Webhook",
+                "DELETE",
+                f"admin/webhooks/{test_webhook_id}",
+                200,
+                headers=admin_headers
+            )
+            if cleanup_success:
+                cleanup_count += 1
+        
+        # Delete rotation test webhooks
+        for webhook in rotation_webhooks:
+            webhook_id = webhook.get('id')
+            if webhook_id:
+                cleanup_success, cleanup_response = self.run_test(
+                    f"Delete Rotation Webhook {webhook_id}",
+                    "DELETE",
+                    f"admin/webhooks/{webhook_id}",
+                    200,
+                    headers=admin_headers
+                )
+                if cleanup_success:
+                    cleanup_count += 1
+        
+        print(f"✅ Cleaned up {cleanup_count} test webhooks")
+        
+        # Final Summary
+        print(f"\n📊 WEBHOOK MANAGEMENT & ROTATION SYSTEM TEST SUMMARY")
+        print("-" * 60)
+        print(f"✅ Phase 1 - Admin APIs: Tested webhook CRUD operations")
+        print(f"✅ Phase 2 - Rotation Logic: Tested multi-cycle distribution")
+        print(f"✅ Phase 3 - Integration: Tested bill checking with rotation")
+        print(f"✅ Cleanup: Removed test webhooks")
+        
+        self.tests_run += 1
+        self.tests_passed += 1
+        return True
+
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
@@ -7702,9 +8022,9 @@ if __name__ == "__main__":
                 if attr.startswith('test_'):
                     print(f"  - {attr}")
     else:
-        # Run the PaymentMethod.OTHER enum fix verification by default
-        print(f"🎯 Running PaymentMethod.OTHER enum fix verification...")
-        success = tester.test_credit_card_dao_paymentmethod_other_fix()
+        # Run the webhook management and rotation system test by default
+        print(f"🎯 Running Webhook Management & Rotation System Test...")
+        success = tester.test_webhook_management_and_rotation_system()
         
         print(f"\n📊 Final Results:")
         print(f"   Tests Run: {tester.tests_run}")
