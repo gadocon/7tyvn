@@ -1765,15 +1765,15 @@ class FPTBillManagerAPITester:
         return is_system_healthy
 
     def run_all_tests(self):
-        """Run credit card deletion and data consistency testing"""
-        print(f"\n🚀 STARTING CREDIT CARD DELETION & DATA CONSISTENCY TESTING")
+        """Run comprehensive credit card deletion and data consistency testing"""
+        print(f"\n🚀 STARTING COMPREHENSIVE CREDIT CARD DELETION & DATA CONSISTENCY TESTING")
         print("=" * 80)
         print(f"🎯 Review Request: URGENT credit card deletion và data consistency issues")
         print(f"📅 Test Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"🌐 API Base URL: {self.base_url}")
         
-        # Run the credit card deletion and consistency test
-        success = self.test_credit_card_deletion_and_data_consistency()
+        # Run the comprehensive credit card test
+        success = self.test_credit_card_deletion_and_data_consistency_comprehensive()
         
         # Print final summary
         print(f"\n📊 FINAL TEST SUMMARY")
@@ -1784,15 +1784,16 @@ class FPTBillManagerAPITester:
         
         if success:
             print(f"\n✅ OVERALL RESULT: CREDIT CARD SYSTEM IS HEALTHY")
-            print(f"   - DELETE /credit-cards endpoints working")
-            print(f"   - Credit card creation uses consistent ID formats")
-            print(f"   - No data consistency issues detected")
-            print(f"   - Cascade deletion working properly")
+            print(f"   - DELETE /credit-cards endpoints working correctly")
+            print(f"   - No critical ObjectId vs UUID issues detected")
+            print(f"   - Data consistency maintained")
+            print(f"   - System ready for production use")
         else:
             print(f"\n❌ OVERALL RESULT: CREDIT CARD SYSTEM HAS CRITICAL ISSUES")
+            print(f"   - ObjectId vs UUID dual lookup missing in credit card endpoints")
+            print(f"   - DELETE /credit-cards fails for ObjectId format cards")
             print(f"   - Data consistency problems detected")
-            print(f"   - Some endpoints creating inconsistent data")
-            print(f"   - Immediate investigation and fixes required")
+            print(f"   - URGENT: Apply same dual lookup fix as customer endpoints")
         
         return success
 
