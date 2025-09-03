@@ -653,14 +653,26 @@ def prepare_for_mongo(data):
     return data
 
 def parse_from_mongo(item):
-    """Parse datetime strings from MongoDB"""
+    """Parse MongoDB document for JSON serialization"""
     if isinstance(item, dict):
+        # Convert MongoDB ObjectId to string for JSON serialization
+        if '_id' in item:
+            item['id'] = str(item['_id'])
+            item.pop('_id', None)
+        
+        # Parse datetime strings
         for key, value in item.items():
             if isinstance(value, str) and key.endswith('_at'):
                 try:
                     item[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
                 except:
                     pass
+            # Handle nested dictionaries
+            elif isinstance(value, dict):
+                item[key] = parse_from_mongo(value)
+            # Handle lists of dictionaries
+            elif isinstance(value, list):
+                item[key] = [parse_from_mongo(v) if isinstance(v, dict) else v for v in value]
     return item
 
 # External API bill checking function
