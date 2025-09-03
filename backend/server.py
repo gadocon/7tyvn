@@ -664,8 +664,8 @@ def parse_from_mongo(item):
     return item
 
 # External API bill checking function
-async def external_check_bill(customer_code: str, provider_region: ProviderRegion) -> CheckBillResult:
-    """Call external bill checking API with random delay and timeout"""
+async def external_check_bill(customer_code: str, provider_region: ProviderRegion) -> CheckBillResult:  
+    """Call external bill checking API with timeout"""
     print(
         f"Checking bill for customer code: {customer_code}, "
         f"Provider: {provider_region.value}"
