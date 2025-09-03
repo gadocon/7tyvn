@@ -1595,6 +1595,21 @@ async def delete_bill(bill_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/bills/{bill_id}")
+async def get_bill(bill_id: str):
+    """Get single bill by ID - used for existence check"""
+    try:
+        bill = await db.bills.find_one({"id": bill_id})
+        if not bill:
+            raise HTTPException(status_code=404, detail="Không tìm thấy bill")
+        
+        return Bill(**parse_from_mongo(bill))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting bill {bill_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.put("/bills/{bill_id}")
 async def update_bill(bill_id: str, bill_data: dict):
     """Update bill information - used for recheck functionality"""
