@@ -4362,11 +4362,6 @@ const CreditCards = () => {
     setShowDeleteModal(true);
   };
 
-  const handleDaoCard = (card) => {
-    setSelectedCard(card);
-    setShowDaoModal(true);
-  };
-
   const filteredCards = cards.filter(card => 
     card.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     card.cardholder_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
