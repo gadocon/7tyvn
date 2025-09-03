@@ -3698,6 +3698,8 @@ async def update_credit_card_transaction(transaction_id: str, update_data: Credi
         
         # Get updated transaction
         updated_credit_tx = await db.credit_card_transactions.find_one({"id": transaction_id})
+        # Convert MongoDB document to JSON-serializable format
+        updated_credit_tx = parse_from_mongo(updated_credit_tx)
         return {"success": True, "message": "Cập nhật giao dịch thẻ tín dụng thành công", "data": updated_credit_tx}
         
     except HTTPException:
