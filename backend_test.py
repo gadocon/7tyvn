@@ -1181,12 +1181,12 @@ class FPTBillManagerAPITester:
             print(f"❌ FAILURE: Inconsistent bill_codes functionality across customers")
             return False
 
-    def test_credit_card_dao_500_error_reproduction(self):
-        """URGENT: Test and reproduce the 500 error in credit card DAO functionality"""
-        print(f"\n🚨 URGENT: CREDIT CARD DAO 500 ERROR REPRODUCTION TEST")
+    def test_credit_card_dao_after_enum_fix(self):
+        """VERIFICATION: Test credit card DAO functionality after PaymentMethod.OTHER enum bug fix"""
+        print(f"\n🎯 VERIFICATION: Credit Card DAO After PaymentMethod.OTHER Enum Fix")
         print("=" * 70)
-        print("🎯 OBJECTIVE: Reproduce the exact 500 error condition to identify root cause")
-        print("📋 CONTEXT: Frontend calls API correctly but backend returns 500 with 'OTHER' detail")
+        print("🔧 CONTEXT: Fixed PaymentMethod.OTHER enum bug - testing both POS and BILL methods")
+        print("✅ EXPECTED: No more 500 errors, should return 200 success or proper error codes")
         
         # Step 1: Get available credit cards
         print(f"\n📋 STEP 1: Getting available credit cards...")
