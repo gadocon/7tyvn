@@ -4657,9 +4657,6 @@ async def get_customer_analytics(customer_id: str):
         logger.error(f"Error getting customer analytics: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Include the router in the main app
-app.include_router(api_router)
-
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
