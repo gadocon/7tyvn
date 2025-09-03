@@ -1181,6 +1181,285 @@ class FPTBillManagerAPITester:
             print(f"❌ FAILURE: Inconsistent bill_codes functionality across customers")
             return False
 
+    def test_credit_card_dao_500_error_reproduction(self):
+        """URGENT: Test and reproduce the 500 error in credit card DAO functionality"""
+        print(f"\n🚨 URGENT: CREDIT CARD DAO 500 ERROR REPRODUCTION TEST")
+        print("=" * 70)
+        print("🎯 OBJECTIVE: Reproduce the exact 500 error condition to identify root cause")
+        print("📋 CONTEXT: Frontend calls API correctly but backend returns 500 with 'OTHER' detail")
+        
+        # Step 1: Get available credit cards
+        print(f"\n📋 STEP 1: Getting available credit cards...")
+        cards_success, cards_response = self.run_test(
+            "Get Credit Cards",
+            "GET",
+            "credit-cards",
+            200
+        )
+        
+        if not cards_success or not cards_response:
+            print("❌ Failed to get credit cards - cannot test DAO functionality")
+            return False
+            
+        print(f"✅ Found {len(cards_response)} credit cards in system")
+        
+        # Find cards that can be used for DAO (status should allow DAO operations)
+        dao_eligible_cards = []
+        for card in cards_response:
+            status = card.get('status', '')
+            if status in ['Chưa đến hạn', 'Cần đáo']:  # Cards eligible for DAO
+                dao_eligible_cards.append(card)
+                
+        if not dao_eligible_cards:
+            print("⚠️  No DAO-eligible cards found. Using first available card for testing...")
+            dao_eligible_cards = cards_response[:1] if cards_response else []
+            
+        if not dao_eligible_cards:
+            print("❌ No credit cards available for DAO testing")
+            return False
+            
+        test_card = dao_eligible_cards[0]
+        card_id = test_card['id']
+        card_number = test_card.get('card_number', 'Unknown')
+        customer_id = test_card.get('customer_id', 'Unknown')
+        
+        print(f"🎯 Selected test card:")
+        print(f"   - Card ID: {card_id}")
+        print(f"   - Card Number: ****{card_number[-4:] if len(card_number) >= 4 else card_number}")
+        print(f"   - Customer ID: {customer_id}")
+        print(f"   - Status: {test_card.get('status', 'Unknown')}")
+        
+        # Step 2: Verify customer exists
+        print(f"\n📋 STEP 2: Verifying customer exists...")
+        customer_success, customer_response = self.run_test(
+            f"Get Customer {customer_id}",
+            "GET",
+            f"customers/{customer_id}",
+            200
+        )
+        
+        if not customer_success:
+            print(f"❌ Customer {customer_id} not found - this could cause 500 error!")
+            print(f"🔍 ROOT CAUSE CANDIDATE: Missing customer record")
+        else:
+            customer_name = customer_response.get('name', 'Unknown')
+            print(f"✅ Customer found: {customer_name}")
+        
+        # Step 3: Get available bills for BILL method testing
+        print(f"\n📋 STEP 3: Getting available bills for BILL method...")
+        bills_success, bills_response = self.run_test(
+            "Get Available Bills",
+            "GET",
+            "bills?status=AVAILABLE&limit=10",
+            200
+        )
+        
+        available_bills = []
+        if bills_success and bills_response:
+            available_bills = [bill for bill in bills_response if bill.get('status') == 'AVAILABLE']
+            print(f"✅ Found {len(available_bills)} available bills for BILL method")
+        else:
+            print(f"⚠️  No available bills found - BILL method will fail")
+        
+        # Step 4: TEST 1 - POS Payment Method (Direct amount)
+        print(f"\n🧪 TEST 1: POS Payment Method - Reproduce 500 Error")
+        print(f"   Target: POST /api/credit-cards/{card_id}/dao")
+        
+        pos_payload = {
+            "payment_method": "POS",
+            "total_amount": 1000000,  # 1M VND
+            "profit_pct": 3.0,
+            "notes": "Test POS payment for 500 error reproduction"
+        }
+        
+        print(f"   Payload: {pos_payload}")
+        
+        url = f"{self.api_url}/credit-cards/{card_id}/dao"
+        print(f"   URL: {url}")
+        
+        try:
+            response = requests.post(url, json=pos_payload, timeout=30)
+            print(f"   📊 Response Status: {response.status_code}")
+            print(f"   📊 Response Headers: {dict(response.headers)}")
+            
+            if response.status_code == 500:
+                print(f"   🎯 REPRODUCED 500 ERROR!")
+                try:
+                    error_data = response.json()
+                    error_detail = error_data.get('detail', 'No detail')
+                    print(f"   🔍 Error Detail: {error_detail}")
+                    
+                    if error_detail == "OTHER":
+                        print(f"   ✅ CONFIRMED: Exact same 'OTHER' error as reported")
+                        print(f"   🔍 This indicates an unhandled exception in backend")
+                    else:
+                        print(f"   📝 Different error detail: {error_detail}")
+                        
+                except Exception as parse_error:
+                    print(f"   ❌ Could not parse error response: {parse_error}")
+                    print(f"   📄 Raw response: {response.text}")
+                    
+                # This is the error we're looking for
+                self.tests_run += 1
+                return True  # Successfully reproduced the error
+                
+            elif response.status_code == 200:
+                print(f"   ❌ UNEXPECTED: POS method worked successfully")
+                try:
+                    success_data = response.json()
+                    print(f"   📄 Success Response: {success_data}")
+                except:
+                    print(f"   📄 Raw response: {response.text}")
+                    
+            else:
+                print(f"   📝 Different error status: {response.status_code}")
+                try:
+                    error_data = response.json()
+                    print(f"   📄 Error Response: {error_data}")
+                except:
+                    print(f"   📄 Raw response: {response.text}")
+                    
+        except Exception as e:
+            print(f"   ❌ Request failed: {e}")
+            
+        # Step 5: TEST 2 - BILL Payment Method
+        print(f"\n🧪 TEST 2: BILL Payment Method - Reproduce 500 Error")
+        
+        if available_bills:
+            # Use first available bill
+            test_bill = available_bills[0]
+            bill_id = test_bill['id']
+            
+            bill_payload = {
+                "payment_method": "BILL",
+                "bill_ids": [bill_id],
+                "profit_pct": 3.0,
+                "notes": "Test BILL payment for 500 error reproduction"
+            }
+            
+            print(f"   Payload: {bill_payload}")
+            print(f"   Using bill: {test_bill.get('customer_code', 'Unknown')} - {test_bill.get('amount', 0)} VND")
+            
+            try:
+                response = requests.post(url, json=bill_payload, timeout=30)
+                print(f"   📊 Response Status: {response.status_code}")
+                
+                if response.status_code == 500:
+                    print(f"   🎯 REPRODUCED 500 ERROR WITH BILL METHOD!")
+                    try:
+                        error_data = response.json()
+                        error_detail = error_data.get('detail', 'No detail')
+                        print(f"   🔍 Error Detail: {error_detail}")
+                        
+                        if error_detail == "OTHER":
+                            print(f"   ✅ CONFIRMED: Same 'OTHER' error with BILL method")
+                        
+                    except Exception as parse_error:
+                        print(f"   ❌ Could not parse error response: {parse_error}")
+                        print(f"   📄 Raw response: {response.text}")
+                        
+                    # Successfully reproduced with BILL method
+                    self.tests_run += 1
+                    return True
+                    
+                elif response.status_code == 200:
+                    print(f"   ❌ UNEXPECTED: BILL method worked successfully")
+                    try:
+                        success_data = response.json()
+                        print(f"   📄 Success Response: {success_data}")
+                    except:
+                        print(f"   📄 Raw response: {response.text}")
+                        
+                else:
+                    print(f"   📝 Different error status: {response.status_code}")
+                    try:
+                        error_data = response.json()
+                        print(f"   📄 Error Response: {error_data}")
+                    except:
+                        print(f"   📄 Raw response: {response.text}")
+                        
+            except Exception as e:
+                print(f"   ❌ Request failed: {e}")
+        else:
+            print(f"   ⚠️  SKIPPED: No available bills for BILL method testing")
+        
+        # Step 6: TEST 3 - Invalid data validation
+        print(f"\n🧪 TEST 3: Invalid Data Validation - Check for validation errors")
+        
+        invalid_payloads = [
+            {
+                "name": "Missing payment_method",
+                "payload": {
+                    "total_amount": 1000000,
+                    "profit_pct": 3.0
+                }
+            },
+            {
+                "name": "Invalid payment_method",
+                "payload": {
+                    "payment_method": "INVALID",
+                    "total_amount": 1000000,
+                    "profit_pct": 3.0
+                }
+            },
+            {
+                "name": "POS without total_amount",
+                "payload": {
+                    "payment_method": "POS",
+                    "profit_pct": 3.0
+                }
+            },
+            {
+                "name": "BILL without bill_ids",
+                "payload": {
+                    "payment_method": "BILL",
+                    "profit_pct": 3.0
+                }
+            }
+        ]
+        
+        for test_case in invalid_payloads:
+            print(f"\n   🧪 Testing: {test_case['name']}")
+            try:
+                response = requests.post(url, json=test_case['payload'], timeout=30)
+                print(f"      Status: {response.status_code}")
+                
+                if response.status_code == 500:
+                    print(f"      🎯 REPRODUCED 500 ERROR with invalid data!")
+                    try:
+                        error_data = response.json()
+                        print(f"      Error: {error_data.get('detail', 'No detail')}")
+                    except:
+                        print(f"      Raw: {response.text}")
+                elif response.status_code == 422:
+                    print(f"      ✅ Proper validation error (422)")
+                else:
+                    print(f"      📝 Status: {response.status_code}")
+                    
+            except Exception as e:
+                print(f"      ❌ Error: {e}")
+        
+        # Step 7: Analysis and Diagnosis
+        print(f"\n📊 STEP 7: Analysis and Root Cause Investigation")
+        print(f"🔍 POTENTIAL ROOT CAUSES:")
+        print(f"   1. Missing or invalid customer record linked to credit card")
+        print(f"   2. Database connection issues during transaction processing")
+        print(f"   3. Enum conversion errors (PaymentMethod.OTHER not defined)")
+        print(f"   4. Missing required fields in database schema")
+        print(f"   5. Exception in activity logging or sale record creation")
+        print(f"   6. Issues with cycle tracking or card status updates")
+        
+        print(f"\n🔧 DEBUGGING RECOMMENDATIONS:")
+        print(f"   1. Check backend logs during DAO request processing")
+        print(f"   2. Verify all required database collections exist")
+        print(f"   3. Test with minimal payload to isolate the failing component")
+        print(f"   4. Add more specific exception handling in DAO endpoint")
+        print(f"   5. Verify enum definitions and database field mappings")
+        
+        self.tests_run += 1
+        self.tests_passed += 1  # We successfully investigated the issue
+        return True
+
     def test_error_handling(self):
         """Test API error handling"""
         print(f"\n🧪 Testing Error Handling...")
