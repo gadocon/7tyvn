@@ -6261,10 +6261,20 @@ const TransactionDetailModal = ({ show, transaction, onClose, onUpdate }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-semibold text-gray-900">Chi Tiết Giao Dịch</h3>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+          <h3 className="text-xl font-semibold text-gray-900">
+            {isEditing ? 'Chỉnh Sửa Giao Dịch' : 'Chi Tiết Giao Dịch'}
+          </h3>
+          <div className="flex items-center gap-2">
+            {!isEditing && (
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                <Edit className="h-4 w-4 mr-1" />
+                Chỉnh Sửa
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -6289,7 +6299,16 @@ const TransactionDetailModal = ({ show, transaction, onClose, onUpdate }) => {
                 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Thời Gian:</span>
-                  <span className="font-medium">{formatDateTime(transaction.created_at)}</span>
+                  {isEditing ? (
+                    <input
+                      type="datetime-local"
+                      value={editData.created_at}
+                      onChange={(e) => setEditData({...editData, created_at: e.target.value})}
+                      className="border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
+                  ) : (
+                    <span className="font-medium">{formatDateTime(transaction.created_at)}</span>
+                  )}
                 </div>
                 
                 <div className="flex items-center justify-between">
@@ -6332,15 +6351,45 @@ const TransactionDetailModal = ({ show, transaction, onClose, onUpdate }) => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Tổng Số Tiền:</span>
-                  <span className="font-bold text-lg">{formatCurrency(transaction.total_amount)}</span>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      value={editData.total_amount}
+                      onChange={(e) => setEditData({...editData, total_amount: parseFloat(e.target.value) || 0})}
+                      className="border border-gray-300 rounded px-2 py-1 text-sm w-32 text-right"
+                      placeholder="0"
+                    />
+                  ) : (
+                    <span className="font-bold text-lg">{formatCurrency(transaction.total_amount)}</span>
+                  )}
                 </div>
                 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Lợi Nhuận:</span>
-                  <div className="text-right">
-                    <div className="font-bold text-green-600">{formatCurrency(transaction.profit_amount)}</div>
-                    <div className="text-xs text-gray-500">({transaction.profit_percentage}%)</div>
-                  </div>
+                  {isEditing ? (
+                    <div className="flex flex-col items-end gap-1">
+                      <input
+                        type="number"
+                        value={editData.profit_amount}
+                        onChange={(e) => setEditData({...editData, profit_amount: parseFloat(e.target.value) || 0})}
+                        className="border border-gray-300 rounded px-2 py-1 text-xs w-32 text-right"
+                        placeholder="0"
+                      />
+                      <input
+                        type="number"
+                        value={editData.profit_percentage}
+                        onChange={(e) => setEditData({...editData, profit_percentage: parseFloat(e.target.value) || 0})}
+                        className="border border-gray-300 rounded px-2 py-1 text-xs w-32 text-right"
+                        placeholder="0"
+                        step="0.1"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-right">
+                      <div className="font-bold text-green-600">{formatCurrency(transaction.profit_amount)}</div>
+                      <div className="text-xs text-gray-500">({transaction.profit_percentage}%)</div>
+                    </div>
+                  )}
                 </div>
                 
                 {transaction.payback && (
@@ -6394,26 +6443,57 @@ const TransactionDetailModal = ({ show, transaction, onClose, onUpdate }) => {
         </div>
 
         {/* Notes */}
-        {transaction.notes && (
-          <div className="mt-6 bg-yellow-50 rounded-lg p-4">
-            <h4 className="font-semibold text-gray-700 mb-2">Ghi Chú</h4>
-            <p className="text-sm text-gray-600">{transaction.notes}</p>
-          </div>
-        )}
+        <div className="mt-6 bg-yellow-50 rounded-lg p-4">
+          <h4 className="font-semibold text-gray-700 mb-2">Ghi Chú</h4>
+          {isEditing ? (
+            <textarea
+              value={editData.notes}
+              onChange={(e) => setEditData({...editData, notes: e.target.value})}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              rows={3}
+              placeholder="Nhập ghi chú..."
+            />
+          ) : (
+            <p className="text-sm text-gray-600">{transaction.notes || "Không có ghi chú"}</p>
+          )}
+        </div>
 
         {/* Actions */}
         <div className="flex gap-3 mt-6">
-          <Button variant="outline" onClick={onClose} className="flex-1">
-            Đóng
-          </Button>
-          <Button variant="outline" className="flex-1">
-            <Printer className="h-4 w-4 mr-2" />
-            In Hóa Đơn
-          </Button>
-          <Button variant="outline" className="flex-1">
-            <Mail className="h-4 w-4 mr-2" />
-            Gửi Email
-          </Button>
+          {isEditing ? (
+            <>
+              <Button variant="outline" onClick={handleCancel} className="flex-1" disabled={loading}>
+                Hủy
+              </Button>
+              <Button onClick={handleSave} className="flex-1" disabled={loading}>
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Lưu Thay Đổi
+                  </>
+                )}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                Đóng
+              </Button>
+              <Button variant="outline" className="flex-1">
+                <Printer className="h-4 w-4 mr-2" />
+                In Hóa Đơn
+              </Button>
+              <Button variant="outline" className="flex-1">
+                <Mail className="h-4 w-4 mr-2" />
+                Gửi Email
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
