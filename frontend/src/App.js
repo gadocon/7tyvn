@@ -4110,6 +4110,17 @@ const CreditCards = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDaoModal, setShowDaoModal] = useState(false);
   const [cardDetail, setCardDetail] = useState(null);
+  
+  // ĐÁO Modal states
+  const [selectedCardForDao, setSelectedCardForDao] = useState(null);
+  const [daoMethod, setDaoMethod] = useState('POS'); // POS or BILL
+  const [daoFormData, setDaoFormData] = useState({
+    total_amount: '',
+    profit_pct: 3.0,
+    bill_ids: [],
+    notes: ''
+  });
+  const [daoLoading, setDaoLoading] = useState(false);
 
   // Vietnamese Banks List
   const vietnameseBanks = [
