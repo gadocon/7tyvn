@@ -4371,10 +4371,22 @@ async def get_top_customers_chart(limit: int = 10):
 
 @api_router.get("/customers/{customer_id}/detailed-profile")
 async def get_customer_detailed_profile(customer_id: str):
-    """Get comprehensive customer profile with all related data"""
+    """Get comprehensive customer profile with all related data - supports both UUID and ObjectId lookup"""
     try:
-        # Get customer basic info
+        # Try to find customer by 'id' field first (UUID format)
         customer = await db.customers.find_one({"id": customer_id})
+        
+        # If not found and customer_id looks like ObjectId, try _id field
+        if not customer and len(customer_id) == 24 and all(c in '0123456789abcdef' for c in customer_id.lower()):
+            try:
+                from bson import ObjectId
+                customer = await db.customers.find_one({"_id": ObjectId(customer_id)})
+                # If found by ObjectId, use the actual 'id' field for subsequent queries
+                if customer and customer.get('id'):
+                    customer_id = customer.get('id')
+            except:
+                pass  # Invalid ObjectId format, continue with original customer_id
+        
         if not customer:
             raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
         
