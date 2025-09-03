@@ -728,14 +728,26 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
     }
     
     try:
-        async with aiohttp.ClientSession() as session:
+        # Add random delay between 5-6 seconds to prevent rate limiting
+        delay_seconds = random.uniform(5.0, 6.0)
+        print(f"[DEBUG] Adding {delay_seconds:.2f}s delay before external API call")
+        await asyncio.sleep(delay_seconds)
+        
+        # Configure timeout for external API call (30 seconds)
+        timeout = aiohttp.ClientTimeout(total=30, connect=10)
+        
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            print(f"[DEBUG] Making external API call to: https://n8n.phamthanh.net/webhook/checkbill")
+            print(f"[DEBUG] Payload: {payload}")
+            
             async with session.post(
                 "https://n8n.phamthanh.net/webhook/checkbill",
                 json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=30
+                headers={"Content-Type": "application/json"}
             ) as response:
                 response_text = await response.text()
+                print(f"[DEBUG] External API response status: {response.status}")
+                print(f"[DEBUG] External API response text: {response_text[:500]}...")
                 
                 # Parse response - handle different response formats
                 try:
