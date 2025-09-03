@@ -8624,6 +8624,8 @@ const WebhookModal = ({ isOpen, onClose, webhook, onSave }) => {
     </div>
   );
 };
+
+const MainApp = () => {
   // Shared state for customer modal
   const [customerDetail, setCustomerDetail] = useState(null);
 
