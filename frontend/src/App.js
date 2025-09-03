@@ -1050,12 +1050,49 @@ const Inventory = () => {
 
   const handleRemoveFromInventory = async (inventoryId) => {
     try {
-      await axios.delete(`${API}/inventory/${inventoryId}`);
-      toast.success("Đã xóa khỏi kho thành công");
-      fetchInventoryData(); // Refresh data
+      // Add confirmation dialog
+      const confirmed = window.confirm('Bạn có chắc chắn muốn xóa bill này khỏi kho?\n\nLưu ý: Bill sẽ bị xóa khỏi kho nhưng vẫn tồn tại trong hệ thống.');
+      
+      if (!confirmed) {
+        return;
+      }
+
+      console.log(`Attempting to remove inventory item: ${inventoryId}`);
+      
+      const response = await axios.delete(`${API}/inventory/${inventoryId}`);
+      console.log('Remove response:', response.data);
+      
+      if (response.data.success) {
+        toast.success(response.data.message || "Đã xóa khỏi kho thành công");
+      } else {
+        toast.success("Đã xóa khỏi kho thành công");
+      }
+      
+      fetchInventoryData();
     } catch (error) {
       console.error("Error removing from inventory:", error);
-      toast.error("Có lỗi xảy ra khi xóa khỏi kho");
+      console.error("Error response:", error.response?.data);
+      
+      let errorMessage = "Có lỗi xảy ra khi xóa khỏi kho";
+      
+      if (error.response) {
+        const status = error.response.status;
+        const detail = error.response.data?.detail;
+        
+        if (status === 404) {
+          errorMessage = "Không tìm thấy item trong kho để xóa";
+        } else if (status === 400) {
+          errorMessage = detail || "Không thể xóa item này khỏi kho";
+        } else if (status === 500) {
+          errorMessage = "Lỗi hệ thống khi xóa khỏi kho"; 
+        } else {
+          errorMessage = detail || `Lỗi HTTP ${status}`;
+        }
+      } else if (error.request) {
+        errorMessage = "Không thể kết nối đến server";
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
