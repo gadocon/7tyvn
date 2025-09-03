@@ -752,7 +752,7 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
                 
                 # Parse response - handle different response formats
                 try:
-                    response_data = json_lib.loads(response_text)
+                    response_data = json.loads(response_text)
                     
                     # Handle array format (old format)
                     if isinstance(response_data, list) and len(response_data) > 0:
