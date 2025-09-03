@@ -6738,6 +6738,18 @@ const CustomerDetailPage = () => {
   const [customerData, setCustomerData] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
+  
+  // ĐÁO Modal states
+  const [showDaoModal, setShowDaoModal] = useState(false);
+  const [selectedCardForDao, setSelectedCardForDao] = useState(null);
+  const [daoMethod, setDaoMethod] = useState('POS'); // POS or BILL
+  const [daoFormData, setDaoFormData] = useState({
+    total_amount: '',
+    profit_pct: 3.0,
+    bill_ids: [],
+    notes: ''
+  });
+  const [daoLoading, setDaoLoading] = useState(false);
 
   useEffect(() => {
     if (customerId) {
