@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "500 Server Error on credit card DAO functionality. API call to /api/credit-cards/{id}/dao returns 500 status with 'OTHER' detail message. DAO feature is broken for credit cards."
+user_problem_statement: "Comprehensive authentication system verification with role-based access control. Test JWT authentication, user roles (Admin, Manager, User), login/logout functionality, and protected routes."
 
 backend:
   - task: "Credit Card DAO PaymentMethod.OTHER Enum Fix"
