@@ -416,6 +416,18 @@ test_plan:
           agent: "testing"
           comment: "🎉 DASHBOARD CUSTOMER HYPERLINKS BUG FIX FULLY WORKING! ✅ COMPREHENSIVE TESTING COMPLETED: Found 8 'Xem Chi Tiết' buttons in dashboard activities with perfect blue pill styling (bg-blue-50, border-blue-200, text-blue-700, hover:bg-blue-100). ✅ MODAL FUNCTIONALITY: Customer detail modal opens successfully when clicking buttons (not just toast notifications). Modal displays customer info and recent transactions correctly. ✅ ENHANCED STYLING: Users icon present in buttons, proper hover effects, responsive design works on mobile (390x844). ✅ PROFESSIONAL APPEARANCE: All styling requirements met - blue backgrounds, borders, text colors, transition effects. ✅ CRITICAL SUCCESS: Customer modal opens from dashboard activities as intended, replacing previous toast-only behavior."
 
+  - task: "Credit Card DAO 500 Error Fix"
+    implemented: false
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "CRITICAL BUG: POST /api/credit-cards/{id}/dao returns 500 error with detail 'OTHER'. Frontend successfully calls handleViewCard with card details and API responses work. However, DAO processing fails with server error. Need to investigate backend DAO endpoint logic and fix the 500 error cause."
+
   - task: "Check Lại Button API Error Fix"
     implemented: true
     working: true
