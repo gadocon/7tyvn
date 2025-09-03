@@ -750,11 +750,6 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
     }
     
     try:
-        # Add random delay between 5-6 seconds to prevent rate limiting
-        delay_seconds = random.uniform(5.0, 6.0)
-        print(f"[DEBUG] Adding {delay_seconds:.2f}s delay before external API call")
-        await asyncio.sleep(delay_seconds)
-        
         # Configure timeout for external API call (30 seconds)
         timeout = aiohttp.ClientTimeout(total=30, connect=10)
         
