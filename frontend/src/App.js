@@ -4277,6 +4277,81 @@ const CreditCards = () => {
     }
   };
 
+  // ĐÁO Modal Functions
+  const handleDaoCard = (card) => {
+    setSelectedCardForDao(card);
+    setDaoFormData({
+      total_amount: '',
+      profit_pct: 3.0,
+      bill_ids: [],
+      notes: ''
+    });
+    setDaoMethod('POS');
+    setShowDaoModal(true);
+  };
+
+  const handleCloseDaoModal = () => {
+    setShowDaoModal(false);
+    setSelectedCardForDao(null);
+    setDaoFormData({
+      total_amount: '',
+      profit_pct: 3.0,
+      bill_ids: [],
+      notes: ''
+    });
+    setDaoLoading(false);
+  };
+
+  const handleDaoSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedCardForDao) return;
+
+    setDaoLoading(true);
+    try {
+      const payload = {
+        payment_method: daoMethod,
+        profit_pct: parseFloat(daoFormData.profit_pct) || 3.0,
+        notes: daoFormData.notes || undefined
+      };
+
+      if (daoMethod === 'POS') {
+        if (!daoFormData.total_amount || parseFloat(daoFormData.total_amount) <= 0) {
+          toast.error("Vui lòng nhập số tiền hợp lệ");
+          return;
+        }
+        payload.total_amount = parseFloat(daoFormData.total_amount);
+      } else if (daoMethod === 'BILL') {
+        if (!daoFormData.bill_ids || daoFormData.bill_ids.length === 0) {
+          toast.error("Vui lòng chọn ít nhất một bill");
+          return;
+        }
+        payload.bill_ids = daoFormData.bill_ids;
+      }
+
+      console.log(`Processing ĐÁO for card ${selectedCardForDao.id}:`, payload);
+
+      const response = await axios.post(`${API}/credit-cards/${selectedCardForDao.id}/dao`, payload);
+      
+      if (response.data.success) {
+        toast.success(`Đã đáo thẻ thành công bằng phương thức ${daoMethod}`);
+        handleCloseDaoModal();
+        
+        // Refresh customer data to show updated info
+        if (customerId) {
+          fetchCustomerDetail();
+        }
+      } else {
+        toast.error("Có lỗi xảy ra khi đáo thẻ");
+      }
+    } catch (error) {
+      console.error("Error processing dao:", error);
+      const errorMessage = error.response?.data?.detail || "Có lỗi xảy ra khi đáo thẻ";
+      toast.error(errorMessage);
+    } finally {
+      setDaoLoading(false);
+    }
+  };
+
   const handleEditCard = (card) => {
     setSelectedCard(card);
     setShowEditModal(true);
