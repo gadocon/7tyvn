@@ -7444,7 +7444,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency }) => {
                     className="bg-green-600 text-white hover:bg-green-700"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Handle DAO action
+                      handleDaoCard(card);
                     }}
                   >
                     <CreditCard className="h-4 w-4 mr-1" />
