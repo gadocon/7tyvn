@@ -109,13 +109,16 @@ backend:
     implemented: true
     working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Implemented PUT endpoints for updating both sale transactions (/transactions/sale/{transaction_id}) and credit card transactions (/transactions/credit-card/{transaction_id}). Added SaleUpdate and CreditCardTransactionUpdate models with optional fields for total, profit_value, profit_percentage, notes, and created_at. Includes proper validation, error handling, and returns updated transaction data."
+        - working: false
+          agent: "testing"
+          comment: "🚨 CRITICAL ISSUE: Transaction Update API endpoints have JSON serialization error causing 500 Internal Server Error. ✅ ENDPOINT VALIDATION WORKING: Both PUT /api/transactions/sale/{id} and PUT /api/transactions/credit-card/{id} endpoints exist and properly validate requests (404 for non-existent IDs, 400 for empty data). ❌ SERIALIZATION BUG: When attempting actual updates with valid data, both endpoints return 500 error due to ObjectId serialization issue. Backend logs show: ValueError: [TypeError(\"'ObjectId' object is not iterable\"), TypeError('vars() argument must have __dict__ attribute')]. ✅ CREDIT CARD TRANSACTIONS ENDPOINT FOUND: Correct endpoint is GET /api/credit-cards/{card_id}/transactions (not /api/credit-cards/transactions). 🔧 ROOT CAUSE: Backend is trying to return MongoDB ObjectId objects in JSON response which are not JSON serializable. The update logic works but response serialization fails. URGENT FIX NEEDED: Convert ObjectId objects to strings before JSON serialization in transaction update endpoints."
 
 frontend:
   - task: "Transaction Detail Modal Edit Functionality"
