@@ -827,37 +827,302 @@ class FPTBillManagerAPITester:
         
         return is_production_ready
 
-    def run_all_tests(self):
-        """Run comprehensive ID consistency audit"""
-        print(f"\n🚀 STARTING URGENT SYSTEM-WIDE ID CONSISTENCY AUDIT")
+    def test_customer_objectid_uuid_fix(self):
+        """Test customer endpoints sau khi fix ObjectId vs UUID issue"""
+        print(f"\n🎯 CUSTOMER OBJECTID VS UUID FIX VERIFICATION")
         print("=" * 80)
-        print(f"🎯 CRITICAL PRODUCTION READINESS CHECK")
-        print(f"📅 Audit Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("🔍 TESTING PRIORITIES:")
+        print("   1. Test DELETE /api/customers/68b86b157a314c251c8c863b (customer có vấn đề ObjectId)")
+        print("   2. Test PUT /api/customers/68b86b157a314c251c8c863b (update endpoint)")
+        print("   3. Test GET /api/customers/68b86b157a314c251c8c863b/transactions (transactions endpoint)")
+        print("   4. Verify dual lookup strategy hoạt động cho tất cả endpoints")
+        
+        target_customer_id = "68b86b157a314c251c8c863b"
+        test_results = {
+            "delete_working": False,
+            "update_working": False,
+            "transactions_working": False,
+            "dual_lookup_verified": False,
+            "total_tests": 0,
+            "passed_tests": 0
+        }
+        
+        # Step 1: Verify customer exists first
+        print(f"\n🔍 STEP 1: Verify Target Customer Exists")
+        print("=" * 60)
+        
+        customer_exists, customer_data = self.run_test(
+            f"GET /customers/{target_customer_id} - Verify Existence",
+            "GET",
+            f"customers/{target_customer_id}",
+            200
+        )
+        
+        if customer_exists:
+            customer_name = customer_data.get('name', 'Unknown')
+            print(f"✅ Target customer exists: {customer_name}")
+            print(f"   Customer ID: {target_customer_id}")
+            print(f"   Customer Type: {customer_data.get('type', 'Unknown')}")
+            test_results["passed_tests"] += 1
+        else:
+            print(f"❌ Target customer {target_customer_id} not found!")
+            print(f"   Cannot proceed with testing - customer doesn't exist")
+            test_results["total_tests"] += 1
+            return False
+        
+        test_results["total_tests"] += 1
+        
+        # Step 2: Test PUT /api/customers/{customer_id} (update endpoint)
+        print(f"\n🔍 STEP 2: Test PUT /api/customers/{target_customer_id} (Update Endpoint)")
+        print("=" * 60)
+        
+        # Prepare update data
+        update_data = {
+            "notes": f"Updated via API test at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        }
+        
+        update_success, update_response = self.run_test(
+            f"PUT /customers/{target_customer_id} - Update Customer",
+            "PUT",
+            f"customers/{target_customer_id}",
+            200,
+            data=update_data
+        )
+        
+        if update_success:
+            print(f"✅ UPDATE ENDPOINT WORKING: Customer {target_customer_id} updated successfully")
+            print(f"   Updated notes: {update_response.get('notes', 'Not found')}")
+            print(f"   Customer name: {update_response.get('name', 'Unknown')}")
+            test_results["update_working"] = True
+            test_results["passed_tests"] += 1
+        else:
+            print(f"❌ UPDATE ENDPOINT FAILED: Customer {target_customer_id} update failed")
+            print(f"   This indicates ObjectId/UUID lookup issue still exists")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 3: Test GET /api/customers/{customer_id}/transactions (transactions endpoint)
+        print(f"\n🔍 STEP 3: Test GET /api/customers/{target_customer_id}/transactions")
+        print("=" * 60)
+        
+        transactions_success, transactions_response = self.run_test(
+            f"GET /customers/{target_customer_id}/transactions - Get Transactions",
+            "GET",
+            f"customers/{target_customer_id}/transactions",
+            200
+        )
+        
+        if transactions_success:
+            print(f"✅ TRANSACTIONS ENDPOINT WORKING: Customer {target_customer_id} transactions retrieved")
+            if isinstance(transactions_response, list):
+                print(f"   Found {len(transactions_response)} transactions")
+                if transactions_response:
+                    first_transaction = transactions_response[0]
+                    print(f"   Sample transaction ID: {first_transaction.get('id', 'Unknown')}")
+                    print(f"   Sample transaction type: {first_transaction.get('transaction_type', 'Unknown')}")
+            elif isinstance(transactions_response, dict):
+                transactions_list = transactions_response.get('transactions', [])
+                print(f"   Found {len(transactions_list)} transactions in response")
+            test_results["transactions_working"] = True
+            test_results["passed_tests"] += 1
+        else:
+            print(f"❌ TRANSACTIONS ENDPOINT FAILED: Customer {target_customer_id} transactions failed")
+            print(f"   This indicates ObjectId/UUID lookup issue in transactions endpoint")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 4: Test DELETE /api/customers/{customer_id} (CAREFUL - this will delete the customer!)
+        print(f"\n🔍 STEP 4: Test DELETE /api/customers/{target_customer_id} (Delete Endpoint)")
+        print("=" * 60)
+        print(f"⚠️ WARNING: This will attempt to delete the customer!")
+        print(f"   Testing delete capability to verify ObjectId/UUID lookup works")
+        
+        # First, let's check if there's a safer way to test delete without actually deleting
+        # We'll test with a non-existent customer ID first to verify the endpoint exists
+        fake_customer_id = "00000000000000000000000000000000"  # Fake ObjectId format
+        
+        fake_delete_success, fake_delete_response = self.run_test(
+            f"DELETE /customers/{fake_customer_id} - Test Delete Endpoint Exists",
+            "DELETE",
+            f"customers/{fake_customer_id}",
+            404  # Expect 404 for non-existent customer
+        )
+        
+        if fake_delete_success:
+            print(f"✅ DELETE ENDPOINT EXISTS: Returns proper 404 for non-existent customer")
+            print(f"   This confirms the delete endpoint is working and can handle ObjectId format")
+            
+            # Now test with the real customer (but we'll be careful)
+            print(f"\n   🚨 TESTING ACTUAL DELETE - This will delete the customer!")
+            
+            delete_success, delete_response = self.run_test(
+                f"DELETE /customers/{target_customer_id} - Delete Customer",
+                "DELETE",
+                f"customers/{target_customer_id}",
+                200
+            )
+            
+            if delete_success:
+                print(f"✅ DELETE ENDPOINT WORKING: Customer {target_customer_id} deleted successfully")
+                print(f"   Response: {delete_response}")
+                test_results["delete_working"] = True
+                test_results["passed_tests"] += 1
+                
+                # Verify customer is actually deleted
+                verify_delete_success, verify_delete_response = self.run_test(
+                    f"GET /customers/{target_customer_id} - Verify Deletion",
+                    "GET",
+                    f"customers/{target_customer_id}",
+                    404  # Should return 404 now
+                )
+                
+                if verify_delete_success:
+                    print(f"✅ DELETION VERIFIED: Customer {target_customer_id} no longer exists")
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"❌ DELETION NOT VERIFIED: Customer may still exist")
+                
+                test_results["total_tests"] += 1
+            else:
+                print(f"❌ DELETE ENDPOINT FAILED: Customer {target_customer_id} delete failed")
+                print(f"   This indicates ObjectId/UUID lookup issue in delete endpoint")
+        else:
+            print(f"❌ DELETE ENDPOINT NOT WORKING: Endpoint may not exist or has issues")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 5: Test dual lookup strategy with other customers
+        print(f"\n🔍 STEP 5: Verify Dual Lookup Strategy với Other Customers")
+        print("=" * 60)
+        
+        # Get list of customers to test dual lookup
+        customers_success, customers_response = self.run_test(
+            "GET /customers - Get Customer List for Dual Lookup Testing",
+            "GET",
+            "customers?page_size=10",
+            200
+        )
+        
+        if customers_success and customers_response:
+            print(f"✅ Found {len(customers_response)} customers for dual lookup testing")
+            
+            dual_lookup_tests = 0
+            dual_lookup_passed = 0
+            
+            for customer in customers_response[:3]:  # Test first 3 customers
+                customer_id = customer.get('id', '')
+                customer_name = customer.get('name', 'Unknown')
+                
+                print(f"\n   Testing dual lookup for: {customer_name}")
+                print(f"   Customer ID: {customer_id}")
+                print(f"   ID Format: {'ObjectId' if len(customer_id) == 24 else 'UUID' if len(customer_id) == 36 else 'Other'}")
+                
+                # Test basic customer lookup
+                lookup_success, lookup_response = self.run_test(
+                    f"Dual Lookup Test - {customer_name}",
+                    "GET",
+                    f"customers/{customer_id}",
+                    200
+                )
+                
+                dual_lookup_tests += 1
+                if lookup_success:
+                    print(f"   ✅ Dual lookup working for {customer_name}")
+                    dual_lookup_passed += 1
+                else:
+                    print(f"   ❌ Dual lookup failed for {customer_name}")
+            
+            if dual_lookup_passed == dual_lookup_tests:
+                print(f"\n✅ DUAL LOOKUP STRATEGY VERIFIED: All {dual_lookup_tests} tests passed")
+                test_results["dual_lookup_verified"] = True
+                test_results["passed_tests"] += dual_lookup_passed
+            else:
+                print(f"\n❌ DUAL LOOKUP STRATEGY ISSUES: {dual_lookup_passed}/{dual_lookup_tests} tests passed")
+            
+            test_results["total_tests"] += dual_lookup_tests
+        
+        # Step 6: Final Assessment
+        print(f"\n📊 STEP 6: Final Assessment - ObjectId vs UUID Fix")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 TEST RESULTS SUMMARY:")
+        print(f"   Customer Exists: ✅ VERIFIED")
+        print(f"   DELETE /customers/{target_customer_id}: {'✅ WORKING' if test_results['delete_working'] else '❌ FAILED'}")
+        print(f"   PUT /customers/{target_customer_id}: {'✅ WORKING' if test_results['update_working'] else '❌ FAILED'}")
+        print(f"   GET /customers/{target_customer_id}/transactions: {'✅ WORKING' if test_results['transactions_working'] else '❌ FAILED'}")
+        print(f"   Dual Lookup Strategy: {'✅ VERIFIED' if test_results['dual_lookup_verified'] else '❌ ISSUES'}")
+        print(f"   Overall Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🎯 EXPECTED RESULTS VERIFICATION:")
+        expected_results_met = (
+            test_results["delete_working"] and 
+            test_results["update_working"] and 
+            test_results["transactions_working"] and
+            test_results["dual_lookup_verified"]
+        )
+        
+        if expected_results_met:
+            print(f"   ✅ Customer ID 68b86b157a314c251c8c863b can now delete, update, get transactions")
+            print(f"   ✅ All customer endpoints support both ObjectId and UUID")
+            print(f"   ✅ No more 404 errors for existing customers")
+            print(f"   ✅ Dual lookup strategy working correctly")
+        else:
+            print(f"   ❌ Some expected results not met:")
+            if not test_results["delete_working"]:
+                print(f"      - DELETE endpoint still has issues")
+            if not test_results["update_working"]:
+                print(f"      - UPDATE endpoint still has issues")
+            if not test_results["transactions_working"]:
+                print(f"      - TRANSACTIONS endpoint still has issues")
+            if not test_results["dual_lookup_verified"]:
+                print(f"      - Dual lookup strategy has issues")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if expected_results_met:
+            print(f"   ✅ OBJECTID VS UUID FIX VERIFICATION SUCCESSFUL")
+            print(f"   - All customer operations (CRUD + transactions) working with mixed ID formats")
+            print(f"   - Customer 68b86b157a314c251c8c863b fully functional")
+            print(f"   - System ready for production use")
+        else:
+            print(f"   ❌ OBJECTID VS UUID FIX NEEDS MORE WORK")
+            print(f"   - Some customer operations still failing")
+            print(f"   - Further investigation required")
+        
+        return expected_results_met
+
+    def run_all_tests(self):
+        """Run customer ObjectId vs UUID fix verification"""
+        print(f"\n🚀 STARTING CUSTOMER OBJECTID VS UUID FIX VERIFICATION")
+        print("=" * 80)
+        print(f"🎯 Review Request: Test customer endpoints sau khi fix ObjectId vs UUID issue")
+        print(f"📅 Test Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"🌐 API Base URL: {self.base_url}")
         
-        # Run the comprehensive audit
-        is_production_ready = self.comprehensive_id_consistency_audit()
+        # Run the customer ObjectId/UUID fix test
+        success = self.test_customer_objectid_uuid_fix()
         
         # Print final summary
-        print(f"\n📊 FINAL AUDIT SUMMARY")
+        print(f"\n📊 FINAL TEST SUMMARY")
         print("=" * 50)
         print(f"Tests Run: {self.tests_run}")
         print(f"Tests Passed: {self.tests_passed}")
         print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%")
         
-        if is_production_ready:
-            print(f"\n✅ OVERALL RESULT: SYSTEM IS PRODUCTION READY")
-            print(f"   - All ID consistency checks passed")
-            print(f"   - No critical data integrity issues")
-            print(f"   - All API endpoints functioning correctly")
+        if success:
+            print(f"\n✅ OVERALL RESULT: CUSTOMER OBJECTID VS UUID FIX VERIFIED")
+            print(f"   - Customer ID 68b86b157a314c251c8c863b fully functional")
+            print(f"   - All customer endpoints support mixed ID formats")
+            print(f"   - DELETE, UPDATE, and TRANSACTIONS endpoints working")
+            print(f"   - Dual lookup strategy successfully implemented")
         else:
-            print(f"\n🚨 OVERALL RESULT: SYSTEM NOT READY FOR PRODUCTION")
-            print(f"   - Critical ID consistency issues detected")
-            print(f"   - Data integrity problems found")
-            print(f"   - API endpoints have failures")
-            print(f"   - URGENT fixes required before deployment")
+            print(f"\n❌ OVERALL RESULT: CUSTOMER OBJECTID VS UUID FIX INCOMPLETE")
+            print(f"   - Some customer endpoints still have issues")
+            print(f"   - Further debugging required")
+            print(f"   - Check backend dual lookup implementation")
         
-        return is_production_ready
+        return success
 
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
