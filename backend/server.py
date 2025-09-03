@@ -2767,7 +2767,7 @@ async def delete_credit_card(card_id: str):
         
         # Check for existing transactions - WARNING but allow deletion
         transaction_count = await db.credit_card_transactions.count_documents({"card_id": actual_card_id})
-        sales_count = await db.sales.count_documents({"notes": {"$regex": f"****{credit_card['card_number'][-4:]}"}})
+        sales_count = await db.sales.count_documents({"notes": {"$regex": f"\\*\\*\\*\\*{credit_card['card_number'][-4:]}"}})
         
         # Delete card (transactions will be preserved for reporting)
         result = await db.credit_cards.delete_one({"id": actual_card_id})
