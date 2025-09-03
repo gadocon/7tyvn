@@ -1739,11 +1739,17 @@ const Inventory = () => {
                               Xóa
                             </Button>
                           )}
-                          {/* Show info for SOLD/CROSSED bills instead of delete button */}
+                          {/* Show clear info for SOLD/CROSSED bills with icon */}
                           {(item.status === "SOLD" || item.status === "CROSSED") && (
-                            <span className="text-sm text-gray-500 italic">
-                              {item.status === "SOLD" ? "Không thể xóa bill đã bán" : "Không thể xóa bill đã gạch"}
-                            </span>
+                            <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <Shield className="h-4 w-4" />
+                              <span className="italic">
+                                {item.status === "SOLD" 
+                                  ? "🚫 Không thể xóa bill đã bán" 
+                                  : "🚫 Không thể xóa bill đã gạch"
+                                }
+                              </span>
+                            </div>
                           )}
                         </div>
                       </TableCell>
