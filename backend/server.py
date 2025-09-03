@@ -2899,6 +2899,10 @@ async def process_card_payment(card_id: str, payment_data: CreditCardTransaction
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[ERROR] DAO Exception: {e}")
+        print(f"[ERROR] Exception type: {type(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 # Activity Logging Functions
