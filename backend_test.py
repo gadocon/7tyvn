@@ -409,6 +409,456 @@ class FPTBillManagerAPITester:
         
         return success
 
+    def comprehensive_id_consistency_audit(self):
+        """URGENT SYSTEM-WIDE ID CONSISTENCY AUDIT for Production Readiness"""
+        print(f"\n🚨 URGENT SYSTEM-WIDE ID CONSISTENCY AUDIT")
+        print("=" * 80)
+        print("🎯 CRITICAL PRODUCTION READINESS CHECK:")
+        print("   1. Analyze TẤT CẢ collections trong database")
+        print("   2. Check for ObjectId vs UUID inconsistencies across ALL entities")
+        print("   3. Identify ALL broken references và relationships")
+        print("   4. Test các API endpoints chính để xem cái nào broken vì ID issues")
+        print("   5. Generate comprehensive report về extent của problem")
+        
+        audit_results = {
+            "collections_analyzed": {},
+            "broken_references": [],
+            "api_endpoints_broken": [],
+            "critical_issues": [],
+            "production_blockers": [],
+            "total_issues": 0
+        }
+        
+        if not self.mongo_connected:
+            print("❌ CRITICAL: Cannot perform audit without database connection!")
+            return False
+        
+        # Step 1: Analyze ALL collections in database
+        print(f"\n🔍 STEP 1: Database Collections Analysis")
+        print("=" * 60)
+        
+        try:
+            # Get all collection names
+            collection_names = self.db.list_collection_names()
+            print(f"✅ Found {len(collection_names)} collections: {collection_names}")
+            
+            for collection_name in collection_names:
+                print(f"\n📊 Analyzing collection: {collection_name}")
+                collection = self.db[collection_name]
+                
+                # Get sample documents to analyze ID patterns
+                sample_docs = list(collection.find({}).limit(10))
+                total_count = collection.count_documents({})
+                
+                if not sample_docs:
+                    print(f"   ⚠️ Empty collection - {total_count} documents")
+                    continue
+                
+                print(f"   📈 Total documents: {total_count}")
+                
+                # Analyze ID patterns in this collection
+                id_analysis = {
+                    "has_mongo_id": 0,
+                    "has_uuid_id": 0,
+                    "mixed_formats": 0,
+                    "missing_id_field": 0,
+                    "objectid_in_uuid_field": 0,
+                    "reference_fields": []
+                }
+                
+                for doc in sample_docs:
+                    mongo_id = doc.get('_id')
+                    uuid_id = doc.get('id')
+                    
+                    # Check _id field (always present in MongoDB)
+                    if mongo_id:
+                        id_analysis["has_mongo_id"] += 1
+                    
+                    # Check id field
+                    if uuid_id:
+                        id_analysis["has_uuid_id"] += 1
+                        
+                        # Check if UUID field contains ObjectId format
+                        if isinstance(uuid_id, str) and len(uuid_id) == 24 and all(c in '0123456789abcdef' for c in uuid_id.lower()):
+                            id_analysis["objectid_in_uuid_field"] += 1
+                            id_analysis["mixed_formats"] += 1
+                        elif isinstance(uuid_id, str) and len(uuid_id) == 36 and uuid_id.count('-') == 4:
+                            # Proper UUID format
+                            pass
+                        else:
+                            id_analysis["mixed_formats"] += 1
+                    else:
+                        id_analysis["missing_id_field"] += 1
+                    
+                    # Look for reference fields (fields ending with _id)
+                    for key, value in doc.items():
+                        if key.endswith('_id') and key != '_id' and value:
+                            if key not in id_analysis["reference_fields"]:
+                                id_analysis["reference_fields"].append(key)
+                
+                # Report findings for this collection
+                print(f"   🔍 ID Analysis Results:")
+                print(f"      Documents with _id: {id_analysis['has_mongo_id']}/{len(sample_docs)}")
+                print(f"      Documents with id field: {id_analysis['has_uuid_id']}/{len(sample_docs)}")
+                print(f"      Missing id field: {id_analysis['missing_id_field']}/{len(sample_docs)}")
+                print(f"      Mixed/problematic formats: {id_analysis['mixed_formats']}/{len(sample_docs)}")
+                print(f"      ObjectId in UUID field: {id_analysis['objectid_in_uuid_field']}/{len(sample_docs)}")
+                print(f"      Reference fields found: {id_analysis['reference_fields']}")
+                
+                # Flag critical issues
+                if id_analysis["mixed_formats"] > 0:
+                    issue = f"Collection '{collection_name}' has {id_analysis['mixed_formats']} documents with mixed ID formats"
+                    audit_results["critical_issues"].append(issue)
+                    print(f"   🚨 CRITICAL ISSUE: {issue}")
+                
+                if id_analysis["missing_id_field"] > 0:
+                    issue = f"Collection '{collection_name}' has {id_analysis['missing_id_field']} documents missing 'id' field"
+                    audit_results["critical_issues"].append(issue)
+                    print(f"   ⚠️ WARNING: {issue}")
+                
+                audit_results["collections_analyzed"][collection_name] = id_analysis
+                
+        except Exception as e:
+            print(f"❌ Database analysis failed: {e}")
+            return False
+        
+        # Step 2: Check for broken references between collections
+        print(f"\n🔍 STEP 2: Cross-Collection Reference Validation")
+        print("=" * 60)
+        
+        # Check customer references in other collections
+        if "customers" in audit_results["collections_analyzed"]:
+            print(f"\n📋 Checking customer_id references...")
+            
+            # Get all customer IDs
+            customer_ids = set()
+            customers = list(self.db.customers.find({}, {"_id": 1, "id": 1}))
+            for customer in customers:
+                if customer.get("id"):
+                    customer_ids.add(customer["id"])
+                customer_ids.add(str(customer["_id"]))
+            
+            print(f"   ✅ Found {len(customer_ids)} unique customer identifiers")
+            
+            # Check references in sales collection
+            if "sales" in collection_names:
+                sales_with_invalid_refs = 0
+                sales = list(self.db.sales.find({}, {"customer_id": 1}).limit(50))
+                for sale in sales:
+                    customer_id = sale.get("customer_id")
+                    if customer_id and customer_id not in customer_ids:
+                        sales_with_invalid_refs += 1
+                        audit_results["broken_references"].append({
+                            "collection": "sales",
+                            "document_id": str(sale["_id"]),
+                            "broken_field": "customer_id",
+                            "invalid_value": customer_id
+                        })
+                
+                if sales_with_invalid_refs > 0:
+                    issue = f"Sales collection has {sales_with_invalid_refs} documents with invalid customer_id references"
+                    audit_results["critical_issues"].append(issue)
+                    print(f"   🚨 CRITICAL: {issue}")
+                else:
+                    print(f"   ✅ Sales collection customer_id references are valid")
+            
+            # Check references in credit_cards collection
+            if "credit_cards" in collection_names:
+                cards_with_invalid_refs = 0
+                cards = list(self.db.credit_cards.find({}, {"customer_id": 1}).limit(50))
+                for card in cards:
+                    customer_id = card.get("customer_id")
+                    if customer_id and customer_id not in customer_ids:
+                        cards_with_invalid_refs += 1
+                        audit_results["broken_references"].append({
+                            "collection": "credit_cards",
+                            "document_id": str(card["_id"]),
+                            "broken_field": "customer_id",
+                            "invalid_value": customer_id
+                        })
+                
+                if cards_with_invalid_refs > 0:
+                    issue = f"Credit cards collection has {cards_with_invalid_refs} documents with invalid customer_id references"
+                    audit_results["critical_issues"].append(issue)
+                    print(f"   🚨 CRITICAL: {issue}")
+                else:
+                    print(f"   ✅ Credit cards collection customer_id references are valid")
+            
+            # Check references in credit_card_transactions collection
+            if "credit_card_transactions" in collection_names:
+                transactions_with_invalid_refs = 0
+                transactions = list(self.db.credit_card_transactions.find({}, {"customer_id": 1, "card_id": 1}).limit(50))
+                
+                # Get all card IDs for validation
+                card_ids = set()
+                if "credit_cards" in collection_names:
+                    cards = list(self.db.credit_cards.find({}, {"_id": 1, "id": 1}))
+                    for card in cards:
+                        if card.get("id"):
+                            card_ids.add(card["id"])
+                        card_ids.add(str(card["_id"]))
+                
+                for transaction in transactions:
+                    customer_id = transaction.get("customer_id")
+                    card_id = transaction.get("card_id")
+                    
+                    if customer_id and customer_id not in customer_ids:
+                        transactions_with_invalid_refs += 1
+                        audit_results["broken_references"].append({
+                            "collection": "credit_card_transactions",
+                            "document_id": str(transaction["_id"]),
+                            "broken_field": "customer_id",
+                            "invalid_value": customer_id
+                        })
+                    
+                    if card_id and card_ids and card_id not in card_ids:
+                        transactions_with_invalid_refs += 1
+                        audit_results["broken_references"].append({
+                            "collection": "credit_card_transactions",
+                            "document_id": str(transaction["_id"]),
+                            "broken_field": "card_id",
+                            "invalid_value": card_id
+                        })
+                
+                if transactions_with_invalid_refs > 0:
+                    issue = f"Credit card transactions collection has {transactions_with_invalid_refs} documents with invalid references"
+                    audit_results["critical_issues"].append(issue)
+                    print(f"   🚨 CRITICAL: {issue}")
+                else:
+                    print(f"   ✅ Credit card transactions references are valid")
+        
+        # Step 3: Test critical API endpoints for ID-related failures
+        print(f"\n🔍 STEP 3: API Endpoints Testing for ID Issues")
+        print("=" * 60)
+        
+        # Test customer endpoints
+        print(f"\n📋 Testing Customer API Endpoints...")
+        
+        # Get customers list
+        customers_success, customers_response = self.run_test(
+            "GET /customers - List endpoint",
+            "GET",
+            "customers?page_size=10",
+            200
+        )
+        
+        if customers_success and customers_response:
+            print(f"   ✅ Customer list endpoint working - {len(customers_response)} customers")
+            
+            # Test individual customer lookups
+            broken_customer_lookups = 0
+            for i, customer in enumerate(customers_response[:5]):
+                customer_id = customer.get('id')
+                customer_name = customer.get('name', 'Unknown')
+                
+                # Test basic customer endpoint
+                customer_success, _ = self.run_test(
+                    f"GET /customers/{customer_id} - {customer_name}",
+                    "GET",
+                    f"customers/{customer_id}",
+                    200
+                )
+                
+                if not customer_success:
+                    broken_customer_lookups += 1
+                    audit_results["api_endpoints_broken"].append(f"GET /customers/{customer_id}")
+                
+                # Test detailed profile endpoint
+                profile_success, _ = self.run_test(
+                    f"GET /customers/{customer_id}/detailed-profile - {customer_name}",
+                    "GET",
+                    f"customers/{customer_id}/detailed-profile",
+                    200
+                )
+                
+                if not profile_success:
+                    broken_customer_lookups += 1
+                    audit_results["api_endpoints_broken"].append(f"GET /customers/{customer_id}/detailed-profile")
+            
+            if broken_customer_lookups > 0:
+                issue = f"Customer individual lookup endpoints have {broken_customer_lookups} failures"
+                audit_results["production_blockers"].append(issue)
+                print(f"   🚨 PRODUCTION BLOCKER: {issue}")
+            else:
+                print(f"   ✅ All customer lookup endpoints working")
+        else:
+            audit_results["production_blockers"].append("Customer list endpoint failing")
+            print(f"   🚨 PRODUCTION BLOCKER: Customer list endpoint failing")
+        
+        # Test credit card endpoints
+        print(f"\n📋 Testing Credit Card API Endpoints...")
+        
+        cards_success, cards_response = self.run_test(
+            "GET /credit-cards - List endpoint",
+            "GET",
+            "credit-cards?limit=5",
+            200
+        )
+        
+        if cards_success and cards_response:
+            print(f"   ✅ Credit cards list endpoint working - {len(cards_response)} cards")
+            
+            # Test individual card lookups
+            broken_card_lookups = 0
+            for card in cards_response[:3]:
+                card_id = card.get('id')
+                
+                card_success, _ = self.run_test(
+                    f"GET /credit-cards/{card_id}",
+                    "GET",
+                    f"credit-cards/{card_id}",
+                    200
+                )
+                
+                if not card_success:
+                    broken_card_lookups += 1
+                    audit_results["api_endpoints_broken"].append(f"GET /credit-cards/{card_id}")
+            
+            if broken_card_lookups > 0:
+                issue = f"Credit card individual lookup endpoints have {broken_card_lookups} failures"
+                audit_results["production_blockers"].append(issue)
+                print(f"   🚨 PRODUCTION BLOCKER: {issue}")
+            else:
+                print(f"   ✅ All credit card lookup endpoints working")
+        else:
+            print(f"   ⚠️ Credit cards list endpoint issues")
+        
+        # Test bills endpoints
+        print(f"\n📋 Testing Bills API Endpoints...")
+        
+        bills_success, bills_response = self.run_test(
+            "GET /bills - List endpoint",
+            "GET",
+            "bills?limit=5",
+            200
+        )
+        
+        if bills_success and bills_response:
+            print(f"   ✅ Bills list endpoint working - {len(bills_response)} bills")
+            
+            # Test individual bill lookups if endpoint exists
+            if bills_response:
+                bill_id = bills_response[0].get('id')
+                bill_success, _ = self.run_test(
+                    f"GET /bills/{bill_id}",
+                    "GET",
+                    f"bills/{bill_id}",
+                    200
+                )
+                
+                if not bill_success:
+                    audit_results["api_endpoints_broken"].append(f"GET /bills/{bill_id}")
+                    print(f"   ⚠️ Individual bill lookup may have issues")
+                else:
+                    print(f"   ✅ Individual bill lookup working")
+        else:
+            print(f"   ⚠️ Bills list endpoint issues")
+        
+        # Step 4: Generate comprehensive report
+        print(f"\n📊 STEP 4: Comprehensive Audit Report")
+        print("=" * 60)
+        
+        audit_results["total_issues"] = len(audit_results["critical_issues"]) + len(audit_results["broken_references"]) + len(audit_results["production_blockers"])
+        
+        print(f"\n🚨 CRITICAL PRODUCTION READINESS ASSESSMENT:")
+        print(f"   Total Issues Found: {audit_results['total_issues']}")
+        print(f"   Critical Issues: {len(audit_results['critical_issues'])}")
+        print(f"   Broken References: {len(audit_results['broken_references'])}")
+        print(f"   Production Blockers: {len(audit_results['production_blockers'])}")
+        print(f"   Broken API Endpoints: {len(audit_results['api_endpoints_broken'])}")
+        
+        print(f"\n📋 COLLECTIONS ANALYSIS SUMMARY:")
+        for collection_name, analysis in audit_results["collections_analyzed"].items():
+            mixed_count = analysis.get("mixed_formats", 0)
+            missing_count = analysis.get("missing_id_field", 0)
+            status = "🚨 CRITICAL" if mixed_count > 0 or missing_count > 0 else "✅ OK"
+            print(f"   {collection_name}: {status}")
+            if mixed_count > 0:
+                print(f"      - Mixed ID formats: {mixed_count}")
+            if missing_count > 0:
+                print(f"      - Missing ID field: {missing_count}")
+        
+        if audit_results["broken_references"]:
+            print(f"\n🔗 BROKEN REFERENCES DETAILS:")
+            for ref in audit_results["broken_references"][:10]:  # Show first 10
+                print(f"   {ref['collection']}.{ref['broken_field']} = '{ref['invalid_value']}'")
+            if len(audit_results["broken_references"]) > 10:
+                print(f"   ... and {len(audit_results['broken_references']) - 10} more")
+        
+        if audit_results["production_blockers"]:
+            print(f"\n🚫 PRODUCTION BLOCKERS:")
+            for blocker in audit_results["production_blockers"]:
+                print(f"   🚨 {blocker}")
+        
+        # Priority recommendations
+        print(f"\n🎯 PRIORITY FIXES NEEDED BEFORE PRODUCTION:")
+        priority_fixes = []
+        
+        if audit_results["production_blockers"]:
+            priority_fixes.extend(audit_results["production_blockers"])
+        
+        if len(audit_results["broken_references"]) > 0:
+            priority_fixes.append(f"Fix {len(audit_results['broken_references'])} broken references")
+        
+        for collection_name, analysis in audit_results["collections_analyzed"].items():
+            if analysis.get("mixed_formats", 0) > 0:
+                priority_fixes.append(f"Standardize ID formats in {collection_name} collection")
+        
+        if priority_fixes:
+            for i, fix in enumerate(priority_fixes, 1):
+                print(f"   {i}. {fix}")
+        else:
+            print(f"   ✅ No critical issues found - system appears production ready!")
+        
+        # Final assessment
+        is_production_ready = audit_results["total_issues"] == 0
+        
+        print(f"\n🏁 FINAL PRODUCTION READINESS ASSESSMENT:")
+        if is_production_ready:
+            print(f"   ✅ SYSTEM IS PRODUCTION READY")
+            print(f"   - All ID formats are consistent")
+            print(f"   - No broken references detected")
+            print(f"   - All API endpoints working correctly")
+        else:
+            print(f"   🚨 SYSTEM NOT READY FOR PRODUCTION")
+            print(f"   - {audit_results['total_issues']} issues must be resolved")
+            print(f"   - Critical data integrity problems detected")
+            print(f"   - API functionality compromised")
+        
+        return is_production_ready
+
+    def run_all_tests(self):
+        """Run comprehensive ID consistency audit"""
+        print(f"\n🚀 STARTING URGENT SYSTEM-WIDE ID CONSISTENCY AUDIT")
+        print("=" * 80)
+        print(f"🎯 CRITICAL PRODUCTION READINESS CHECK")
+        print(f"📅 Audit Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"🌐 API Base URL: {self.base_url}")
+        
+        # Run the comprehensive audit
+        is_production_ready = self.comprehensive_id_consistency_audit()
+        
+        # Print final summary
+        print(f"\n📊 FINAL AUDIT SUMMARY")
+        print("=" * 50)
+        print(f"Tests Run: {self.tests_run}")
+        print(f"Tests Passed: {self.tests_passed}")
+        print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%")
+        
+        if is_production_ready:
+            print(f"\n✅ OVERALL RESULT: SYSTEM IS PRODUCTION READY")
+            print(f"   - All ID consistency checks passed")
+            print(f"   - No critical data integrity issues")
+            print(f"   - All API endpoints functioning correctly")
+        else:
+            print(f"\n🚨 OVERALL RESULT: SYSTEM NOT READY FOR PRODUCTION")
+            print(f"   - Critical ID consistency issues detected")
+            print(f"   - Data integrity problems found")
+            print(f"   - API endpoints have failures")
+            print(f"   - URGENT fixes required before deployment")
+        
+        return is_production_ready
+
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     success = tester.run_all_tests()
