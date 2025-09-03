@@ -6139,7 +6139,23 @@ const TransactionExportModal = ({ show, onClose, onExport }) => {
 };
 
 // Transaction Detail Modal Component
-const TransactionDetailModal = ({ show, transaction, onClose }) => {
+const TransactionDetailModal = ({ show, transaction, onClose, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (transaction) {
+      setEditData({
+        total_amount: transaction.total_amount || 0,
+        profit_amount: transaction.profit_amount || 0,
+        profit_percentage: transaction.profit_percentage || 0,
+        notes: transaction.notes || '',
+        created_at: transaction.created_at ? new Date(transaction.created_at).toISOString().slice(0, 16) : ''
+      });
+    }
+  }, [transaction]);
+
   if (!show || !transaction) return null;
 
   const formatCurrency = (amount) => {
@@ -6157,6 +6173,61 @@ const TransactionDetailModal = ({ show, transaction, onClose }) => {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
+    });
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const updatePayload = {
+        notes: editData.notes,
+        created_at: editData.created_at ? new Date(editData.created_at).toISOString() : null
+      };
+
+      let apiEndpoint = '';
+      
+      // Determine API endpoint based on transaction type
+      if (transaction.type === 'BILL_SALE') {
+        updatePayload.total = editData.total_amount;
+        updatePayload.profit_value = editData.profit_amount;
+        updatePayload.profit_percentage = editData.profit_percentage;
+        apiEndpoint = `/transactions/sale/${transaction.id}`;
+      } else if (transaction.type.startsWith('CREDIT_DAO')) {
+        updatePayload.total_amount = editData.total_amount;
+        updatePayload.profit_amount = editData.profit_amount;
+        updatePayload.profit_pct = editData.profit_percentage;
+        apiEndpoint = `/transactions/credit-card/${transaction.id}`;
+      } else {
+        throw new Error('Không hỗ trợ loại giao dịch này');
+      }
+
+      const response = await axios.put(`${API}${apiEndpoint}`, updatePayload);
+      
+      if (response.data.success) {
+        toast.success("Cập nhật giao dịch thành công");
+        setIsEditing(false);
+        if (onUpdate) {
+          onUpdate(response.data.data);
+        }
+      }
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      const errorMessage = error.response?.data?.detail || error.message || "Có lỗi xảy ra khi cập nhật";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    // Reset edit data to original transaction data
+    setEditData({
+      total_amount: transaction.total_amount || 0,
+      profit_amount: transaction.profit_amount || 0,
+      profit_percentage: transaction.profit_percentage || 0,
+      notes: transaction.notes || '',
+      created_at: transaction.created_at ? new Date(transaction.created_at).toISOString().slice(0, 16) : ''
     });
   };
 
