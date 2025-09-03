@@ -1894,7 +1894,7 @@ async def get_customer_transactions(customer_id: str, limit: int = 50, offset: i
             raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
         
         # Get sales for this customer
-        sales = await db.sales.find({"customer_id": customer_id}).sort("created_at", -1).to_list(100)
+        sales = await db.sales.find({"customer_id": actual_customer_id}).sort("created_at", -1).to_list(100)
         
         transactions = []
         for sale in sales:
