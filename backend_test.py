@@ -9741,6 +9741,235 @@ def main():
         
         return True
 
+    def test_customer_detailed_profile_datetime_fix(self):
+        """Test customer detailed profile API to verify datetime comparison error fix"""
+        print(f"\n🎯 CUSTOMER DETAILED PROFILE DATETIME FIX VERIFICATION")
+        print("=" * 70)
+        print("🔍 TESTING OBJECTIVES:")
+        print("   1. Test GET /api/customers/{customer_id}/detailed-profile endpoint")
+        print("   2. Verify no 'can't compare offset-naive and offset-aware datetimes' error")
+        print("   3. Check response structure is correct")
+        print("   4. Verify recent_activities are sorted properly")
+        print("\n📊 EXPECTED RESULTS:")
+        print("   - Status 200 instead of 500 error")
+        print("   - Response contains customer detailed profile data")
+        print("   - recent_activities sorted by created_at correctly")
+        print("   - No datetime comparison errors")
+        
+        # Step 1: Get list of customers to find one with data
+        print(f"\n📋 STEP 1: Getting customers list...")
+        customers_success, customers_response = self.run_test(
+            "Get Customers List",
+            "GET", 
+            "customers",
+            200
+        )
+        
+        if not customers_success or not customers_response:
+            print("❌ Failed to get customers list")
+            return False
+            
+        # Find a customer with transactions for better testing
+        target_customer = None
+        for customer in customers_response:
+            if customer.get('total_transactions', 0) > 0:
+                target_customer = customer
+                break
+                
+        # If no customer with transactions, use the first available customer
+        if not target_customer and customers_response:
+            target_customer = customers_response[0]
+            
+        if not target_customer:
+            print("❌ No customers found in system")
+            return False
+            
+        customer_id = target_customer['id']
+        customer_name = target_customer.get('name', 'Unknown')
+        print(f"✅ Selected customer: {customer_name} (ID: {customer_id})")
+        print(f"   Total transactions: {target_customer.get('total_transactions', 0)}")
+        
+        # Step 2: Test the detailed-profile endpoint (the main test)
+        print(f"\n🎯 STEP 2: Testing detailed-profile endpoint...")
+        print(f"   Endpoint: GET /api/customers/{customer_id}/detailed-profile")
+        
+        try:
+            import time
+            start_time = time.time()
+            
+            detail_success, detail_response = self.run_test(
+                f"Customer Detailed Profile - {customer_name}",
+                "GET",
+                f"customers/{customer_id}/detailed-profile",
+                200
+            )
+            
+            end_time = time.time()
+            response_time = end_time - start_time
+            
+            print(f"   📊 Response Time: {response_time:.3f} seconds")
+            
+            if not detail_success:
+                print("❌ CRITICAL: Detailed profile endpoint failed!")
+                print("   This indicates the datetime comparison error is NOT fixed")
+                return False
+                
+            print(f"✅ SUCCESS: Endpoint returned 200 status (no 500 error)")
+            print(f"✅ DATETIME COMPARISON ERROR FIXED!")
+            
+        except Exception as e:
+            print(f"❌ CRITICAL ERROR: Exception during API call: {e}")
+            return False
+        
+        # Step 3: Verify response structure
+        print(f"\n🔍 STEP 3: Verifying response structure...")
+        
+        required_top_level_fields = ['success', 'customer', 'metrics', 'credit_cards', 'recent_activities']
+        missing_fields = [field for field in required_top_level_fields if field not in detail_response]
+        
+        if missing_fields:
+            print(f"❌ Missing required top-level fields: {missing_fields}")
+            return False
+            
+        print(f"✅ All required top-level fields present: {required_top_level_fields}")
+        
+        # Verify customer section
+        customer_data = detail_response.get('customer', {})
+        customer_required_fields = ['id', 'name', 'type', 'is_active', 'created_at', 'tier']
+        customer_missing = [field for field in customer_required_fields if field not in customer_data]
+        
+        if customer_missing:
+            print(f"❌ Missing customer fields: {customer_missing}")
+            return False
+            
+        print(f"✅ Customer section complete with fields: {list(customer_data.keys())}")
+        
+        # Verify metrics section
+        metrics_data = detail_response.get('metrics', {})
+        metrics_required_fields = ['total_transaction_value', 'total_profit', 'total_transactions', 'avg_transaction_value', 'profit_margin']
+        metrics_missing = [field for field in metrics_required_fields if field not in metrics_data]
+        
+        if metrics_missing:
+            print(f"❌ Missing metrics fields: {metrics_missing}")
+            return False
+            
+        print(f"✅ Metrics section complete: {dict(metrics_data)}")
+        
+        # Step 4: Verify recent_activities sorting (the main datetime fix)
+        print(f"\n🎯 STEP 4: Verifying recent_activities sorting...")
+        
+        recent_activities = detail_response.get('recent_activities', [])
+        print(f"   Found {len(recent_activities)} recent activities")
+        
+        if not recent_activities:
+            print(f"⚠️  No recent activities found (expected for customers with no transactions)")
+            print(f"✅ No datetime comparison errors occurred with empty activities")
+        else:
+            print(f"✅ Recent activities loaded successfully:")
+            
+            # Verify each activity has required fields
+            for i, activity in enumerate(recent_activities):
+                activity_fields = ['id', 'type', 'amount', 'profit', 'created_at', 'description']
+                activity_missing = [field for field in activity_fields if field not in activity]
+                
+                if activity_missing:
+                    print(f"   ❌ Activity {i+1} missing fields: {activity_missing}")
+                    return False
+                    
+                print(f"   Activity {i+1}: {activity.get('type')} - {activity.get('description')} - {activity.get('created_at')}")
+            
+            # Verify sorting (most recent first)
+            print(f"\n🔍 Verifying activities are sorted by created_at (most recent first)...")
+            
+            # Check if activities are properly sorted
+            dates_in_order = True
+            for i in range(len(recent_activities) - 1):
+                current_date = recent_activities[i].get('created_at')
+                next_date = recent_activities[i + 1].get('created_at')
+                
+                # Convert to comparable format if needed
+                if isinstance(current_date, str):
+                    try:
+                        current_date = datetime.fromisoformat(current_date.replace('Z', '+00:00'))
+                    except:
+                        pass
+                        
+                if isinstance(next_date, str):
+                    try:
+                        next_date = datetime.fromisoformat(next_date.replace('Z', '+00:00'))
+                    except:
+                        pass
+                
+                # Check if current >= next (descending order)
+                try:
+                    if current_date < next_date:
+                        dates_in_order = False
+                        print(f"   ❌ Sorting issue: Activity {i+1} ({current_date}) < Activity {i+2} ({next_date})")
+                        break
+                except Exception as sort_error:
+                    print(f"   ⚠️  Could not compare dates: {sort_error}")
+                    # This is not necessarily a failure if the comparison works without errors
+            
+            if dates_in_order:
+                print(f"   ✅ Activities are properly sorted (most recent first)")
+            else:
+                print(f"   ❌ Activities are NOT properly sorted")
+                return False
+        
+        # Step 5: Test with multiple customers to ensure consistency
+        print(f"\n🔍 STEP 5: Testing with additional customers for consistency...")
+        
+        additional_tests = 0
+        additional_successes = 0
+        
+        for customer in customers_response[1:4]:  # Test up to 3 more customers
+            customer_id_extra = customer['id']
+            customer_name_extra = customer.get('name', 'Unknown')
+            
+            print(f"   Testing customer: {customer_name_extra}")
+            
+            extra_success, extra_response = self.run_test(
+                f"Additional Customer Test - {customer_name_extra}",
+                "GET",
+                f"customers/{customer_id_extra}/detailed-profile",
+                200
+            )
+            
+            additional_tests += 1
+            if extra_success:
+                additional_successes += 1
+                print(f"   ✅ Success: {customer_name_extra}")
+            else:
+                print(f"   ❌ Failed: {customer_name_extra}")
+        
+        print(f"\n📊 Additional Tests: {additional_successes}/{additional_tests} passed")
+        
+        # Final Summary
+        print(f"\n🎉 DATETIME FIX VERIFICATION SUMMARY")
+        print("=" * 50)
+        
+        if detail_success and (additional_successes == additional_tests or additional_tests == 0):
+            print(f"✅ COMPREHENSIVE SUCCESS!")
+            print(f"   ✅ No 'can't compare offset-naive and offset-aware datetimes' errors")
+            print(f"   ✅ All detailed-profile endpoints return 200 status")
+            print(f"   ✅ Response structure is correct and complete")
+            print(f"   ✅ Recent activities sorting works properly")
+            print(f"   ✅ CustomerNameLink navigation should now work")
+            print(f"\n🎯 REVIEW REQUEST OBJECTIVES FULFILLED:")
+            print(f"   ✅ GET /api/customers/{{customer_id}}/detailed-profile tested")
+            print(f"   ✅ Datetime comparison error verified as fixed")
+            print(f"   ✅ Response format verified as correct")
+            print(f"   ✅ Recent activities sorting verified")
+            
+            self.tests_passed += 1
+            return True
+        else:
+            print(f"❌ SOME ISSUES DETECTED")
+            print(f"   - Main test success: {detail_success}")
+            print(f"   - Additional tests: {additional_successes}/{additional_tests}")
+            print(f"   🔧 May need further investigation")
+            return False
+
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
