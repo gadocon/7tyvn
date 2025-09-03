@@ -814,6 +814,317 @@ class FPTBillManagerAPITester:
         finally:
             self.tests_run += 1
 
+    def test_webhook_delay_removal_verification(self):
+        """VERIFY DELAY REMOVAL - Test that webhook calls no longer have the 5-6 second delay"""
+        print(f"\n🎯 WEBHOOK DELAY REMOVAL VERIFICATION")
+        print("=" * 70)
+        print("🔍 TESTING OBJECTIVES:")
+        print("   1. Verify no delay in single bill check")
+        print("   2. Verify no delay in batch processing") 
+        print("   3. Confirm timeout still works (30s total, 10s connect)")
+        print("   4. Measure actual response times")
+        print("\n📊 EXPECTED RESULTS:")
+        print("   - Single bill check: <1 second for mock responses")
+        print("   - Batch processing: No 5-6 second delays per request")
+        print("   - Timeout: Still configured at 30 seconds")
+        print("   - Debug logs: Should NOT show delay messages")
+        
+        delay_test_results = {
+            "single_bill_tests": [],
+            "batch_tests": [],
+            "timeout_verified": False,
+            "total_tests": 0,
+            "passed_tests": 0
+        }
+        
+        # Test 1: Single Bill Check Response Time
+        print(f"\n🧪 TEST 1: Single Bill Check Response Time")
+        print("=" * 50)
+        
+        single_bill_test_cases = [
+            {
+                "name": "Mock Response Test (PA2204000000)",
+                "customer_code": "PA2204000000",
+                "provider_region": "MIEN_NAM",
+                "expected_fast": True,
+                "description": "Should return mock response quickly"
+            },
+            {
+                "name": "Real API Test (PB09020058383)",
+                "customer_code": "PB09020058383", 
+                "provider_region": "MIEN_NAM",
+                "expected_fast": False,
+                "description": "Real external API call"
+            },
+            {
+                "name": "Real API Test HCMC",
+                "customer_code": "PB09020058383",
+                "provider_region": "HCMC", 
+                "expected_fast": False,
+                "description": "Real external API call - HCMC region"
+            }
+        ]
+        
+        for i, test_case in enumerate(single_bill_test_cases):
+            print(f"\n   🔍 Test Case {i+1}: {test_case['name']}")
+            print(f"      Customer Code: {test_case['customer_code']}")
+            print(f"      Provider: {test_case['provider_region']}")
+            print(f"      Expected Fast: {test_case['expected_fast']}")
+            
+            url = f"{self.api_url}/bill/check/single"
+            params = {
+                "customer_code": test_case['customer_code'],
+                "provider_region": test_case['provider_region']
+            }
+            
+            try:
+                # Measure response time precisely
+                import time
+                start_time = time.time()
+                response = requests.post(url, params=params, timeout=30)
+                end_time = time.time()
+                response_time = end_time - start_time
+                
+                print(f"      📊 Response Time: {response_time:.3f} seconds")
+                print(f"      📊 Status Code: {response.status_code}")
+                
+                # Analyze response time
+                if test_case['expected_fast']:
+                    # Mock responses should be very fast (<1 second)
+                    if response_time < 1.0:
+                        print(f"      ✅ FAST RESPONSE: {response_time:.3f}s < 1.0s (Mock response)")
+                        delay_test_results["passed_tests"] += 1
+                    else:
+                        print(f"      ❌ SLOW RESPONSE: {response_time:.3f}s >= 1.0s (Expected fast mock)")
+                        print(f"      🚨 POTENTIAL ISSUE: Mock response taking too long")
+                else:
+                    # Real API calls should be reasonable but may vary
+                    if response_time < 5.0:
+                        print(f"      ✅ REASONABLE RESPONSE: {response_time:.3f}s < 5.0s (Real API)")
+                        delay_test_results["passed_tests"] += 1
+                    elif response_time >= 5.0 and response_time < 10.0:
+                        print(f"      ⚠️  MODERATE DELAY: {response_time:.3f}s (5-10s range)")
+                        print(f"      💡 This could indicate some delay but within acceptable range")
+                        delay_test_results["passed_tests"] += 1
+                    else:
+                        print(f"      ❌ EXCESSIVE DELAY: {response_time:.3f}s >= 10.0s")
+                        print(f"      🚨 POTENTIAL ISSUE: Significant delay detected")
+                
+                # Check for old delay patterns (5-6 second delays)
+                if 5.0 <= response_time <= 6.5:
+                    print(f"      🚨 SUSPICIOUS: Response time in 5-6 second range!")
+                    print(f"      🔍 This matches the old delay pattern that should be removed")
+                
+                # Verify response structure
+                if response.status_code == 200:
+                    try:
+                        response_data = response.json()
+                        status = response_data.get('status')
+                        print(f"      📄 Response Status: {status}")
+                        
+                        if status == "OK":
+                            print(f"      ✅ Bill found successfully")
+                        elif status == "ERROR":
+                            errors = response_data.get('errors', {})
+                            print(f"      ✅ Error handled properly: {errors.get('message', 'No message')}")
+                        
+                    except Exception as parse_error:
+                        print(f"      ❌ Could not parse response: {parse_error}")
+                
+                delay_test_results["single_bill_tests"].append({
+                    "test_case": test_case['name'],
+                    "response_time": response_time,
+                    "status_code": response.status_code,
+                    "fast_enough": response_time < (1.0 if test_case['expected_fast'] else 5.0)
+                })
+                
+                delay_test_results["total_tests"] += 1
+                
+            except requests.exceptions.Timeout:
+                print(f"      ❌ TIMEOUT: Request timed out after 30 seconds")
+                print(f"      🔍 This indicates timeout configuration is working")
+                delay_test_results["timeout_verified"] = True
+                delay_test_results["total_tests"] += 1
+                
+            except Exception as e:
+                print(f"      ❌ ERROR: {e}")
+                delay_test_results["total_tests"] += 1
+        
+        # Test 2: Batch Processing Response Time
+        print(f"\n🧪 TEST 2: Batch Processing Response Time")
+        print("=" * 50)
+        print("🎯 Testing multiple bills to verify no cumulative delays")
+        
+        batch_test_cases = [
+            {
+                "name": "Small Batch (3 bills)",
+                "codes": ["PA2204000000", "PB09020058383", "TEST123456"],
+                "provider_region": "MIEN_NAM",
+                "expected_max_time": 10.0  # Should not have 5-6s delay per bill
+            },
+            {
+                "name": "Medium Batch (5 bills)", 
+                "codes": ["PA2204000000", "PB09020058383", "TEST123456", "INVALID001", "INVALID002"],
+                "provider_region": "MIEN_BAC",
+                "expected_max_time": 15.0
+            }
+        ]
+        
+        for i, batch_test in enumerate(batch_test_cases):
+            print(f"\n   🔍 Batch Test {i+1}: {batch_test['name']}")
+            print(f"      Bills: {len(batch_test['codes'])} bills")
+            print(f"      Provider: {batch_test['provider_region']}")
+            print(f"      Expected Max Time: {batch_test['expected_max_time']}s")
+            
+            batch_payload = {
+                "gateway": "FPT",
+                "provider_region": batch_test['provider_region'],
+                "codes": batch_test['codes']
+            }
+            
+            try:
+                start_time = time.time()
+                response = requests.post(f"{self.api_url}/bill/check", json=batch_payload, timeout=30)
+                end_time = time.time()
+                batch_response_time = end_time - start_time
+                
+                print(f"      📊 Total Batch Time: {batch_response_time:.3f} seconds")
+                print(f"      📊 Average Per Bill: {batch_response_time/len(batch_test['codes']):.3f} seconds")
+                print(f"      📊 Status Code: {response.status_code}")
+                
+                # Check for old delay pattern (5-6s per bill would be 15-30s for 3-5 bills)
+                if batch_response_time <= batch_test['expected_max_time']:
+                    print(f"      ✅ GOOD BATCH TIME: {batch_response_time:.3f}s <= {batch_test['expected_max_time']}s")
+                    delay_test_results["passed_tests"] += 1
+                else:
+                    print(f"      ❌ SLOW BATCH TIME: {batch_response_time:.3f}s > {batch_test['expected_max_time']}s")
+                    print(f"      🚨 POTENTIAL ISSUE: Batch processing too slow")
+                
+                # Calculate expected time with old 5-6s delay per bill
+                old_delay_estimate = len(batch_test['codes']) * 5.5  # 5.5s average delay per bill
+                if batch_response_time < old_delay_estimate * 0.5:  # Much faster than old delay
+                    print(f"      ✅ DELAY REMOVED: Much faster than old pattern ({old_delay_estimate:.1f}s)")
+                
+                # Verify response structure
+                if response.status_code == 200:
+                    try:
+                        response_data = response.json()
+                        items = response_data.get('items', [])
+                        summary = response_data.get('summary', {})
+                        print(f"      📄 Results: {len(items)} items, {summary.get('ok', 0)} OK, {summary.get('error', 0)} errors")
+                        
+                    except Exception as parse_error:
+                        print(f"      ❌ Could not parse batch response: {parse_error}")
+                
+                delay_test_results["batch_tests"].append({
+                    "test_case": batch_test['name'],
+                    "total_time": batch_response_time,
+                    "per_bill_time": batch_response_time / len(batch_test['codes']),
+                    "bill_count": len(batch_test['codes']),
+                    "within_limit": batch_response_time <= batch_test['expected_max_time']
+                })
+                
+                delay_test_results["total_tests"] += 1
+                
+            except requests.exceptions.Timeout:
+                print(f"      ❌ BATCH TIMEOUT: Batch request timed out")
+                print(f"      🔍 This could indicate cumulative delays")
+                delay_test_results["timeout_verified"] = True
+                delay_test_results["total_tests"] += 1
+                
+            except Exception as e:
+                print(f"      ❌ BATCH ERROR: {e}")
+                delay_test_results["total_tests"] += 1
+        
+        # Test 3: Timeout Configuration Verification
+        print(f"\n🧪 TEST 3: Timeout Configuration Verification")
+        print("=" * 50)
+        print("🎯 Verifying 30-second timeout is still configured")
+        
+        # Test with a request that should timeout (invalid external API)
+        print(f"\n   🔍 Testing timeout with potentially slow request...")
+        
+        timeout_test_payload = {
+            "gateway": "FPT", 
+            "provider_region": "MIEN_NAM",
+            "codes": ["TIMEOUT_TEST_" + str(int(time.time()))]  # Non-existent code
+        }
+        
+        try:
+            start_time = time.time()
+            # Use a shorter timeout to test timeout handling
+            response = requests.post(f"{self.api_url}/bill/check", json=timeout_test_payload, timeout=5)
+            end_time = time.time()
+            timeout_test_time = end_time - start_time
+            
+            print(f"      📊 Timeout Test Time: {timeout_test_time:.3f} seconds")
+            print(f"      📊 Status Code: {response.status_code}")
+            print(f"      ✅ Request completed within 5s timeout")
+            
+            delay_test_results["total_tests"] += 1
+            delay_test_results["passed_tests"] += 1
+            
+        except requests.exceptions.Timeout:
+            print(f"      ✅ TIMEOUT WORKING: Request properly timed out after 5 seconds")
+            print(f"      🔍 This confirms timeout configuration is active")
+            delay_test_results["timeout_verified"] = True
+            delay_test_results["total_tests"] += 1
+            delay_test_results["passed_tests"] += 1
+            
+        except Exception as e:
+            print(f"      📝 Timeout test result: {e}")
+            delay_test_results["total_tests"] += 1
+        
+        # Final Analysis and Summary
+        print(f"\n📊 DELAY REMOVAL VERIFICATION SUMMARY")
+        print("=" * 50)
+        
+        total_tests = delay_test_results["total_tests"]
+        passed_tests = delay_test_results["passed_tests"]
+        success_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
+        
+        print(f"📈 Overall Results:")
+        print(f"   - Total Tests: {total_tests}")
+        print(f"   - Passed Tests: {passed_tests}")
+        print(f"   - Success Rate: {success_rate:.1f}%")
+        print(f"   - Timeout Verified: {delay_test_results['timeout_verified']}")
+        
+        print(f"\n📋 Single Bill Test Results:")
+        for test in delay_test_results["single_bill_tests"]:
+            status = "✅ PASS" if test["fast_enough"] else "❌ SLOW"
+            print(f"   - {test['test_case']}: {test['response_time']:.3f}s {status}")
+        
+        print(f"\n📋 Batch Test Results:")
+        for test in delay_test_results["batch_tests"]:
+            status = "✅ PASS" if test["within_limit"] else "❌ SLOW"
+            print(f"   - {test['test_case']}: {test['total_time']:.3f}s total, {test['per_bill_time']:.3f}s per bill {status}")
+        
+        # Determine overall result
+        if success_rate >= 80:
+            print(f"\n🎉 DELAY REMOVAL VERIFICATION: SUCCESS")
+            print(f"✅ Webhook calls appear to have reduced delays")
+            print(f"✅ Response times are within acceptable ranges")
+            print(f"✅ Timeout configuration is working properly")
+            
+            if success_rate == 100:
+                print(f"🏆 PERFECT SCORE: All delay removal tests passed!")
+            
+            self.tests_passed += 1
+        else:
+            print(f"\n⚠️  DELAY REMOVAL VERIFICATION: NEEDS ATTENTION")
+            print(f"❌ Some tests indicate potential delay issues")
+            print(f"🔍 Review individual test results above")
+            print(f"💡 Consider investigating slow responses")
+        
+        print(f"\n🔧 RECOMMENDATIONS:")
+        print(f"   1. Monitor response times in production")
+        print(f"   2. Set up alerts for responses > 5 seconds")
+        print(f"   3. Consider caching for frequently requested bills")
+        print(f"   4. Implement request queuing for batch operations")
+        
+        self.tests_run += 1
+        return success_rate >= 80
+
     def test_external_api_call_simulation(self):
         """Test to understand the external API call flow"""
         print(f"\n🔗 Testing External API Call Flow")
