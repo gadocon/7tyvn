@@ -119,6 +119,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "🚨 CRITICAL ISSUE: Transaction Update API endpoints have JSON serialization error causing 500 Internal Server Error. ✅ ENDPOINT VALIDATION WORKING: Both PUT /api/transactions/sale/{id} and PUT /api/transactions/credit-card/{id} endpoints exist and properly validate requests (404 for non-existent IDs, 400 for empty data). ❌ SERIALIZATION BUG: When attempting actual updates with valid data, both endpoints return 500 error due to ObjectId serialization issue. Backend logs show: ValueError: [TypeError(\"'ObjectId' object is not iterable\"), TypeError('vars() argument must have __dict__ attribute')]. ✅ CREDIT CARD TRANSACTIONS ENDPOINT FOUND: Correct endpoint is GET /api/credit-cards/{card_id}/transactions (not /api/credit-cards/transactions). 🔧 ROOT CAUSE: Backend is trying to return MongoDB ObjectId objects in JSON response which are not JSON serializable. The update logic works but response serialization fails. URGENT FIX NEEDED: Convert ObjectId objects to strings before JSON serialization in transaction update endpoints."
+        - working: false
+          agent: "testing"
+          comment: "CONFIRMED SERIALIZATION BUG STILL EXISTS: Tested PUT /api/transactions/sale/640c0f62-1788-4a12-b6f1-3f3379298505 with simple notes update. Server returns 500 Internal Server Error with plain text 'Internal Server Error' response. The main agent's parse_from_mongo() fix is NOT working correctly. The ObjectId serialization issue persists in transaction update endpoints. Credit card transaction update endpoint could not be tested due to 405 Method Not Allowed on /api/credit-cards/transactions. Main agent needs to debug why parse_from_mongo() is not being called or not working in the transaction update response serialization."
 
 frontend:
   - task: "Transaction Detail Modal Edit Functionality"
