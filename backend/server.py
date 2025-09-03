@@ -3595,6 +3595,115 @@ async def get_unified_transactions(
         logger.error(f"Error getting unified transactions: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# Transaction Update Models
+class SaleUpdate(BaseModel):
+    """Model for updating sale transactions"""
+    total: Optional[float] = None
+    profit_value: Optional[float] = None
+    profit_percentage: Optional[float] = None
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+class CreditCardTransactionUpdate(BaseModel):
+    """Model for updating credit card transactions"""
+    total_amount: Optional[float] = None
+    profit_amount: Optional[float] = None
+    profit_pct: Optional[float] = None
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+@api_router.put("/transactions/sale/{transaction_id}")
+async def update_sale_transaction(transaction_id: str, update_data: SaleUpdate):
+    """Update a sale transaction"""
+    try:
+        # Check if transaction exists
+        sale = await db.sales.find_one({"id": transaction_id})
+        if not sale:
+            raise HTTPException(status_code=404, detail="Không tìm thấy giao dịch")
+        
+        # Prepare update data
+        update_fields = {}
+        if update_data.total is not None:
+            update_fields["total"] = update_data.total
+        if update_data.profit_value is not None:
+            update_fields["profit_value"] = update_data.profit_value
+        if update_data.profit_percentage is not None:
+            update_fields["profit_percentage"] = update_data.profit_percentage
+        if update_data.notes is not None:
+            update_fields["notes"] = update_data.notes
+        if update_data.created_at is not None:
+            update_fields["created_at"] = update_data.created_at
+        
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="Không có dữ liệu để cập nhật")
+        
+        update_fields["updated_at"] = datetime.now(timezone.utc)
+        
+        # Update transaction
+        result = await db.sales.update_one(
+            {"id": transaction_id},
+            {"$set": update_fields}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy giao dịch")
+        
+        # Get updated transaction
+        updated_sale = await db.sales.find_one({"id": transaction_id})
+        return {"success": True, "message": "Cập nhật giao dịch thành công", "data": updated_sale}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating sale transaction: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/transactions/credit-card/{transaction_id}")
+async def update_credit_card_transaction(transaction_id: str, update_data: CreditCardTransactionUpdate):
+    """Update a credit card transaction"""
+    try:
+        # Check if transaction exists
+        credit_tx = await db.credit_card_transactions.find_one({"id": transaction_id})
+        if not credit_tx:
+            raise HTTPException(status_code=404, detail="Không tìm thấy giao dịch thẻ tín dụng")
+        
+        # Prepare update data
+        update_fields = {}
+        if update_data.total_amount is not None:
+            update_fields["total_amount"] = update_data.total_amount
+        if update_data.profit_amount is not None:
+            update_fields["profit_amount"] = update_data.profit_amount
+        if update_data.profit_pct is not None:
+            update_fields["profit_pct"] = update_data.profit_pct
+        if update_data.notes is not None:
+            update_fields["notes"] = update_data.notes
+        if update_data.created_at is not None:
+            update_fields["created_at"] = update_data.created_at
+        
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="Không có dữ liệu để cập nhật")
+        
+        update_fields["updated_at"] = datetime.now(timezone.utc)
+        
+        # Update transaction
+        result = await db.credit_card_transactions.update_one(
+            {"id": transaction_id},
+            {"$set": update_fields}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy giao dịch")
+        
+        # Get updated transaction
+        updated_credit_tx = await db.credit_card_transactions.find_one({"id": transaction_id})
+        return {"success": True, "message": "Cập nhật giao dịch thẻ tín dụng thành công", "data": updated_credit_tx}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating credit card transaction: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/transactions/stats")
 async def get_transactions_stats():
     """Get comprehensive transaction statistics"""
