@@ -7116,6 +7116,19 @@ const CustomerDetailPage = () => {
           <CustomerAnalyticsTab customer={customer} formatCurrency={formatCurrency} />
         )}
       </div>
+
+      {/* ĐÁO Modal */}
+      <DaoModal 
+        isOpen={showDaoModal}
+        onClose={handleCloseDaoModal}
+        card={selectedCardForDao}
+        daoMethod={daoMethod}
+        setDaoMethod={setDaoMethod}
+        daoFormData={daoFormData}
+        setDaoFormData={setDaoFormData}
+        onSubmit={handleDaoSubmit}
+        loading={daoLoading}
+      />
     </div>
   );
 };
