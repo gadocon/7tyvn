@@ -2431,7 +2431,7 @@ class FPTBillManagerAPITester:
         self.tests_run += 1
         return success_rate >= 80
 
-    def test_transaction_update_objectid_serialization_fix(self):
+    def test_transaction_update_api_objectid_serialization_fix(self):
         """Test Transaction Update API endpoints to verify ObjectId serialization fix"""
         print(f"\n🎯 TRANSACTION UPDATE API - OBJECTID SERIALIZATION FIX VERIFICATION")
         print("=" * 80)
