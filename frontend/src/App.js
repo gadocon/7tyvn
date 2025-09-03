@@ -1159,9 +1159,11 @@ const Inventory = () => {
       }
       
       // Proceed with external check only if bill exists
-      const response = await axios.post(`${API}/bills/check`, {
-        customer_code: bill.customer_code,
-        provider_region: bill.provider_region
+      const response = await axios.post(`${API}/bill/check/single`, null, {
+        params: {
+          customer_code: bill.customer_code,
+          provider_region: bill.provider_region
+        }
       });
       
       console.log('External check response:', response.data);
