@@ -1799,8 +1799,23 @@ async def delete_customer(customer_id: str):
             "customer": 0,
             "transactions": 0, 
             "bills": 0,
-            "inventory_items": 0
+            "inventory_items": 0,
+            "credit_cards": 0,
+            "credit_card_transactions": 0
         }
+        
+        # Delete credit cards and their transactions first
+        credit_cards = await db.credit_cards.find({"customer_id": actual_customer_id}).to_list(None)
+        if credit_cards:
+            card_ids = [card["id"] for card in credit_cards]
+            
+            # Delete credit card transactions
+            cc_tx_delete_result = await db.credit_card_transactions.delete_many({"card_id": {"$in": card_ids}})
+            deleted_stats["credit_card_transactions"] = cc_tx_delete_result.deleted_count
+            
+            # Delete credit cards
+            cc_delete_result = await db.credit_cards.delete_many({"customer_id": actual_customer_id})
+            deleted_stats["credit_cards"] = cc_delete_result.deleted_count
         
         # Delete related data in order
         if sales:
