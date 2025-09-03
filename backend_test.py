@@ -1797,7 +1797,319 @@ class FPTBillManagerAPITester:
         
         return success
 
+    def test_credit_card_objectid_uuid_fix(self):
+        """Test credit card endpoints sau khi fix ObjectId vs UUID issue"""
+        print(f"\n🎯 CREDIT CARD OBJECTID VS UUID FIX VERIFICATION")
+        print("=" * 80)
+        print("🔍 CRITICAL VERIFICATION:")
+        print("   1. Test với credit card có ObjectId format (trước đó broken)")
+        print("   2. Test DELETE /api/credit-cards/{card_id} dual lookup")
+        print("   3. Test GET /api/credit-cards/{card_id}/detail dual lookup")
+        print("   4. Test PUT /api/credit-cards/{card_id} dual lookup")
+        print("   5. Verify credit card operations hoạt động với mixed ID formats")
+        
+        test_results = {
+            "objectid_cards_accessible": False,
+            "delete_dual_lookup": False,
+            "detail_dual_lookup": False,
+            "update_dual_lookup": False,
+            "mixed_formats_working": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_findings": []
+        }
+        
+        # Step 1: Get credit cards and identify ObjectId format cards
+        print(f"\n🔍 STEP 1: Identify Credit Cards with ObjectId Format")
+        print("=" * 60)
+        
+        cards_success, cards_response = self.run_test(
+            "GET /credit-cards - Get all credit cards",
+            "GET",
+            "credit-cards?limit=50",
+            200
+        )
+        
+        if not cards_success or not cards_response:
+            print(f"❌ Cannot get credit cards list - testing aborted")
+            return False
+        
+        # Analyze card ID formats
+        objectid_cards = []
+        uuid_cards = []
+        
+        for card in cards_response:
+            card_id = card.get('id', '')
+            if len(card_id) == 24 and all(c in '0123456789abcdef' for c in card_id.lower()):
+                objectid_cards.append(card)
+            elif len(card_id) == 36 and card_id.count('-') == 4:
+                uuid_cards.append(card)
+        
+        print(f"✅ Found {len(cards_response)} total credit cards")
+        print(f"   ObjectId format cards: {len(objectid_cards)}")
+        print(f"   UUID format cards: {len(uuid_cards)}")
+        
+        if len(objectid_cards) == 0:
+            print(f"⚠️ No ObjectId format cards found - cannot test ObjectId dual lookup")
+            test_results["critical_findings"].append("No ObjectId format cards available for testing")
+        
+        test_results["total_tests"] += 1
+        test_results["passed_tests"] += 1
+        
+        # Step 2: Test GET /api/credit-cards/{card_id}/detail dual lookup
+        print(f"\n🔍 STEP 2: Test GET /api/credit-cards/{{card_id}}/detail Dual Lookup")
+        print("=" * 60)
+        
+        detail_tests_passed = 0
+        detail_tests_total = 0
+        
+        # Test with ObjectId format cards
+        for i, card in enumerate(objectid_cards[:3]):  # Test first 3 ObjectId cards
+            card_id = card.get('id')
+            card_number = card.get('card_number', 'Unknown')
+            
+            print(f"\n   Test {i+1}: ObjectId format card ****{card_number[-4:] if len(card_number) >= 4 else card_number}")
+            print(f"   Card ID: {card_id}")
+            
+            detail_success, detail_response = self.run_test(
+                f"GET /credit-cards/{card_id}/detail - ObjectId format",
+                "GET",
+                f"credit-cards/{card_id}/detail",
+                200
+            )
+            
+            detail_tests_total += 1
+            if detail_success:
+                print(f"   ✅ SUCCESS: ObjectId format card accessible via detail endpoint")
+                detail_tests_passed += 1
+                test_results["passed_tests"] += 1
+            else:
+                print(f"   ❌ FAILED: ObjectId format card NOT accessible via detail endpoint")
+                test_results["critical_findings"].append(f"Detail endpoint failed for ObjectId card: {card_id}")
+            
+            test_results["total_tests"] += 1
+        
+        # Test with UUID format cards for compatibility
+        for i, card in enumerate(uuid_cards[:2]):  # Test 2 UUID cards for compatibility
+            card_id = card.get('id')
+            card_number = card.get('card_number', 'Unknown')
+            
+            print(f"\n   Compatibility Test {i+1}: UUID format card ****{card_number[-4:] if len(card_number) >= 4 else card_number}")
+            
+            detail_success, detail_response = self.run_test(
+                f"GET /credit-cards/{card_id}/detail - UUID format",
+                "GET",
+                f"credit-cards/{card_id}/detail",
+                200
+            )
+            
+            detail_tests_total += 1
+            if detail_success:
+                print(f"   ✅ SUCCESS: UUID format card still working")
+                detail_tests_passed += 1
+                test_results["passed_tests"] += 1
+            else:
+                print(f"   ❌ FAILED: UUID format card broken - regression issue")
+                test_results["critical_findings"].append(f"Detail endpoint regression for UUID card: {card_id}")
+            
+            test_results["total_tests"] += 1
+        
+        if detail_tests_passed == detail_tests_total and detail_tests_total > 0:
+            test_results["detail_dual_lookup"] = True
+            print(f"\n✅ DETAIL ENDPOINT DUAL LOOKUP: {detail_tests_passed}/{detail_tests_total} tests passed")
+        else:
+            print(f"\n❌ DETAIL ENDPOINT DUAL LOOKUP: {detail_tests_passed}/{detail_tests_total} tests passed")
+        
+        # Step 3: Test PUT /api/credit-cards/{card_id} dual lookup
+        print(f"\n🔍 STEP 3: Test PUT /api/credit-cards/{{card_id}} Dual Lookup")
+        print("=" * 60)
+        
+        update_tests_passed = 0
+        update_tests_total = 0
+        
+        # Test update with ObjectId format cards
+        for i, card in enumerate(objectid_cards[:2]):  # Test first 2 ObjectId cards
+            card_id = card.get('id')
+            card_number = card.get('card_number', 'Unknown')
+            
+            print(f"\n   Update Test {i+1}: ObjectId format card ****{card_number[-4:] if len(card_number) >= 4 else card_number}")
+            print(f"   Card ID: {card_id}")
+            
+            # Prepare update data
+            update_data = {
+                "notes": f"Updated via ObjectId dual lookup test at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            }
+            
+            update_success, update_response = self.run_test(
+                f"PUT /credit-cards/{card_id} - ObjectId format update",
+                "PUT",
+                f"credit-cards/{card_id}",
+                200,
+                data=update_data
+            )
+            
+            update_tests_total += 1
+            if update_success:
+                print(f"   ✅ SUCCESS: ObjectId format card updated successfully")
+                print(f"   Updated notes: {update_response.get('notes', 'Not found')}")
+                update_tests_passed += 1
+                test_results["passed_tests"] += 1
+            else:
+                print(f"   ❌ FAILED: ObjectId format card update failed")
+                test_results["critical_findings"].append(f"Update endpoint failed for ObjectId card: {card_id}")
+            
+            test_results["total_tests"] += 1
+        
+        if update_tests_passed == update_tests_total and update_tests_total > 0:
+            test_results["update_dual_lookup"] = True
+            print(f"\n✅ UPDATE ENDPOINT DUAL LOOKUP: {update_tests_passed}/{update_tests_total} tests passed")
+        else:
+            print(f"\n❌ UPDATE ENDPOINT DUAL LOOKUP: {update_tests_passed}/{update_tests_total} tests passed")
+        
+        # Step 4: Test DELETE /api/credit-cards/{card_id} dual lookup
+        print(f"\n🔍 STEP 4: Test DELETE /api/credit-cards/{{card_id}} Dual Lookup")
+        print("=" * 60)
+        
+        delete_tests_passed = 0
+        delete_tests_total = 0
+        
+        # Test delete with ObjectId format cards (CAREFUL - this will delete cards!)
+        for i, card in enumerate(objectid_cards[:1]):  # Test only 1 ObjectId card for deletion
+            card_id = card.get('id')
+            card_number = card.get('card_number', 'Unknown')
+            
+            print(f"\n   Delete Test {i+1}: ObjectId format card ****{card_number[-4:] if len(card_number) >= 4 else card_number}")
+            print(f"   Card ID: {card_id}")
+            print(f"   ⚠️ WARNING: This will delete the credit card!")
+            
+            delete_success, delete_response = self.run_test(
+                f"DELETE /credit-cards/{card_id} - ObjectId format delete",
+                "DELETE",
+                f"credit-cards/{card_id}",
+                200
+            )
+            
+            delete_tests_total += 1
+            if delete_success:
+                print(f"   ✅ SUCCESS: ObjectId format card deleted successfully")
+                print(f"   Delete message: {delete_response.get('message', 'No message')}")
+                delete_tests_passed += 1
+                test_results["passed_tests"] += 1
+                
+                # Verify deletion
+                verify_success, verify_response = self.run_test(
+                    f"Verify deletion - GET /credit-cards/{card_id}/detail",
+                    "GET",
+                    f"credit-cards/{card_id}/detail",
+                    404
+                )
+                
+                if verify_success:
+                    print(f"   ✅ Deletion verified - card no longer accessible")
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"   ❌ Deletion verification failed - card may still exist")
+                
+                test_results["total_tests"] += 1
+            else:
+                print(f"   ❌ FAILED: ObjectId format card deletion failed")
+                test_results["critical_findings"].append(f"Delete endpoint failed for ObjectId card: {card_id}")
+            
+            test_results["total_tests"] += 1
+        
+        if delete_tests_passed == delete_tests_total and delete_tests_total > 0:
+            test_results["delete_dual_lookup"] = True
+            print(f"\n✅ DELETE ENDPOINT DUAL LOOKUP: {delete_tests_passed}/{delete_tests_total} tests passed")
+        else:
+            print(f"\n❌ DELETE ENDPOINT DUAL LOOKUP: {delete_tests_passed}/{delete_tests_total} tests passed")
+        
+        # Step 5: Verify mixed ID formats working
+        print(f"\n🔍 STEP 5: Verify Mixed ID Formats Working")
+        print("=" * 60)
+        
+        mixed_format_success = (
+            test_results["detail_dual_lookup"] and
+            test_results["update_dual_lookup"] and
+            test_results["delete_dual_lookup"]
+        )
+        
+        if mixed_format_success:
+            test_results["mixed_formats_working"] = True
+            print(f"✅ MIXED ID FORMATS VERIFICATION: All endpoints support both ObjectId and UUID")
+        else:
+            print(f"❌ MIXED ID FORMATS VERIFICATION: Some endpoints still have issues")
+        
+        # Step 6: Final Assessment
+        print(f"\n📊 STEP 6: Final Assessment - Credit Card ObjectId vs UUID Fix")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 EXPECTED RESULTS VERIFICATION:")
+        print(f"   Credit cards với ObjectId format accessible: {'✅ YES' if len(objectid_cards) > 0 and test_results['detail_dual_lookup'] else '❌ NO'}")
+        print(f"   DELETE /api/credit-cards/{{card_id}} dual lookup: {'✅ WORKING' if test_results['delete_dual_lookup'] else '❌ FAILED'}")
+        print(f"   GET /api/credit-cards/{{card_id}}/detail dual lookup: {'✅ WORKING' if test_results['detail_dual_lookup'] else '❌ FAILED'}")
+        print(f"   PUT /api/credit-cards/{{card_id}} dual lookup: {'✅ WORKING' if test_results['update_dual_lookup'] else '❌ FAILED'}")
+        print(f"   Mixed ID formats working: {'✅ YES' if test_results['mixed_formats_working'] else '❌ NO'}")
+        print(f"   Overall Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        expected_results_met = (
+            test_results["detail_dual_lookup"] and
+            test_results["update_dual_lookup"] and
+            test_results["delete_dual_lookup"] and
+            test_results["mixed_formats_working"]
+        )
+        
+        print(f"\n🎯 CRITICAL VERIFICATION RESULTS:")
+        if expected_results_met:
+            print(f"   ✅ Credit cards với ObjectId format bây giờ accessible")
+            print(f"   ✅ All CRUD operations hoạt động với both UUID và ObjectId")
+            print(f"   ✅ No more 404 errors cho existing credit cards")
+            print(f"   ✅ Credit card deletion issue đã được resolved")
+        else:
+            print(f"   ❌ Some expected results not achieved:")
+            if not test_results["detail_dual_lookup"]:
+                print(f"      - Detail endpoint dual lookup has issues")
+            if not test_results["update_dual_lookup"]:
+                print(f"      - Update endpoint dual lookup has issues")
+            if not test_results["delete_dual_lookup"]:
+                print(f"      - Delete endpoint dual lookup has issues")
+            if not test_results["mixed_formats_working"]:
+                print(f"      - Mixed ID format support incomplete")
+        
+        if test_results["critical_findings"]:
+            print(f"\n🚨 CRITICAL FINDINGS:")
+            for finding in test_results["critical_findings"]:
+                print(f"   - {finding}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if expected_results_met:
+            print(f"   ✅ CREDIT CARD OBJECTID VS UUID FIX VERIFICATION SUCCESSFUL")
+            print(f"   - All credit card operations working with mixed ID formats")
+            print(f"   - ObjectId format cards fully accessible")
+            print(f"   - Dual lookup strategy implemented correctly")
+            print(f"   - Credit card deletion issue resolved")
+        else:
+            print(f"   ❌ CREDIT CARD OBJECTID VS UUID FIX NEEDS MORE WORK")
+            print(f"   - Some credit card operations still failing")
+            print(f"   - Further investigation required")
+        
+        return expected_results_met
+
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
-    success = tester.run_all_tests()
-    sys.exit(0 if success else 1)
+    
+    # Run credit card ObjectId vs UUID fix verification
+    print("🎯 RUNNING CREDIT CARD OBJECTID VS UUID FIX VERIFICATION")
+    credit_card_success = tester.test_credit_card_objectid_uuid_fix()
+    
+    if credit_card_success:
+        print("\n✅ Credit card ObjectId vs UUID fix verification PASSED!")
+    else:
+        print("\n❌ Credit card ObjectId vs UUID fix verification FAILED!")
+    
+    # Close MongoDB connection
+    if tester.mongo_connected:
+        tester.mongo_client.close()
+    
+    sys.exit(0 if credit_card_success else 1)
