@@ -54,7 +54,6 @@ import {
   Phone,
   Building,
   Edit,
-  Edit2,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
@@ -64,10 +63,7 @@ import {
   Target,
   MapPin,
   UserPlus,
-  Crown,
-  Settings,
-  Globe,
-  Info
+  Crown
 } from "lucide-react";
 import { 
   LineChart, 
