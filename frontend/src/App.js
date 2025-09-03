@@ -4313,6 +4313,45 @@ const CreditCards = () => {
     setDaoLoading(false);
   };
 
+  // Phone Call Integration
+  const handlePhoneCall = (phoneNumber, customerName) => {
+    if (!phoneNumber) {
+      toast.error("Số điện thoại không có sẵn");
+      return;
+    }
+
+    // Clean phone number (remove spaces, dashes)
+    const cleanPhone = phoneNumber.replace(/[-\s()]/g, '');
+    
+    // Log activity
+    const logPhoneCall = async () => {
+      try {
+        await axios.post(`${API}/activities`, {
+          type: "CUSTOMER_CALL",
+          title: `Gọi điện cho khách hàng`,
+          description: `Đã gọi điện cho ${customerName} (${phoneNumber})`,
+          customer_id: customer.id,
+          customer_name: customerName,
+          metadata: {
+            phone_number: phoneNumber,
+            call_time: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error("Error logging phone call:", error);
+      }
+    };
+
+    // Open dialer (works on mobile devices)
+    window.location.href = `tel:${cleanPhone}`;
+    
+    // Log the call
+    logPhoneCall();
+    
+    // Show success message
+    toast.success(`Đang gọi ${customerName} (${phoneNumber})`);
+  };
+
   const handleDaoSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCardForDao) return;
