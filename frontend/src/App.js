@@ -2310,6 +2310,52 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Bulk Actions Toolbar */}
+          {selectedCustomers.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium text-blue-900">
+                    Đã chọn {selectedCustomers.length} khách hàng
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBulkExport}
+                    className="bg-white"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Xuất Excel
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBulkDelete}
+                    className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Xóa Tất Cả
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setSelectedCustomers([]);
+                      setSelectAll(false);
+                    }}
+                    className="text-gray-500"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Bỏ chọn
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Customer Table */}
           {customers.length > 0 ? (
             <div className="overflow-x-auto">
