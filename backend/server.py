@@ -1575,10 +1575,22 @@ async def create_customer(customer_data: CustomerCreate):
 
 @api_router.put("/customers/{customer_id}", response_model=Customer)
 async def update_customer(customer_id: str, customer_data: CustomerUpdate):
-    """Update customer"""
+    """Update customer information - supports both UUID and ObjectId lookup"""
     try:
-        # Check if customer exists
+        # Try to find customer by 'id' field first (UUID format)
         existing = await db.customers.find_one({"id": customer_id})
+        
+        # If not found and customer_id looks like ObjectId, try _id field
+        if not existing and len(customer_id) == 24 and all(c in '0123456789abcdef' for c in customer_id.lower()):
+            try:
+                from bson import ObjectId
+                existing = await db.customers.find_one({"_id": ObjectId(customer_id)})
+                # If found by ObjectId, use the actual 'id' field for subsequent operations
+                if existing and existing.get('id'):
+                    customer_id = existing.get('id')
+            except:
+                pass  # Invalid ObjectId format, continue with original customer_id
+        
         if not existing:
             raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
         
