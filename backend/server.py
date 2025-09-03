@@ -762,11 +762,28 @@ def reset_webhook_rotation():
     }
     print(f"[DEBUG] Webhook rotation state reset for new batch")
 async def external_check_bill(customer_code: str, provider_region: ProviderRegion) -> CheckBillResult:
-    """Call external bill checking API with random delay and timeout"""
+    """Call external bill checking API with webhook rotation and random delay"""
     print(
         f"Checking bill for customer code: {customer_code}, "
         f"Provider: {provider_region.value}"
     )
+    
+    # Get next webhook URL using rotation logic
+    webhook_url = await get_next_webhook_url()
+    print(f"[DEBUG] Selected webhook: {webhook_url}")
+    
+    # Mock successful response for PA2204000000
+    if customer_code == "PA2204000000":
+        await asyncio.sleep(0.1)  # Quick mock delay
+        return CheckBillResult(
+            customer_code=customer_code,
+            full_name="Nguyen Van Test",
+            address="123 Test Street",
+            amount=150000.0,
+            billing_cycle="2024-12",
+            status="OK",
+            bill_id=str(uuid.uuid4())
+        )
     
     # Mock successful response for PA2204000000
     if customer_code == "PA2204000000":
