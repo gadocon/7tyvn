@@ -502,7 +502,8 @@ class DatabaseCleaner:
             print(f"❌ CLEANUP & SEED FAILED: {e}")
             return False
         finally:
-            await self.client.close()
+            if self.client:
+                self.client.close()
 
 async def main():
     """Main function"""
