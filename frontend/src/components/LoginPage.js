@@ -92,12 +92,30 @@ const LoginPage = () => {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-indigo-50 to-purple-50 relative overflow-hidden">
-      {/* Animated Background Elements */}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-700 via-green-800 to-green-900 relative overflow-hidden">
+      {/* Modern Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-green-400/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+        {/* Floating Geometric Shapes */}
+        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-green-400/20 to-green-500/30 rounded-full blur-xl animate-float"></div>
+        <div className="absolute top-40 right-32 w-20 h-20 bg-gradient-to-br from-green-300/25 to-green-400/35 rounded-lg rotate-45 blur-lg animate-float-delayed"></div>
+        <div className="absolute bottom-32 left-32 w-24 h-24 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-full blur-lg animate-float-slow"></div>
+        <div className="absolute bottom-20 right-20 w-28 h-28 bg-gradient-to-br from-green-400/15 to-green-500/25 rounded-lg rotate-12 blur-xl animate-float-delayed"></div>
+        
+        {/* Moving Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-600/10 to-transparent animate-gradient-shift"></div>
+        
+        {/* Subtle Grid Pattern */}
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: `
+            linear-gradient(90deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px),
+            linear-gradient(180deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px'
+        }}></div>
+        
+        {/* Large Background Accent */}
+        <div className="absolute -top-60 -right-60 w-96 h-96 bg-gradient-to-br from-green-400/5 to-green-600/10 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute -bottom-60 -left-60 w-96 h-96 bg-gradient-to-tr from-green-500/5 to-green-700/10 rounded-full blur-3xl animate-pulse-slow delay-1000"></div>
       </div>
 
       {/* Glassmorphism Login Card */}
