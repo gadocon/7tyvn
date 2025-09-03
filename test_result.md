@@ -412,11 +412,11 @@ test_plan:
 
   - task: "Transaction Preservation on Card Deletion"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
@@ -424,6 +424,9 @@ test_plan:
         - working: "NA"
           agent: "testing"
           comment: "⚠️ NOT TESTED: Transaction preservation on card deletion not tested due to existing regex error in delete endpoint (Status 500: 'Regular expression is invalid: quantifier does not follow a repeatable item'). This is a separate issue from cycle business logic. Cycle logic implementation is complete but delete endpoint has unrelated technical issue."
+        - working: false
+          agent: "testing"
+          comment: "❌ CONFIRMED REGEX ERROR: Delete endpoint still failing with Status 500 'Regular expression is invalid: quantifier does not follow a repeatable item'. This is a MongoDB regex syntax error in the delete operation, preventing testing of transaction preservation functionality. The transaction preservation logic may be implemented correctly but cannot be verified due to this technical blocker."
 
   - task: "Transaction Type Bug Fix - Customer Transaction History"
     implemented: true
