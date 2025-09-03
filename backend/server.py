@@ -653,12 +653,22 @@ def prepare_for_mongo(data):
     return data
 
 def parse_from_mongo(item):
-    """Parse MongoDB document for JSON serialization"""
+    """Parse MongoDB document for JSON serialization and schema alignment"""
     if isinstance(item, dict):
         # Convert MongoDB ObjectId to string for JSON serialization
         if '_id' in item:
             item['id'] = str(item['_id'])
             item.pop('_id', None)
+        
+        # Handle CreditCardTransaction schema alignment
+        if 'amount' in item and 'total_amount' not in item:
+            item['total_amount'] = item.get('amount', 0)
+        if 'profit_amount' in item and 'profit_value' not in item:
+            item['profit_value'] = item.get('profit_amount', 0)
+        if 'fee' in item and 'payback' not in item:
+            item['payback'] = item.get('fee', 0)
+        if 'transaction_group_id' not in item and 'id' in item:
+            item['transaction_group_id'] = item.get('id', str(uuid.uuid4()))
         
         # Parse datetime strings
         for key, value in item.items():
