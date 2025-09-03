@@ -210,7 +210,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "JWT Authentication System with Role-Based Access Control"
+    - "Credit Card Deletion and Data Consistency Issues Investigation"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
