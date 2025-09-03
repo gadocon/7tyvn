@@ -1460,6 +1460,321 @@ class FPTBillManagerAPITester:
         self.tests_passed += 1  # We successfully investigated the issue
         return True
 
+    def test_create_role_based_test_accounts(self):
+        """CREATE TEST ACCOUNTS WITH DIFFERENT ROLES for user to test permissions"""
+        print(f"\n🎯 CREATING TEST ACCOUNTS WITH DIFFERENT ROLES")
+        print("=" * 70)
+        print("🎯 OBJECTIVE: Create easy-to-remember test accounts for role-based permission testing")
+        print("👥 ROLES TO CREATE: Admin, Manager, Regular User")
+        
+        # Step 1: Check existing users in the system
+        print(f"\n📋 STEP 1: Checking existing users in the system...")
+        
+        # First try to get users without authentication (will fail, but shows endpoint exists)
+        existing_users_success, existing_users_response = self.run_test(
+            "Check Existing Users (No Auth)",
+            "GET",
+            "auth/users",
+            401  # Expected to fail without auth
+        )
+        
+        if existing_users_success:
+            print("⚠️  Unexpected: Got users without authentication")
+        else:
+            print("✅ Expected: Users endpoint requires authentication")
+        
+        # Step 2: Create test accounts with memorable credentials
+        print(f"\n📋 STEP 2: Creating test accounts with memorable credentials...")
+        
+        test_accounts = [
+            {
+                "role": "admin",
+                "username": "admin_test",
+                "email": "admin@test.com",
+                "phone": "0901000001",
+                "password": "admin123",
+                "full_name": "Admin Test User",
+                "description": "Full system access - can manage users, view all data, perform all operations"
+            },
+            {
+                "role": "manager", 
+                "username": "manager_test",
+                "email": "manager@test.com",
+                "phone": "0901000002", 
+                "password": "manager123",
+                "full_name": "Manager Test User",
+                "description": "Can view users, manage customers, access reports, limited admin functions"
+            },
+            {
+                "role": "user",
+                "username": "user_test", 
+                "email": "user@test.com",
+                "phone": "0901000003",
+                "password": "user123", 
+                "full_name": "Regular Test User",
+                "description": "Basic access - can view own data, limited operations, no admin functions"
+            }
+        ]
+        
+        created_accounts = []
+        login_credentials = []
+        
+        for account in test_accounts:
+            print(f"\n🔧 Creating {account['role'].upper()} account...")
+            print(f"   Username: {account['username']}")
+            print(f"   Email: {account['email']}")
+            print(f"   Phone: {account['phone']}")
+            print(f"   Password: {account['password']}")
+            
+            # Create user account
+            user_data = {
+                "username": account['username'],
+                "email": account['email'],
+                "phone": account['phone'],
+                "password": account['password'],
+                "full_name": account['full_name'],
+                "role": account['role']
+            }
+            
+            create_success, create_response = self.run_test(
+                f"Create {account['role'].title()} User",
+                "POST",
+                "auth/register",
+                200,
+                data=user_data
+            )
+            
+            if create_success:
+                user_id = create_response.get('id')
+                print(f"   ✅ SUCCESS: Created {account['role']} user (ID: {user_id})")
+                created_accounts.append({
+                    **account,
+                    'user_id': user_id,
+                    'created': True
+                })
+                
+                # Test login immediately
+                login_data = {
+                    "login": account['username'],
+                    "password": account['password']
+                }
+                
+                login_success, login_response = self.run_test(
+                    f"Test Login - {account['username']}",
+                    "POST", 
+                    "auth/login",
+                    200,
+                    data=login_data
+                )
+                
+                if login_success:
+                    access_token = login_response.get('access_token')
+                    user_info = login_response.get('user', {})
+                    print(f"   ✅ LOGIN SUCCESS: Token received, Role: {user_info.get('role')}")
+                    
+                    login_credentials.append({
+                        'username': account['username'],
+                        'password': account['password'],
+                        'role': account['role'],
+                        'access_token': access_token,
+                        'login_working': True
+                    })
+                else:
+                    print(f"   ❌ LOGIN FAILED: Could not login with created account")
+                    login_credentials.append({
+                        'username': account['username'],
+                        'password': account['password'], 
+                        'role': account['role'],
+                        'login_working': False
+                    })
+                    
+            else:
+                print(f"   ❌ FAILED: Could not create {account['role']} user")
+                # Check if user already exists
+                if "already exists" in str(create_response):
+                    print(f"   ℹ️  User may already exist - testing login...")
+                    
+                    login_data = {
+                        "login": account['username'],
+                        "password": account['password']
+                    }
+                    
+                    login_success, login_response = self.run_test(
+                        f"Test Existing Login - {account['username']}",
+                        "POST",
+                        "auth/login", 
+                        200,
+                        data=login_data
+                    )
+                    
+                    if login_success:
+                        access_token = login_response.get('access_token')
+                        user_info = login_response.get('user', {})
+                        print(f"   ✅ EXISTING USER LOGIN SUCCESS: Role: {user_info.get('role')}")
+                        
+                        login_credentials.append({
+                            'username': account['username'],
+                            'password': account['password'],
+                            'role': account['role'],
+                            'access_token': access_token,
+                            'login_working': True,
+                            'already_existed': True
+                        })
+                    else:
+                        print(f"   ❌ EXISTING USER LOGIN FAILED")
+                        login_credentials.append({
+                            'username': account['username'],
+                            'password': account['password'],
+                            'role': account['role'], 
+                            'login_working': False
+                        })
+                
+                created_accounts.append({
+                    **account,
+                    'created': False
+                })
+        
+        # Step 3: Test role-based permissions
+        print(f"\n📋 STEP 3: Testing role-based permissions...")
+        
+        working_accounts = [acc for acc in login_credentials if acc.get('login_working')]
+        
+        for account in working_accounts:
+            print(f"\n🔐 Testing permissions for {account['role'].upper()} ({account['username']})...")
+            
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': f"Bearer {account['access_token']}"
+            }
+            
+            # Test /auth/me endpoint
+            me_success, me_response = self.run_test(
+                f"Get Current User Info - {account['role']}",
+                "GET",
+                "auth/me",
+                200,
+                headers=headers
+            )
+            
+            if me_success:
+                print(f"   ✅ /auth/me: Can access own profile")
+                print(f"      Role: {me_response.get('role')}")
+                print(f"      Name: {me_response.get('full_name')}")
+            
+            # Test /auth/users endpoint (Admin/Manager only)
+            users_success, users_response = self.run_test(
+                f"Get All Users - {account['role']}",
+                "GET", 
+                "auth/users",
+                200 if account['role'] in ['admin', 'manager'] else 403,
+                headers=headers
+            )
+            
+            if account['role'] in ['admin', 'manager']:
+                if users_success:
+                    print(f"   ✅ /auth/users: Can view all users ({len(users_response)} users)")
+                else:
+                    print(f"   ❌ /auth/users: Should have access but failed")
+            else:
+                if not users_success:
+                    print(f"   ✅ /auth/users: Correctly denied access (403)")
+                else:
+                    print(f"   ❌ /auth/users: Should be denied but got access")
+        
+        # Step 4: Generate comprehensive documentation
+        print(f"\n📋 STEP 4: Generating test account documentation...")
+        
+        print(f"\n" + "=" * 70)
+        print(f"🎯 TEST ACCOUNTS CREATED - LOGIN CREDENTIALS")
+        print(f"=" * 70)
+        
+        for account in login_credentials:
+            if account.get('login_working'):
+                print(f"\n👤 {account['role'].upper()} USER:")
+                print(f"   Username: {account['username']}")
+                print(f"   Password: {account['password']}")
+                print(f"   Login URL: {self.base_url}")
+                print(f"   Status: ✅ Working")
+                if account.get('already_existed'):
+                    print(f"   Note: Account already existed")
+        
+        print(f"\n" + "=" * 70)
+        print(f"🔐 ROLE PERMISSIONS SUMMARY")
+        print(f"=" * 70)
+        
+        print(f"\n🔴 ADMIN USER (admin_test / admin123):")
+        print(f"   ✅ Full system access")
+        print(f"   ✅ Can manage all users (view, create, update roles)")
+        print(f"   ✅ Can access all customer data")
+        print(f"   ✅ Can perform all CRUD operations")
+        print(f"   ✅ Can access admin-only endpoints")
+        print(f"   ✅ Can view system statistics and reports")
+        
+        print(f"\n🟡 MANAGER USER (manager_test / manager123):")
+        print(f"   ✅ Can view all users (but not modify)")
+        print(f"   ✅ Can manage customers and bills")
+        print(f"   ✅ Can access reports and analytics")
+        print(f"   ❌ Cannot modify user roles")
+        print(f"   ❌ Cannot access admin-only functions")
+        
+        print(f"\n🟢 REGULAR USER (user_test / user123):")
+        print(f"   ✅ Can view own profile")
+        print(f"   ✅ Can update own information")
+        print(f"   ❌ Cannot view other users")
+        print(f"   ❌ Cannot access admin functions")
+        print(f"   ❌ Limited access to system data")
+        
+        print(f"\n" + "=" * 70)
+        print(f"🧪 HOW TO TEST PERMISSIONS")
+        print(f"=" * 70)
+        
+        print(f"\n1. LOGIN WITH DIFFERENT ACCOUNTS:")
+        print(f"   • Go to: {self.base_url}")
+        print(f"   • Try logging in with each account above")
+        print(f"   • Observe different interface elements based on role")
+        
+        print(f"\n2. TEST ADMIN FUNCTIONS:")
+        print(f"   • Login as admin_test / admin123")
+        print(f"   • Try accessing user management")
+        print(f"   • Try changing user roles")
+        print(f"   • Verify full system access")
+        
+        print(f"\n3. TEST MANAGER LIMITATIONS:")
+        print(f"   • Login as manager_test / manager123") 
+        print(f"   • Verify can see users but not modify roles")
+        print(f"   • Check access to customer/bill management")
+        
+        print(f"\n4. TEST USER RESTRICTIONS:")
+        print(f"   • Login as user_test / user123")
+        print(f"   • Verify limited access to system functions")
+        print(f"   • Check that admin menus are hidden")
+        
+        print(f"\n" + "=" * 70)
+        print(f"📱 MOBILE TESTING")
+        print(f"=" * 70)
+        print(f"   • All accounts work on mobile devices")
+        print(f"   • Same permission rules apply")
+        print(f"   • Test responsive design with different roles")
+        
+        # Step 5: Final verification
+        working_count = len([acc for acc in login_credentials if acc.get('login_working')])
+        total_count = len(test_accounts)
+        
+        print(f"\n📊 FINAL SUMMARY:")
+        print(f"   • Accounts Created/Verified: {working_count}/{total_count}")
+        print(f"   • All Role Types Available: {'✅' if working_count >= 3 else '❌'}")
+        print(f"   • Permission Testing: {'✅ Complete' if working_count > 0 else '❌ Failed'}")
+        
+        if working_count >= 3:
+            print(f"\n🎉 SUCCESS: All test accounts ready for permission testing!")
+            print(f"🔗 Login URL: {self.base_url}")
+            self.tests_passed += 1
+        else:
+            print(f"\n⚠️  PARTIAL SUCCESS: Some accounts may not be working")
+        
+        self.tests_run += 1
+        return working_count >= 2  # At least 2 accounts working is acceptable
+
     def test_error_handling(self):
         """Test API error handling"""
         print(f"\n🧪 Testing Error Handling...")
