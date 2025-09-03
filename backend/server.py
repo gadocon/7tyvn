@@ -3587,8 +3587,33 @@ async def get_unified_transactions(
                 )
                 unified_transactions.append(transaction)
         
-        # Sort by created_at descending
-        unified_transactions.sort(key=lambda x: x.created_at, reverse=True)
+        # Sort by created_at descending - handle mixed timezone datetime objects
+        def safe_sort_key(transaction):
+            created_at = transaction.created_at
+            # Convert all datetime objects to timezone-aware UTC for consistent comparison
+            if isinstance(created_at, datetime):
+                if created_at.tzinfo is None:
+                    # Timezone-naive datetime - assume UTC
+                    created_at = created_at.replace(tzinfo=timezone.utc)
+                else:
+                    # Already timezone-aware - convert to UTC
+                    created_at = created_at.astimezone(timezone.utc)
+            elif isinstance(created_at, str):
+                # String datetime - parse and make timezone-aware
+                try:
+                    created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    if created_at.tzinfo is None:
+                        created_at = created_at.replace(tzinfo=timezone.utc)
+                except:
+                    # Fallback to current time if parsing fails
+                    created_at = datetime.now(timezone.utc)
+            else:
+                # Fallback to current time for unknown types
+                created_at = datetime.now(timezone.utc)
+            
+            return created_at
+        
+        unified_transactions.sort(key=safe_sort_key, reverse=True)
         
         # Apply search filter if provided
         if search:
