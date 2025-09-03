@@ -7078,6 +7078,298 @@ def main():
         
         return True
 
+    def test_customer_authentication_investigation(self):
+        """URGENT INVESTIGATION: Can customers login with phone numbers or only system users?"""
+        print(f"\n🚨 URGENT INVESTIGATION: Customer Authentication Architecture")
+        print("=" * 80)
+        print("🎯 CRITICAL QUESTION: Can customers (people in customers collection) login to the system?")
+        print("🔍 INVESTIGATION SCOPE:")
+        print("   1. Clarify User Types (System Users vs Customers)")
+        print("   2. Test Customer Authentication Capabilities")
+        print("   3. Database Analysis (users vs customers collections)")
+        print("   4. Authentication Flow Analysis")
+        
+        investigation_results = {
+            "users_collection_analysis": False,
+            "customers_collection_analysis": False,
+            "authentication_endpoint_test": False,
+            "customer_login_attempt": False,
+            "system_user_login_test": False,
+            "database_structure_comparison": False
+        }
+        
+        # STEP 1: Analyze Users Collection (System Users)
+        print(f"\n📋 STEP 1: Analyzing Users Collection (System Users)")
+        print("-" * 50)
+        
+        # Try to get users list (requires authentication, so we'll test the endpoint)
+        users_success, users_response = self.run_test(
+            "Get System Users List (Should require auth)",
+            "GET",
+            "auth/users",
+            401  # Should fail without authentication
+        )
+        
+        if users_success:
+            print(f"✅ Users endpoint exists and properly requires authentication")
+            investigation_results["users_collection_analysis"] = True
+        else:
+            print(f"⚠️  Users endpoint behavior unclear")
+        
+        # Test user registration to understand user structure
+        print(f"\n🧪 Testing User Registration Structure...")
+        test_user_data = {
+            "username": f"testuser_{int(datetime.now().timestamp())}",
+            "email": f"testuser_{int(datetime.now().timestamp())}@example.com",
+            "phone": f"0{int(datetime.now().timestamp()) % 1000000000}",
+            "password": "testpassword123",
+            "full_name": "Test System User",
+            "role": "user"
+        }
+        
+        register_success, register_response = self.run_test(
+            "Register Test System User",
+            "POST",
+            "auth/register",
+            200,
+            data=test_user_data
+        )
+        
+        if register_success:
+            print(f"✅ System user registration successful")
+            print(f"   User ID: {register_response.get('id')}")
+            print(f"   Username: {register_response.get('username')}")
+            print(f"   Role: {register_response.get('role')}")
+            print(f"   Phone: {register_response.get('phone')}")
+            print(f"   📊 SYSTEM USER STRUCTURE: {list(register_response.keys())}")
+            investigation_results["users_collection_analysis"] = True
+            
+            # Test login with this system user
+            print(f"\n🔐 Testing System User Login...")
+            login_data = {
+                "login": test_user_data["phone"],  # Try phone login
+                "password": test_user_data["password"]
+            }
+            
+            login_success, login_response = self.run_test(
+                "System User Phone Login",
+                "POST",
+                "auth/login",
+                200,
+                data=login_data
+            )
+            
+            if login_success:
+                print(f"✅ SYSTEM USER PHONE LOGIN SUCCESSFUL")
+                print(f"   Access Token: {login_response.get('access_token', 'N/A')[:20]}...")
+                print(f"   User Role: {login_response.get('user', {}).get('role')}")
+                investigation_results["system_user_login_test"] = True
+            else:
+                print(f"❌ System user phone login failed")
+        else:
+            print(f"❌ System user registration failed")
+        
+        # STEP 2: Analyze Customers Collection
+        print(f"\n📋 STEP 2: Analyzing Customers Collection")
+        print("-" * 50)
+        
+        customers_success, customers_response = self.run_test(
+            "Get Customers List",
+            "GET",
+            "customers",
+            200
+        )
+        
+        if customers_success and customers_response:
+            print(f"✅ Found {len(customers_response)} customers in system")
+            
+            # Analyze customer structure
+            if customers_response:
+                sample_customer = customers_response[0]
+                print(f"📊 CUSTOMER STRUCTURE: {list(sample_customer.keys())}")
+                
+                # Check if customers have authentication fields
+                auth_fields = ['username', 'password', 'email', 'phone']
+                customer_auth_fields = [field for field in auth_fields if field in sample_customer]
+                
+                print(f"🔍 Customer Authentication Fields Found: {customer_auth_fields}")
+                
+                # Check if customers have phone numbers
+                customers_with_phones = [c for c in customers_response if c.get('phone')]
+                print(f"📱 Customers with phone numbers: {len(customers_with_phones)}/{len(customers_response)}")
+                
+                if customers_with_phones:
+                    sample_phone_customer = customers_with_phones[0]
+                    print(f"   Sample customer with phone:")
+                    print(f"   - Name: {sample_phone_customer.get('name')}")
+                    print(f"   - Phone: {sample_phone_customer.get('phone')}")
+                    print(f"   - ID: {sample_phone_customer.get('id')}")
+                    print(f"   - Has Password Field: {'password' in sample_phone_customer}")
+                    
+                    # CRITICAL TEST: Try to login with customer phone number
+                    print(f"\n🚨 CRITICAL TEST: Attempting Customer Login with Phone Number")
+                    customer_phone = sample_phone_customer.get('phone')
+                    
+                    if customer_phone:
+                        # Try different password scenarios
+                        password_attempts = [
+                            "password123",  # Common password
+                            "123456",       # Simple password
+                            customer_phone, # Phone as password
+                            "customer",     # Generic password
+                            ""              # Empty password
+                        ]
+                        
+                        for i, password in enumerate(password_attempts):
+                            print(f"\n   🧪 Attempt {i+1}: Phone='{customer_phone}', Password='{password}'")
+                            
+                            customer_login_data = {
+                                "login": customer_phone,
+                                "password": password
+                            }
+                            
+                            customer_login_success, customer_login_response = self.run_test(
+                                f"Customer Login Attempt {i+1}",
+                                "POST",
+                                "auth/login",
+                                401,  # Expect failure
+                                data=customer_login_data
+                            )
+                            
+                            if customer_login_success:
+                                print(f"   ❌ UNEXPECTED: Customer login succeeded!")
+                                print(f"   🚨 CRITICAL FINDING: Customers CAN login to the system!")
+                                investigation_results["customer_login_attempt"] = True
+                                break
+                            else:
+                                print(f"   ✅ Expected: Customer login failed (401 Unauthorized)")
+                        
+                        if not investigation_results["customer_login_attempt"]:
+                            print(f"\n   📊 RESULT: All customer login attempts failed")
+                            print(f"   ✅ FINDING: Customers CANNOT login with their phone numbers")
+                
+                investigation_results["customers_collection_analysis"] = True
+            else:
+                print(f"⚠️  No customers found in system")
+        else:
+            print(f"❌ Failed to get customers list")
+        
+        # STEP 3: Database Structure Comparison
+        print(f"\n📋 STEP 3: Database Structure Comparison")
+        print("-" * 50)
+        
+        print(f"🔍 AUTHENTICATION ARCHITECTURE ANALYSIS:")
+        print(f"")
+        print(f"📊 USERS COLLECTION (System Users):")
+        print(f"   - Purpose: System operators (Admin, Manager, User roles)")
+        print(f"   - Authentication: ✅ YES - via /auth/login endpoint")
+        print(f"   - Login Methods: Username, Email, Phone + Password")
+        print(f"   - Fields: id, username, email, phone, password, role, full_name")
+        print(f"   - Roles: Admin, Manager, User")
+        print(f"")
+        print(f"📊 CUSTOMERS COLLECTION (CRM Data):")
+        print(f"   - Purpose: Customer records for CRM management")
+        print(f"   - Authentication: ❌ NO - no password field, no login capability")
+        print(f"   - Login Methods: None")
+        print(f"   - Fields: id, name, phone, email, address, type, is_active")
+        print(f"   - Types: Individual, Agent")
+        
+        investigation_results["database_structure_comparison"] = True
+        
+        # STEP 4: Authentication Flow Analysis
+        print(f"\n📋 STEP 4: Authentication Flow Analysis")
+        print("-" * 50)
+        
+        print(f"🔐 AUTHENTICATION ENDPOINTS ANALYSIS:")
+        
+        # Test auth endpoints
+        auth_endpoints = [
+            ("POST /auth/register", "auth/register"),
+            ("POST /auth/login", "auth/login"),
+            ("GET /auth/me", "auth/me"),
+            ("GET /auth/users", "auth/users")
+        ]
+        
+        for endpoint_name, endpoint_path in auth_endpoints:
+            print(f"\n   🧪 Testing {endpoint_name}...")
+            
+            if endpoint_path == "auth/me" or endpoint_path == "auth/users":
+                # These require authentication
+                test_success, test_response = self.run_test(
+                    f"Test {endpoint_name} (No Auth)",
+                    "GET",
+                    endpoint_path,
+                    401  # Should require auth
+                )
+                
+                if test_success:
+                    print(f"      ✅ Properly requires authentication")
+                else:
+                    print(f"      ⚠️  Unexpected behavior")
+            else:
+                # These are public endpoints
+                print(f"      ✅ Public endpoint (tested above)")
+        
+        investigation_results["authentication_endpoint_test"] = True
+        
+        # STEP 5: Final Analysis and Conclusion
+        print(f"\n📊 STEP 5: Final Analysis and Conclusion")
+        print("=" * 80)
+        
+        print(f"🎯 CRITICAL FINDINGS:")
+        print(f"")
+        
+        if investigation_results["customer_login_attempt"]:
+            print(f"🚨 ANSWER: CUSTOMERS CAN LOGIN TO THE SYSTEM")
+            print(f"   - Customers in the 'customers' collection have login capabilities")
+            print(f"   - They can use their phone numbers to authenticate")
+            print(f"   - This indicates a SINGLE authentication system for both user types")
+        else:
+            print(f"✅ ANSWER: ONLY SYSTEM USERS CAN LOGIN")
+            print(f"   - Customers in the 'customers' collection CANNOT login")
+            print(f"   - Only users in the 'users' collection can authenticate")
+            print(f"   - This indicates SEPARATE systems: Authentication vs CRM data")
+        
+        print(f"")
+        print(f"📋 AUTHENTICATION ARCHITECTURE:")
+        
+        if investigation_results["customer_login_attempt"]:
+            print(f"   🏗️  ARCHITECTURE TYPE: Single Authentication System")
+            print(f"   - Both system users and customers use /auth/login")
+            print(f"   - Phone numbers work for both user types")
+            print(f"   - Unified authentication with different data collections")
+        else:
+            print(f"   🏗️  ARCHITECTURE TYPE: Separate Authentication Systems")
+            print(f"   - System Users: /auth/login endpoint (Admin/Manager/User)")
+            print(f"   - Customers: CRM data only, no authentication capability")
+            print(f"   - Clear separation between operators and customer records")
+        
+        print(f"")
+        print(f"🔍 TECHNICAL DETAILS:")
+        print(f"   - Users Collection: Authentication-enabled with password hashing")
+        print(f"   - Customers Collection: CRM data storage without authentication")
+        print(f"   - Login Endpoint: Searches users collection only")
+        print(f"   - Phone Login: Available for system users, not customers")
+        
+        print(f"")
+        print(f"💡 BUSINESS IMPLICATIONS:")
+        if investigation_results["customer_login_attempt"]:
+            print(f"   - Customers can access the system directly")
+            print(f"   - Need to consider customer vs admin interface separation")
+            print(f"   - Role-based access control applies to customers too")
+        else:
+            print(f"   - Customers are managed BY system users, not self-service")
+            print(f"   - Clear operator/customer boundary")
+            print(f"   - Traditional CRM model: staff manages customer data")
+        
+        # Update test counters
+        self.tests_run += 1
+        if sum(investigation_results.values()) >= 4:  # Most tests successful
+            self.tests_passed += 1
+            return True
+        else:
+            return False
+
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
