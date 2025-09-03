@@ -131,13 +131,16 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src/App.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Enhanced TransactionDetailModal component with edit mode functionality. Added isEditing state, editData state for form fields, edit/save/cancel functionality. Modal now supports editing total_amount, profit_amount, profit_percentage, notes, and created_at fields. Added proper form validation, loading states, and API integration with proper error handling. Also added onUpdate callback to refresh transactions list after successful update."
+        - working: false
+          agent: "testing"
+          comment: "🚨 CRITICAL CUSTOMER INFORMATION ERRORS FOUND IN TRANSACTIONS PAGE! Comprehensive testing reveals multiple issues: ❌ CUSTOMER NAME LINKS NOT WORKING: Customer names in transaction table are displayed as plain text without CustomerNameLink functionality - no clickable links found in any transaction rows. ❌ BACKEND API ERROR: CustomerNameLink component in transaction detail modal triggers 500 Internal Server Error when clicked. Backend logs show 'Error getting customer detailed profile: < not supported between instances of datetime.datetime and str' indicating datetime comparison bug in /api/customers/{id}/detailed-profile endpoint. ❌ CONSOLE ERRORS: 4 JavaScript errors detected including 'Failed to load resource: server responded with status 500' and 'Error fetching customer detail: AxiosError'. ✅ MODAL OPENS: Transaction detail modal opens correctly and CustomerNameLink component is present in modal. ✅ TRANSACTION DATA: 50 transaction rows loaded successfully with proper customer names displayed. 🔧 ROOT CAUSE: Backend datetime sorting issue in customer detailed profile endpoint (line 4458) prevents CustomerNameLink navigation from working. Customer information display works but navigation functionality is broken due to backend API failure."
 
   - task: "Phone Call Integration Stub"
     implemented: true
