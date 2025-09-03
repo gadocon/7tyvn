@@ -209,7 +209,7 @@ const LoginPage = () => {
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-green-500 to-purple-600 hover:from-green-600 hover:to-purple-700 text-white font-medium py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white font-medium py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <div className="flex items-center space-x-2">
@@ -223,8 +223,8 @@ const LoginPage = () => {
             </form>
 
             {/* Footer */}
-            <div className="text-center pt-4 border-t border-white/20">
-              <p className="text-xs text-gray-500">
+            <div className="text-center pt-4 border-t border-white/10">
+              <p className="text-xs text-white/60">
                 © 2025 7ty.vn CRM - Hệ thống quản lý khách hàng
               </p>
             </div>
