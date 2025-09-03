@@ -1728,10 +1728,10 @@ const Inventory = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => activeTab === "available" 
-                                ? handleRemoveFromInventory(item.id)
-                                : handleDeleteBill(item.id, item)
-                              }
+                              onClick={() => {
+                                // For both tabs, delete the bill directly
+                                handleDeleteBill(item.id, item);
+                              }}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 hover:border-red-400"
                               title={`Xóa bill ${item.customer_code} - Chỉ có thể xóa bill chưa bán`}
                             >
