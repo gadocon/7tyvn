@@ -7071,7 +7071,7 @@ const CustomerDetailPage = () => {
 
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => handlePhoneCall(customer.phone, customer.name, customer.id)}>
               <Phone className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Gọi</span>
             </Button>
