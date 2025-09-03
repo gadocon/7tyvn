@@ -2732,26 +2732,39 @@ async def update_credit_card(card_id: str, card_data: CreditCardUpdate):
 
 @api_router.delete("/credit-cards/{card_id}")
 async def delete_credit_card(card_id: str):
-    """Delete credit card but preserve transactions for reporting"""
+    """Delete credit card and all related transactions - supports both UUID and ObjectId lookup"""
     try:
-        # Get card to find customer_id
-        card = await db.credit_cards.find_one({"id": card_id})
-        if not card:
-            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+        # Try to find credit card by 'id' field first (UUID format)
+        credit_card = await db.credit_cards.find_one({"id": card_id})
+        actual_card_id = card_id
+        
+        # If not found and card_id looks like ObjectId, try _id field
+        if not credit_card and len(card_id) == 24 and all(c in '0123456789abcdef' for c in card_id.lower()):
+            try:
+                from bson import ObjectId
+                credit_card = await db.credit_cards.find_one({"_id": ObjectId(card_id)})
+                # If found by ObjectId, use the actual 'id' field for cascade deletions
+                if credit_card and credit_card.get('id'):
+                    actual_card_id = credit_card.get('id')
+            except:
+                pass  # Invalid ObjectId format, continue with original card_id
+        
+        if not credit_card:
+            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ tín dụng")
         
         # Check for existing transactions - WARNING but allow deletion
-        transaction_count = await db.credit_card_transactions.count_documents({"card_id": card_id})
-        sales_count = await db.sales.count_documents({"notes": {"$regex": f"****{card['card_number'][-4:]}"}})
+        transaction_count = await db.credit_card_transactions.count_documents({"card_id": actual_card_id})
+        sales_count = await db.sales.count_documents({"notes": {"$regex": f"****{credit_card['card_number'][-4:]}"}})
         
         # Delete card (transactions will be preserved for reporting)
-        result = await db.credit_cards.delete_one({"id": card_id})
+        result = await db.credit_cards.delete_one({"id": actual_card_id})
         
         if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ tín dụng")
         
         # Update customer total_cards count
         await db.customers.update_one(
-            {"id": card["customer_id"]},
+            {"id": credit_card["customer_id"]},
             {"$inc": {"total_cards": -1}}
         )
         
