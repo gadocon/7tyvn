@@ -203,6 +203,18 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+  - task: "Customer ID 68b86b157a314c251c8c863b Debug Investigation"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "🚨 CRITICAL BACKEND BUG DISCOVERED: Customer ID 68b86b157a314c251c8c863b Debug Investigation reveals major issue in individual customer lookup endpoints. ✅ CUSTOMER EXISTS IN DATABASE: Customer '68b86b157a314c251c8c863b' (Profile API Test Customer 1756916500) confirmed to exist in database and appears in GET /api/customers list endpoint. ❌ INDIVIDUAL CUSTOMER ENDPOINTS BROKEN: Both GET /api/customers/{customer_id} and GET /api/customers/{customer_id}/detailed-profile return 404 'Không tìm thấy khách hàng' errors for ALL customers, even though they exist in database. ✅ LIST ENDPOINT WORKING: GET /api/customers returns 200 status with 20 customers including target customer. ❌ GENERAL BACKEND BUG: Testing with multiple customer IDs confirms this is not specific to one customer - ALL individual customer lookup endpoints are failing with 404 errors. 🔍 ROOT CAUSE ANALYSIS: Database contains 43 customers total, all using MongoDB ObjectId format (24 hex characters). Customer lookup by ID is failing in backend query logic while list queries work correctly. 🚨 IMPACT: User reports of 404 errors are valid - individual customer pages cannot be accessed despite customers existing in database. This affects CustomerNameLink navigation, customer detail pages, and any individual customer operations. URGENT FIX NEEDED: Debug backend customer lookup query logic in individual customer endpoints - likely issue with ObjectId string conversion or query parameter handling."
+
 agent_communication:
     - agent: "main"
       message: "Implemented Transaction Detail Modal with edit functionality as requested. Added backend API endpoints for updating both sale and credit card transactions with optional field updates. Enhanced frontend modal with edit mode, form inputs, validation, and API integration. Modal now supports editing amount, profit, percentage, notes, and date fields. Added proper error handling and refresh functionality after successful updates."
