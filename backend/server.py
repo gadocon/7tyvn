@@ -892,7 +892,7 @@ async def external_check_bill(customer_code: str, provider_region: ProviderRegio
                             errors={"code": "INVALID_RESPONSE", "message": "Phản hồi không hợp lệ từ hệ thống"}
                         )
                         
-                except json_lib.JSONDecodeError:
+                except json.JSONDecodeError:
                     return CheckBillResult(
                         customer_code=customer_code,
                         status="ERROR",
