@@ -2680,6 +2680,10 @@ async def get_credit_card_detail(card_id: str):
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[ERROR] DAO Exception: {e}")
+        print(f"[ERROR] Exception type: {type(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 # Credit Card Transaction APIs
