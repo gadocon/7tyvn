@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 class DeleteBillTester:
-    def __init__(self, base_url="https://bill-manager-19.preview.emergentagent.com"):
+    def __init__(self, base_url="https://crm7ty.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0

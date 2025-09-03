@@ -1,0 +1,91 @@
+<analysis>
+The AI engineer, Tèo em, initiated work by fixing a recurring  error for the Check Lại button and correctly handling the  error. This involved robust client-side validation and early returns in  and combining API calls for dashboard statistics.
+Next, Tèo em addressed a user bug report regarding bill deletion. This led to a comprehensive refactor of inventory management, fixing 405/404 errors by adding a  endpoint, separating Available inventory items from All Bills, and updating delete logic, recheck functionality, and error handling.
+The engineer then implemented a user-requested checkbox selection feature for the Customers page, enabling bulk actions like delete and export. A critical system review followed, which, while documenting existing features, alarmingly exposed a severe authorization vulnerability where all users could access sensitive business data due to missing role checks on API endpoints.
+After resolving a 500 error in the Credit Card DAO functionality (due to a missing enum value), a full authentication and role-based access control review was conducted. Following this, an attempt to implement a dynamic webhook rotation system with delay for external bill checks was initiated but then explicitly rolled back by the user, reverting to a hardcoded webhook without the previous 5-6 second delay.
+Finally, the login page UI was visually enhanced with a dark green gradient and modern JavaScript animations. The current task involves implementing missing functionalities on the Customer Detail page, starting with the DAO Modal (completed) and now progressing to phone call integration.
+</analysis>
+
+<product_requirements>
+The 7ty.vn CRM is a mini-CRM for FPT/Shopee bill management, featuring Dashboard, Bill Checks, Inventory, Customers, and Transactions, all in Vietnamese and responsive. Key features include a Customer 360° View (profile, cards, transactions, analytics across four tabs), a JWT-based authentication system with Admin/Manager/User roles and a glassmorphism login UI.
+Enhanced navigation includes clickable customer names, and the Dashboard has Quick Actions with consistent green-yellow branding. The application maintains a unified visual identity by replacing blue UI elements with dark green-to-green gradients.
+Recent fixes include resolving UI overflow, a persistent 404 bug with the Check Lại button, post-login navigation, inaccurate dashboard statistics, and the setCustomerDetail is not a function error.
+During the trajectory, further requirements emerged: fixing a bill deletion error, implementing a customer checkbox selection with bulk actions, and addressing a 500 error in credit card DAO. The user also requested to review the authentication and roles, document the entire system, manage external webhook calls with delays and rotation (later rolled back to single webhook, no delay), and update the Login Page UI.
+</product_requirements>
+
+<key_technical_concepts>
+- **Full-stack Development**: FastAPI (Python), React (JavaScript), MongoDB.
+- **UI/UX**: TailwindCSS, Shadcn UI, Recharts, Glassmorphism, responsive design, custom CSS animations.
+- **Authentication/Authorization**: JWT, , role-based access control (Admin, Manager, User).
+- **Asynchronous Operations**:  for HTTP requests,  for task scheduling.
+- **Data Handling**: Pydantic for data validation, MongoDB aggregation, UUIDs.
+- **Error Handling**: Custom exceptions, toast notifications.
+</key_technical_concepts>
+
+<code_architecture>
+The application uses a monorepo structure:
+
+
+- :
+    - **Importance**: Python dependency management.
+    - **Changes**: Added , , , , , , .
+- :
+    - **Importance**: Core FastAPI application, all API routes, database interactions.
+    - **Changes**:
+        - Added  for existence checks.
+        - Enhanced  for better error handling.
+        - Corrected  enum to include  value to fix a 500 error in DAO.
+        - Modified  function to remove random delay but retain timeout configuration and enhanced exception handling (, ).
+        - Implemented (and later rolled back)  model and associated CRUD APIs, plus logic for webhook rotation and request distribution in  and  endpoint.
+        - Added detailed debug logging.
+- :
+    - **Importance**: Frontend dependency management.
+    - **Changes**: Added .
+- :
+    - **Importance**: Main React component, routing, state, UI.
+    - **Changes**:
+        - Fixed Check Lại button's 404 error with client-side validation.
+        - Refactored  with confirmation dialogs, detailed error messages, and visual indicators.
+        - Corrected inventory logic in  to fetch from  for available tab.
+        - Updated delete button logic in Inventory based on tab.
+        - Implemented customer multi-selection with  state, , , ,  functions. Added checkboxes and a bulk actions toolbar to the Customers table.
+        - Started implementing missing functions on , including  (added , ,  states, and the  UI component), and  function.
+- :
+    - **Importance**: Dedicated user login component.
+    - **Changes**: Updated background to dark green gradient, integrated modern JavaScript animations, enhanced glassmorphism card styling, and applied dark theme styling to logo, text, inputs, and buttons.
+- :
+    - **Importance**: Global CSS.
+    - **Changes**: Added custom CSS animations (, , ) to support the new LoginPage UI.
+- :
+    - **Importance**: Manages global authentication state. No direct changes in trajectory.
+- :
+    - **Importance**: Wraps routes requiring authentication. No direct changes in trajectory.
+- :
+    - **Importance**: Displays user profile. No direct changes in trajectory.
+-  (NEW):
+    - **Importance**: Comprehensive documentation of the system.
+    - **Changes**: Created to cover architecture, features, database, APIs, roles, project structure, installation, usage, troubleshooting, performance, security, and roadmap.
+</code_architecture>
+
+<pending_tasks>
+- Complete  on the Customer Detail page.
+- Implement  for Quick Actions on the Customer Detail page.
+- Implement  functionality in the Transactions tab.
+- Implement  in the Transactions tab.
+- Integrate  (with Recharts) in the Analytics tab.
+- Add  to the Transactions tab.
+- Implement  and  in the Analytics tab.
+</pending_tasks>
+
+<current_work>
+Immediately before this summary request, the AI engineer was focused on implementing missing functionalities for the Customer Detail Page, following a prioritized roadmap. The first priority was the **ĐÁO Modal** (Credit Card DAO Modal). This involved:
+1.  **Frontend Implementation**: Adding necessary states (, , ) to  and integrating the  function with the Đáo button in the . A  UI component was also created and integrated into the  in , supporting both POS and BILL payment methods.
+2.  **Backend Verification**: Backend APIs for credit card DAO were thoroughly tested and confirmed to be working, handling both POS and BILL payment methods, accurate calculations, database updates, and comprehensive error handling.
+
+With the ĐÁO Modal successfully implemented and verified, the engineer moved to the second priority on the roadmap: **Phone Call Integration**.
+The current work specifically involves adding the  function to . This function is intended to initiate a phone call via  and potentially log the activity. The very last action in the trajectory was the statement, Bây giờ tôi cần connect phone call function với Quick Actions buttons, indicating that the function itself has been added, and the next step is to integrate it with the UI elements.
+</current_work>
+
+<optional_next_step>
+Connect the  function to the respective Gọi (Call) button in the Customer Detail page's Quick Actions section.
+</optional_next_step>
