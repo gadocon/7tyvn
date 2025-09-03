@@ -1855,6 +1855,10 @@ async def delete_customer(customer_id: str):
             message_parts.append(f"{deleted_stats['bills']} bills")  
         if deleted_stats["inventory_items"] > 0:
             message_parts.append(f"{deleted_stats['inventory_items']} items khỏi kho")
+        if deleted_stats["credit_cards"] > 0:
+            message_parts.append(f"{deleted_stats['credit_cards']} thẻ tín dụng")
+        if deleted_stats["credit_card_transactions"] > 0:
+            message_parts.append(f"{deleted_stats['credit_card_transactions']} giao dịch thẻ")
             
         return {
             "success": True, 
