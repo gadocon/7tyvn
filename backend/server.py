@@ -2773,12 +2773,24 @@ async def delete_credit_card(card_id: str):
 
 @api_router.get("/credit-cards/{card_id}/detail")
 async def get_credit_card_detail(card_id: str):
-    """Get credit card detail with customer info and recent transactions"""
+    """Get detailed credit card information - supports both UUID and ObjectId lookup"""
     try:
-        # Get card
+        # Try to find credit card by 'id' field first (UUID format)
         card = await db.credit_cards.find_one({"id": card_id})
+        
+        # If not found and card_id looks like ObjectId, try _id field
+        if not card and len(card_id) == 24 and all(c in '0123456789abcdef' for c in card_id.lower()):
+            try:
+                from bson import ObjectId
+                card = await db.credit_cards.find_one({"_id": ObjectId(card_id)})
+                # If found by ObjectId, use the actual 'id' field for subsequent queries
+                if card and card.get('id'):
+                    card_id = card.get('id')
+            except:
+                pass  # Invalid ObjectId format, continue with original card_id
+        
         if not card:
-            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+            raise HTTPException(status_code=404, detail="Không tìm thấy thẻ tín dụng")
         
         # Get customer info
         customer = await db.customers.find_one({"id": card["customer_id"]})
