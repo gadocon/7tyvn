@@ -4348,7 +4348,7 @@ const CreditCards = () => {
         handleCloseDaoModal();
         
         // Refresh cards data to show updated info
-        fetchCards();
+        fetchCreditCards();
       } else {
         toast.error("Có lỗi xảy ra khi đáo thẻ");
       }
