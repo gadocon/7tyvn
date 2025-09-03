@@ -2702,18 +2702,27 @@ async def get_card_transactions(card_id: str, page: int = 1, page_size: int = 3)
 async def process_card_payment(card_id: str, payment_data: CreditCardTransactionCreate):
     """Process credit card payment (Đáo thẻ) - POS or BILL method"""
     try:
+        print(f"[DEBUG] DAO Request - card_id: {card_id}")
+        print(f"[DEBUG] payment_data: {payment_data}")
+        print(f"[DEBUG] payment_data.dict(): {payment_data.dict()}")
+        
         # Validate card exists
         card = await db.credit_cards.find_one({"id": card_id})
         if not card:
             raise HTTPException(status_code=404, detail="Không tìm thấy thẻ")
+        
+        print(f"[DEBUG] Found card: {card['id']} - {card.get('card_number', 'N/A')}")
         
         # Validate customer exists  
         customer = await db.customers.find_one({"id": card["customer_id"]})
         if not customer:
             raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
         
+        print(f"[DEBUG] Found customer: {customer['id']} - {customer.get('name', 'N/A')}")
+        
         # Generate transaction group ID
         transaction_group_id = f"CC_{int(datetime.now().timestamp())}"
+        print(f"[DEBUG] Generated transaction_group_id: {transaction_group_id}")
         
         if payment_data.payment_method == CreditCardPaymentMethod.POS:
             # POS method - single transaction
