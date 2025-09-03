@@ -162,6 +162,8 @@ test_plan:
 agent_communication:
     - agent: "main"
       message: "Implemented Transaction Detail Modal with edit functionality as requested. Added backend API endpoints for updating both sale and credit card transactions with optional field updates. Enhanced frontend modal with edit mode, form inputs, validation, and API integration. Modal now supports editing amount, profit, percentage, notes, and date fields. Added proper error handling and refresh functionality after successful updates."
+    - agent: "testing"
+      message: "🎯 TRANSACTION UPDATE API TESTING COMPLETED - CRITICAL ISSUE FOUND! Comprehensive testing of new PUT endpoints for transaction updates reveals a JSON serialization bug causing 500 errors. ✅ ENDPOINTS EXIST: Both PUT /api/transactions/sale/{id} and PUT /api/transactions/credit-card/{id} are properly implemented with correct validation (404 for non-existent IDs, 400 for empty data). ❌ CRITICAL BUG: ObjectId serialization error prevents successful updates - backend logs show 'ObjectId object is not iterable' error when trying to return updated transaction data. 🔧 MAIN AGENT ACTION REQUIRED: Fix JSON serialization by converting MongoDB ObjectId objects to strings before returning response. The update logic works but response fails. Also found correct credit card transactions endpoint: GET /api/credit-cards/{card_id}/transactions."
 
 backend:
   - task: "JWT Authentication System with Role-Based Access Control"
