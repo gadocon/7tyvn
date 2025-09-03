@@ -261,6 +261,18 @@ agent_communication:
       message: "🎉 CUSTOMER LOOKUP FIX VERIFICATION COMPLETED - REVIEW REQUEST FULFILLED! Comprehensive testing of customer lookup fix và phân tích ObjectId vs UUID issue shows 100% success. ✅ TARGET CUSTOMER WORKING: Customer ID 68b86b157a314c251c8c863b now returns 200 status instead of 404 for both basic and detailed-profile endpoints. Customer 'Profile API Test Customer 1756916500' is fully accessible. ✅ COMPATIBILITY ENSURED: Tested 5 other customers with different ID formats - all working correctly (100% success rate). No regression issues detected with the fix. ✅ DATABASE ANALYSIS: Found 43 customers with proper UUID format in 'id' field and ObjectId in '_id' field. Backend now correctly queries both fields for customer lookup, resolving the ObjectId vs UUID mismatch issue. ✅ BILLS/TRANSACTIONS CHECK: Bills and credit cards endpoints working correctly. No similar ObjectId/UUID issues detected in other collections. 🎯 ROOT CAUSE RESOLVED: Backend customer lookup endpoints now support dual lookup methods (UUID and ObjectId) as implemented in the fix. The mixed ID format issue that caused 404 errors has been completely resolved. All review request objectives fulfilled: 1) Target customer 68b86b157a314c251c8c863b working, 2) Other customers compatibility maintained, 3) ObjectId vs UUID usage analyzed and understood, 4) Bills/transactions verified for similar issues. The customer lookup fix is production-ready and fully functional."
 
 backend:
+  - task: "Credit Card Deletion and Data Consistency Issues Investigation"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "🚨 CRITICAL CREDIT CARD SYSTEM ISSUES DISCOVERED - URGENT DUAL LOOKUP FIX NEEDED! Comprehensive testing reveals credit card endpoints lack the same ObjectId vs UUID dual lookup strategy that was successfully implemented for customer endpoints. ❌ CRITICAL FINDINGS: 1) DELETE /api/credit-cards/{card_id} FAILS for ObjectId format cards (404 'Không tìm thấy thẻ') - all 20 credit cards in database have ObjectId format in 'id' field but endpoints only query by 'id' field. 2) GET /api/credit-cards/{card_id}/detail FAILS for ObjectId format cards - same dual lookup issue as customers had before fix. 3) Credit card transactions have 5 documents using non-standard CC_* ID format instead of UUID (data consistency issue). ✅ POSITIVE FINDINGS: No broken references detected between credit cards and transactions, most collections (4/5) have consistent UUID formats, customer endpoints working perfectly after dual lookup fix. 🎯 ROOT CAUSE ANALYSIS: Credit card endpoints (GET /credit-cards/{card_id}/detail, DELETE /credit-cards/{card_id}, PUT /credit-cards/{card_id}) only query by {'id': card_id} but need same dual lookup strategy as customer endpoints: query both {'id': card_id} AND {'_id': ObjectId(card_id)} when card_id looks like ObjectId format. 📊 IMPACT ASSESSMENT: All 20 credit cards currently inaccessible via individual endpoints, DELETE operations failing, credit card management broken. 🔧 URGENT FIX REQUIRED: Apply same dual lookup pattern from customer endpoints (lines 1530-1540 in server.py) to credit card endpoints. This is identical issue that was already solved for customers - same solution needed for credit cards. CRITICAL: Credit card system completely non-functional for individual operations until dual lookup implemented."
+
   - task: "JWT Authentication System with Role-Based Access Control"
     implemented: true
     working: false
