@@ -8288,7 +8288,329 @@ const MainApp = () => {
           } />
         </Routes>
       </BrowserRouter>
+      {/* ĐÁO Modal */}
+      <DaoModal 
+        isOpen={showDaoModal}
+        onClose={handleCloseDaoModal}
+        card={selectedCardForDao}
+        daoMethod={daoMethod}
+        setDaoMethod={setDaoMethod}
+        daoFormData={daoFormData}
+        setDaoFormData={setDaoFormData}
+        onSubmit={handleDaoSubmit}
+        loading={daoLoading}
+      />
     </AuthProvider>
+  );
+};
+
+// ĐÁO Modal Component
+const DaoModal = ({ isOpen, onClose, card, daoMethod, setDaoMethod, daoFormData, setDaoFormData, onSubmit, loading }) => {
+  const [availableBills, setAvailableBills] = useState([]);
+  const [billsLoading, setBillsLoading] = useState(false);
+
+  // Fetch available bills when BILL method is selected
+  useEffect(() => {
+    if (isOpen && daoMethod === 'BILL') {
+      fetchAvailableBills();
+    }
+  }, [isOpen, daoMethod]);
+
+  const fetchAvailableBills = async () => {
+    setBillsLoading(true);
+    try {
+      const response = await axios.get(`${API}/bills?status=AVAILABLE&limit=50`);
+      setAvailableBills(response.data || []);
+    } catch (error) {
+      console.error("Error fetching bills:", error);
+      toast.error("Không thể tải danh sách bills");
+      setAvailableBills([]);
+    } finally {
+      setBillsLoading(false);
+    }
+  };
+
+  const handleBillSelection = (billId, checked) => {
+    const currentBills = daoFormData.bill_ids || [];
+    if (checked) {
+      setDaoFormData(prev => ({
+        ...prev,
+        bill_ids: [...currentBills, billId]
+      }));
+    } else {
+      setDaoFormData(prev => ({
+        ...prev,
+        bill_ids: currentBills.filter(id => id !== billId)
+      }));
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const calculateTotalBillAmount = () => {
+    const selectedBills = availableBills.filter(bill => 
+      (daoFormData.bill_ids || []).includes(bill.id)
+    );
+    return selectedBills.reduce((total, bill) => total + (bill.amount || 0), 0);
+  };
+
+  const calculateProfitValue = () => {
+    const baseAmount = daoMethod === 'POS' 
+      ? parseFloat(daoFormData.total_amount) || 0
+      : calculateTotalBillAmount();
+    return baseAmount * (parseFloat(daoFormData.profit_pct) || 0) / 100;
+  };
+
+  const calculatePayback = () => {
+    const baseAmount = daoMethod === 'POS' 
+      ? parseFloat(daoFormData.total_amount) || 0
+      : calculateTotalBillAmount();
+    return baseAmount - calculateProfitValue();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
+              <CreditCard className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Đáo Thẻ Tín Dụng</h3>
+              {card && (
+                <p className="text-sm text-gray-600">
+                  {card.bank_name} - {card.card_number}
+                </p>
+              )}
+            </div>
+          </div>
+          <Button onClick={onClose} variant="ghost" size="sm">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Content */}
+        <form onSubmit={onSubmit} className="p-6 space-y-6">
+          {/* Method Selection */}
+          <div className="space-y-3">
+            <Label className="text-base font-medium">Phương Thức Đáo</Label>
+            <div className="flex space-x-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="method-pos"
+                  name="daoMethod"
+                  value="POS"
+                  checked={daoMethod === 'POS'}
+                  onChange={(e) => setDaoMethod(e.target.value)}
+                  className="text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="method-pos" className="cursor-pointer">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>POS (Nhập số tiền)</span>
+                  </div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="method-bill"
+                  name="daoMethod"
+                  value="BILL"
+                  checked={daoMethod === 'BILL'}
+                  onChange={(e) => setDaoMethod(e.target.value)}
+                  className="text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="method-bill" className="cursor-pointer">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="h-4 w-4" />
+                    <span>BILL (Chọn bills)</span>
+                  </div>
+                </Label>
+              </div>
+            </div>
+          </div>
+
+          {/* POS Method Fields */}
+          {daoMethod === 'POS' && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="total_amount">Số Tiền Đáo (VND)</Label>
+                <Input
+                  id="total_amount"
+                  type="number"
+                  value={daoFormData.total_amount}
+                  onChange={(e) => setDaoFormData(prev => ({
+                    ...prev,
+                    total_amount: e.target.value
+                  }))}
+                  placeholder="Nhập số tiền"
+                  className="mt-1"
+                  min="0"
+                  step="1000"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {/* BILL Method Fields */}
+          {daoMethod === 'BILL' && (
+            <div className="space-y-4">
+              <div>
+                <Label>Chọn Bills để Thanh Toán</Label>
+                {billsLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto"></div>
+                    <p className="text-sm text-gray-600 mt-2">Đang tải bills...</p>
+                  </div>
+                ) : availableBills.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500">
+                    <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                    <p>Không có bills khả dụng</p>
+                  </div>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto border rounded-lg">
+                    {availableBills.map((bill) => (
+                      <div
+                        key={bill.id}
+                        className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            id={`bill-${bill.id}`}
+                            checked={(daoFormData.bill_ids || []).includes(bill.id)}
+                            onChange={(e) => handleBillSelection(bill.id, e.target.checked)}
+                            className="text-green-600 focus:ring-green-500"
+                          />
+                          <div>
+                            <div className="font-medium">{bill.customer_code}</div>
+                            <div className="text-sm text-gray-600">{bill.full_name}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">{formatCurrency(bill.amount)}</div>
+                          <div className="text-xs text-gray-500">{bill.provider_region}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Profit Percentage */}
+          <div>
+            <Label htmlFor="profit_pct">Tỷ Lệ Lợi Nhuận (%)</Label>
+            <Input
+              id="profit_pct"
+              type="number"
+              value={daoFormData.profit_pct}
+              onChange={(e) => setDaoFormData(prev => ({
+                ...prev,
+                profit_pct: e.target.value
+              }))}
+              className="mt-1"
+              min="0"
+              max="100"
+              step="0.1"
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <Label htmlFor="notes">Ghi Chú (Tùy chọn)</Label>
+            <textarea
+              id="notes"
+              value={daoFormData.notes}
+              onChange={(e) => setDaoFormData(prev => ({
+                ...prev,
+                notes: e.target.value
+              }))}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              rows="3"
+              placeholder="Thêm ghi chú..."
+            />
+          </div>
+
+          {/* Summary */}
+          {((daoMethod === 'POS' && daoFormData.total_amount) || 
+            (daoMethod === 'BILL' && (daoFormData.bill_ids || []).length > 0)) && (
+            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+              <h4 className="font-medium text-gray-900">Tóm Tắt Giao Dịch</h4>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Tổng tiền:</span>
+                  <div className="font-medium">
+                    {formatCurrency(
+                      daoMethod === 'POS' 
+                        ? parseFloat(daoFormData.total_amount) || 0
+                        : calculateTotalBillAmount()
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Lợi nhuận:</span>
+                  <div className="font-medium text-green-600">
+                    {formatCurrency(calculateProfitValue())}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Trả khách:</span>
+                  <div className="font-medium text-blue-600">
+                    {formatCurrency(calculatePayback())}
+                  </div>
+                </div>
+              </div>
+              {daoMethod === 'BILL' && (
+                <div className="text-sm text-gray-600">
+                  Số bills đã chọn: {(daoFormData.bill_ids || []).length}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-end space-x-3">
+            <Button type="button" onClick={onClose} variant="outline">
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading || 
+                (daoMethod === 'POS' && (!daoFormData.total_amount || parseFloat(daoFormData.total_amount) <= 0)) ||
+                (daoMethod === 'BILL' && (!daoFormData.bill_ids || daoFormData.bill_ids.length === 0))
+              }
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Xác Nhận Đáo
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 
