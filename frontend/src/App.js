@@ -147,7 +147,8 @@ const Navigation = () => {
     { path: '/customers', icon: Users, label: 'Khách Hàng' },
     { path: '/credit-cards', icon: CreditCard, label: 'Quản Lý Thẻ' },
     { path: '/transactions', icon: Activity, label: 'Giao Dịch' },
-    { path: '/reports', icon: BarChart3, label: 'Báo Cáo' }
+    { path: '/reports', icon: BarChart3, label: 'Báo Cáo' },
+    ...(user?.role === 'admin' ? [{ path: '/admin/settings', icon: Settings, label: 'Cài Đặt Admin' }] : [])
   ];
 
   const handleLogout = () => {
