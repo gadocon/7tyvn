@@ -1732,8 +1732,10 @@ const Inventory = () => {
                                 ? handleRemoveFromInventory(item.id)
                                 : handleDeleteBill(item.id, item)
                               }
-                              className="text-red-600 hover:text-red-700"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 hover:border-red-400"
+                              title={`Xóa bill ${item.customer_code} - Chỉ có thể xóa bill chưa bán`}
                             >
+                              <Trash2 className="h-3 w-3 mr-1" />
                               Xóa
                             </Button>
                           )}
