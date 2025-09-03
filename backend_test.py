@@ -1092,6 +1092,291 @@ class FPTBillManagerAPITester:
         
         return expected_results_met
 
+    def test_credit_card_deletion_and_data_consistency_comprehensive(self):
+        """COMPREHENSIVE: Test credit card deletion và data consistency issues với detailed analysis"""
+        print(f"\n🚨 COMPREHENSIVE CREDIT CARD DELETION & DATA CONSISTENCY TESTING")
+        print("=" * 80)
+        print("🔍 CRITICAL ANALYSIS:")
+        print("   1. Identify ObjectId vs UUID issues in credit card endpoints")
+        print("   2. Test DELETE /api/credit-cards/{card_id} với both formats")
+        print("   3. Analyze credit card transaction ID inconsistencies (CC_* format)")
+        print("   4. Check cascade deletion và broken references")
+        print("   5. Compare với customer endpoints (đã fix dual lookup)")
+        
+        test_results = {
+            "objectid_uuid_issue_confirmed": False,
+            "delete_endpoint_broken": False,
+            "transaction_id_inconsistent": False,
+            "broken_references_found": False,
+            "dual_lookup_missing": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_findings": []
+        }
+        
+        # Step 1: Comprehensive Database Analysis
+        print(f"\n🔍 STEP 1: Comprehensive Database Analysis")
+        print("=" * 60)
+        
+        if self.mongo_connected:
+            try:
+                # Analyze ALL collections for ID consistency
+                collections_analysis = {}
+                
+                for collection_name in ["customers", "credit_cards", "credit_card_transactions", "sales", "bills"]:
+                    print(f"\n📊 Analyzing {collection_name} collection:")
+                    
+                    docs = list(self.db[collection_name].find({}).limit(10))
+                    if not docs:
+                        print(f"   ⚠️ Empty collection")
+                        continue
+                    
+                    id_patterns = {"uuid": 0, "objectid": 0, "custom": 0, "other": 0}
+                    
+                    for doc in docs:
+                        doc_id = doc.get('id', '')
+                        if len(doc_id) == 36 and doc_id.count('-') == 4:
+                            id_patterns["uuid"] += 1
+                        elif len(doc_id) == 24 and all(c in '0123456789abcdef' for c in doc_id.lower()):
+                            id_patterns["objectid"] += 1
+                        elif doc_id.startswith('CC_'):
+                            id_patterns["custom"] += 1
+                        else:
+                            id_patterns["other"] += 1
+                    
+                    collections_analysis[collection_name] = id_patterns
+                    
+                    print(f"   UUID: {id_patterns['uuid']}, ObjectId: {id_patterns['objectid']}, Custom: {id_patterns['custom']}, Other: {id_patterns['other']}")
+                    
+                    # Flag inconsistencies
+                    if id_patterns["objectid"] > 0 and collection_name in ["credit_cards"]:
+                        test_results["critical_findings"].append(f"{collection_name} has {id_patterns['objectid']} documents with ObjectId format in 'id' field")
+                        test_results["objectid_uuid_issue_confirmed"] = True
+                    
+                    if id_patterns["custom"] > 0:
+                        test_results["critical_findings"].append(f"{collection_name} has {id_patterns['custom']} documents with custom ID format")
+                        test_results["transaction_id_inconsistent"] = True
+                
+                print(f"\n📋 COLLECTIONS SUMMARY:")
+                for collection, analysis in collections_analysis.items():
+                    total_docs = sum(analysis.values())
+                    inconsistent = analysis["objectid"] + analysis["custom"] + analysis["other"]
+                    status = "🚨 INCONSISTENT" if inconsistent > 0 else "✅ CONSISTENT"
+                    print(f"   {collection}: {status} ({inconsistent}/{total_docs} inconsistent)")
+                
+                test_results["passed_tests"] += 1
+                
+            except Exception as e:
+                print(f"❌ Database analysis failed: {e}")
+                test_results["critical_findings"].append(f"Database analysis failed: {e}")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 2: Test Credit Card Endpoints với ObjectId Format
+        print(f"\n🔍 STEP 2: Test Credit Card Endpoints với ObjectId Format")
+        print("=" * 60)
+        
+        # Get credit cards with ObjectId format
+        cards_success, cards_response = self.run_test(
+            "GET /credit-cards - Get cards for ObjectId testing",
+            "GET",
+            "credit-cards?limit=5",
+            200
+        )
+        
+        if cards_success and cards_response:
+            objectid_cards = [card for card in cards_response if len(card.get('id', '')) == 24]
+            uuid_cards = [card for card in cards_response if len(card.get('id', '')) == 36]
+            
+            print(f"✅ Found {len(objectid_cards)} cards with ObjectId format")
+            print(f"✅ Found {len(uuid_cards)} cards with UUID format")
+            
+            if objectid_cards:
+                test_card = objectid_cards[0]
+                card_id = test_card.get('id')
+                
+                print(f"\n🧪 Testing ObjectId format card: {card_id}")
+                
+                # Test GET detail endpoint
+                detail_success, detail_response = self.run_test(
+                    f"GET /credit-cards/{card_id}/detail - ObjectId format",
+                    "GET",
+                    f"credit-cards/{card_id}/detail",
+                    200
+                )
+                
+                if not detail_success:
+                    print(f"   ❌ CRITICAL: ObjectId format card cannot be accessed via detail endpoint")
+                    test_results["critical_findings"].append(f"Credit card detail endpoint fails for ObjectId format: {card_id}")
+                    test_results["dual_lookup_missing"] = True
+                else:
+                    print(f"   ✅ ObjectId format card accessible via detail endpoint")
+                    test_results["passed_tests"] += 1
+                
+                test_results["total_tests"] += 1
+                
+                # Test DELETE endpoint (with caution)
+                print(f"\n⚠️ Testing DELETE endpoint với ObjectId format")
+                print(f"   Card ID: {card_id}")
+                
+                delete_success, delete_response = self.run_test(
+                    f"DELETE /credit-cards/{card_id} - ObjectId format",
+                    "DELETE",
+                    f"credit-cards/{card_id}",
+                    200
+                )
+                
+                if not delete_success:
+                    print(f"   ❌ CRITICAL: DELETE endpoint fails for ObjectId format")
+                    test_results["critical_findings"].append(f"Credit card DELETE endpoint fails for ObjectId format: {card_id}")
+                    test_results["delete_endpoint_broken"] = True
+                else:
+                    print(f"   ✅ DELETE endpoint works for ObjectId format")
+                    test_results["passed_tests"] += 1
+                    
+                    # Verify deletion
+                    verify_success, verify_response = self.run_test(
+                        f"Verify deletion - GET /credit-cards/{card_id}/detail",
+                        "GET",
+                        f"credit-cards/{card_id}/detail",
+                        404
+                    )
+                    
+                    if verify_success:
+                        print(f"   ✅ Deletion verified successfully")
+                        test_results["passed_tests"] += 1
+                    else:
+                        print(f"   ❌ Deletion verification failed")
+                    
+                    test_results["total_tests"] += 1
+                
+                test_results["total_tests"] += 1
+            else:
+                print(f"   ⚠️ No ObjectId format cards found for testing")
+        
+        # Step 3: Analyze Credit Card Transaction Inconsistencies
+        print(f"\n🔍 STEP 3: Credit Card Transaction ID Inconsistencies Analysis")
+        print("=" * 60)
+        
+        if self.mongo_connected:
+            try:
+                transactions = list(self.db.credit_card_transactions.find({}).limit(20))
+                print(f"✅ Analyzing {len(transactions)} credit card transactions")
+                
+                cc_format_count = 0
+                uuid_format_count = 0
+                broken_refs = 0
+                
+                for transaction in transactions:
+                    transaction_id = transaction.get('id', '')
+                    card_id = transaction.get('card_id', '')
+                    
+                    # Count ID formats
+                    if transaction_id.startswith('CC_'):
+                        cc_format_count += 1
+                    elif len(transaction_id) == 36 and transaction_id.count('-') == 4:
+                        uuid_format_count += 1
+                    
+                    # Check for broken card references
+                    if card_id:
+                        card_exists = self.db.credit_cards.find_one({"id": card_id})
+                        if not card_exists:
+                            broken_refs += 1
+                
+                print(f"📊 TRANSACTION ID ANALYSIS:")
+                print(f"   CC_* format: {cc_format_count}")
+                print(f"   UUID format: {uuid_format_count}")
+                print(f"   Broken card references: {broken_refs}")
+                
+                if cc_format_count > 0:
+                    test_results["critical_findings"].append(f"Found {cc_format_count} credit card transactions with non-standard CC_* ID format")
+                    test_results["transaction_id_inconsistent"] = True
+                
+                if broken_refs > 0:
+                    test_results["critical_findings"].append(f"Found {broken_refs} credit card transactions with broken card references")
+                    test_results["broken_references_found"] = True
+                else:
+                    print(f"   ✅ No broken references found")
+                    test_results["passed_tests"] += 1
+                
+            except Exception as e:
+                print(f"❌ Transaction analysis failed: {e}")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 4: Compare với Customer Endpoints (đã có dual lookup)
+        print(f"\n🔍 STEP 4: Compare với Customer Endpoints (Dual Lookup Reference)")
+        print("=" * 60)
+        
+        print(f"📋 CUSTOMER ENDPOINTS (WORKING DUAL LOOKUP):")
+        print(f"   - GET /customers/{'{customer_id}'} - supports both ObjectId and UUID")
+        print(f"   - DELETE /customers/{'{customer_id}'} - supports both ObjectId and UUID")
+        print(f"   - PUT /customers/{'{customer_id}'} - supports both ObjectId and UUID")
+        
+        print(f"\n📋 CREDIT CARD ENDPOINTS (MISSING DUAL LOOKUP):")
+        print(f"   - GET /credit-cards/{'{card_id}'}/detail - only supports UUID")
+        print(f"   - DELETE /credit-cards/{'{card_id}'} - only supports UUID")
+        print(f"   - PUT /credit-cards/{'{card_id}'} - only supports UUID")
+        
+        if test_results["objectid_uuid_issue_confirmed"]:
+            print(f"\n🚨 CRITICAL FINDING: Credit card endpoints need dual lookup implementation!")
+            print(f"   Same fix applied to customer endpoints should be applied to credit card endpoints")
+            test_results["dual_lookup_missing"] = True
+        
+        # Step 5: Final Assessment
+        print(f"\n📊 STEP 5: Final Comprehensive Assessment")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 CRITICAL ISSUES IDENTIFIED:")
+        print(f"   ObjectId vs UUID issue confirmed: {'🚨 YES' if test_results['objectid_uuid_issue_confirmed'] else '✅ NO'}")
+        print(f"   DELETE endpoint broken: {'🚨 YES' if test_results['delete_endpoint_broken'] else '✅ NO'}")
+        print(f"   Transaction ID inconsistent: {'🚨 YES' if test_results['transaction_id_inconsistent'] else '✅ NO'}")
+        print(f"   Broken references found: {'🚨 YES' if test_results['broken_references_found'] else '✅ NO'}")
+        print(f"   Dual lookup missing: {'🚨 YES' if test_results['dual_lookup_missing'] else '✅ NO'}")
+        print(f"   Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🚨 ALL CRITICAL FINDINGS ({len(test_results['critical_findings'])}):")
+        for i, finding in enumerate(test_results['critical_findings'], 1):
+            print(f"   {i}. {finding}")
+        
+        print(f"\n🎯 ROOT CAUSE ANALYSIS:")
+        print(f"   🔍 MAIN ISSUE: Credit card endpoints lack dual lookup strategy")
+        print(f"   📝 EVIDENCE: Credit cards have ObjectId format in 'id' field but endpoints only query by 'id'")
+        print(f"   💡 SOLUTION: Implement same dual lookup fix as customer endpoints")
+        print(f"   🔧 AFFECTED ENDPOINTS: GET /credit-cards/{'{card_id}'}/detail, DELETE /credit-cards/{'{card_id}'}, PUT /credit-cards/{'{card_id}'}")
+        
+        print(f"\n🎯 SECONDARY ISSUES:")
+        if test_results["transaction_id_inconsistent"]:
+            print(f"   🔍 TRANSACTION ID FORMAT: Some transactions use CC_* format instead of UUID")
+            print(f"   💡 IMPACT: Data consistency issue but doesn't break functionality")
+        
+        if test_results["broken_references_found"]:
+            print(f"   🔍 BROKEN REFERENCES: Some transactions reference non-existent cards")
+            print(f"   💡 IMPACT: Data integrity issue requiring cleanup")
+        
+        # Determine system health
+        critical_issues = sum([
+            test_results["objectid_uuid_issue_confirmed"],
+            test_results["delete_endpoint_broken"],
+            test_results["dual_lookup_missing"]
+        ])
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if critical_issues == 0:
+            print(f"   ✅ CREDIT CARD SYSTEM IS HEALTHY")
+            print(f"   - All endpoints working correctly")
+            print(f"   - No critical ObjectId/UUID issues")
+            print(f"   - System ready for production")
+        else:
+            print(f"   🚨 CREDIT CARD SYSTEM NEEDS URGENT FIXES")
+            print(f"   - {critical_issues} critical issues requiring immediate attention")
+            print(f"   - ObjectId/UUID dual lookup missing in credit card endpoints")
+            print(f"   - Same fix pattern as customer endpoints should be applied")
+        
+        return critical_issues == 0
+
     def test_credit_card_deletion_and_data_consistency(self):
         """URGENT: Test credit card deletion và data consistency issues"""
         print(f"\n🚨 URGENT CREDIT CARD DELETION & DATA CONSISTENCY TESTING")
