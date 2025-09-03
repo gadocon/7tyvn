@@ -1525,9 +1525,19 @@ async def export_customers_data():
 
 @api_router.get("/customers/{customer_id}", response_model=Customer)
 async def get_customer(customer_id: str):
-    """Get single customer by ID"""
+    """Get single customer by ID - supports both UUID and ObjectId lookup"""
     try:
+        # Try to find customer by 'id' field first (UUID format)
         customer = await db.customers.find_one({"id": customer_id})
+        
+        # If not found and customer_id looks like ObjectId, try _id field
+        if not customer and len(customer_id) == 24 and all(c in '0123456789abcdef' for c in customer_id.lower()):
+            try:
+                from bson import ObjectId
+                customer = await db.customers.find_one({"_id": ObjectId(customer_id)})
+            except:
+                pass  # Invalid ObjectId format, continue with None
+        
         if not customer:
             raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
         
