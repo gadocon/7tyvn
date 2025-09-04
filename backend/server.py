@@ -1229,15 +1229,18 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                             if bills and len(bills) > 0:
                                 bill = bills[0]  # Take first bill
                                 
+                                # Generate composite bill_id (customer_code + MMYY)
+                                billing_cycle = bill.get("month", "N/A")
+                                composite_bill_id = generate_composite_bill_id(customer_code, billing_cycle)
+                                
                                 # Create or update bill in database for inventory management
-                                bill_uuid = generate_uuid()
                                 bill_record = {
-                                    "id": bill_uuid,
+                                    "id": composite_bill_id,  # Use composite bill_id
                                     "customer_code": customer_code,
                                     "customer_name": bill.get("customerName", "N/A"),
                                     "address": bill.get("address", "N/A"),
                                     "amount": bill.get("moneyAmount", 0),
-                                    "billing_cycle": bill.get("month", "N/A"),
+                                    "billing_cycle": billing_cycle,
                                     "provider_region": provider_region,
                                     "status": BillStatus.AVAILABLE,
                                     "is_in_inventory": False,
@@ -1246,27 +1249,41 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                                     "created_at": datetime.now(timezone.utc)
                                 }
                                 
-                                # Save to database
-                                await db.bills.update_one(
-                                    {"customer_code": customer_code, "provider_region": provider_region},
-                                    {"$set": bill_record},
-                                    upsert=True
-                                )
+                                # Save to database - check for duplicates
+                                existing_bill = await db.bills.find_one({"id": composite_bill_id})
+                                if existing_bill:
+                                    return {
+                                        "success": True,
+                                        "status": "ERROR",
+                                        "message": f"Bill {customer_code} for cycle {billing_cycle} already exists in database",
+                                        "id": composite_bill_id,
+                                        "customer_code": customer_code,
+                                        "full_name": bill.get("customerName", "N/A"),
+                                        "address": bill.get("address", "N/A"),
+                                        "amount": bill.get("moneyAmount", 0),
+                                        "billing_cycle": billing_cycle,
+                                        "bill_status": "DUPLICATE",
+                                        "provider_region": provider_region,
+                                        "bill": None
+                                    }
+                                
+                                # Insert new bill
+                                await db.bills.insert_one(bill_record)
                                 
                                 return {
                                     "success": True,
                                     "status": "OK", 
                                     "message": "Bill found via N8N Webhook",
-                                    "id": bill_uuid,  # Add UUID for inventory management
+                                    "id": composite_bill_id,  # Return composite bill_id
                                     "customer_code": customer_code,
                                     "full_name": bill.get("customerName", "N/A"),
                                     "address": bill.get("address", "N/A"),
                                     "amount": bill.get("moneyAmount", 0),
-                                    "billing_cycle": bill.get("month", "N/A"),
+                                    "billing_cycle": billing_cycle,
                                     "bill_status": "AVAILABLE",
                                     "provider_region": provider_region,
                                     "bill": {
-                                        "id": bill_uuid,
+                                        "id": composite_bill_id,
                                         "billId": bill.get("billId"),
                                         "contractNumber": bill.get("contractNumber"),
                                         "customerName": bill.get("customerName"),
