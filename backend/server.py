@@ -1176,8 +1176,8 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                                     "status": "OK", 
                                     "message": "Bill found via N8N Webhook",
                                     "customer_code": customer_code,
-                                    "customer_name": bill.get("customerName", "N/A"),
-                                    "customer_address": bill.get("address", "N/A"),
+                                    "full_name": bill.get("customerName", "N/A"),  # Changed from customer_name
+                                    "address": bill.get("address", "N/A"),       # Changed from customer_address
                                     "amount": bill.get("moneyAmount", 0),
                                     "billing_cycle": bill.get("month", "N/A"),
                                     "bill_status": "AVAILABLE",
