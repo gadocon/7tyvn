@@ -1768,8 +1768,8 @@ const Inventory = () => {
                                   // In inventory tab, remove from inventory (soft delete)
                                   handleRemoveFromInventory(item.id);
                                 } else {
-                                  // In all bills tab, delete bill completely (hard delete)
-                                  handleDeleteBill(item.bill_id || item.id, item);
+                                  // In all bills tab, delete bill completely (hard delete) - UUID only system
+                                  handleDeleteBill(item.id, item);
                                 }
                               }}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 hover:border-red-400"
