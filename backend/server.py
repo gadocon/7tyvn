@@ -648,3 +648,236 @@ async def remove_from_inventory(bill_id: str):
     except Exception as e:
         logger.error(f"Error removing bill {bill_id} from inventory: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ========================================
+# SALES API - UUID ONLY
+# ========================================
+
+@app.post("/api/sales", response_model=Sale)
+async def create_sale(sale_data: SaleCreate):
+    """Create sale transaction - UUID only system"""
+    try:
+        # Validate customer exists
+        customer = await db.customers.find_one({"id": sale_data.customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        
+        # Validate bills exist and are available
+        bills = []
+        for bill_id in sale_data.bill_ids:
+            bill = await db.bills.find_one({"id": bill_id, "status": BillStatus.AVAILABLE})
+            if not bill:
+                raise HTTPException(
+                    status_code=404, 
+                    detail=f"Bill {bill_id} not found or not available"
+                )
+            bills.append(bill)
+        
+        # Calculate totals
+        total = sum(bill.get("amount", 0) for bill in bills)
+        profit_value = round(total * sale_data.profit_pct / 100, 0)
+        payback = total - profit_value
+        
+        # Prepare sale document
+        sale_dict = sale_data.dict()
+        sale_dict.update({
+            "total": total,
+            "profit_value": profit_value,
+            "payback": payback,
+            "payment_method": "CASH",
+            "status": "COMPLETED"
+        })
+        sale_dict = uuid_processor.prepare_document(sale_dict)
+        
+        # Create sale
+        result = await db.sales.insert_one(sale_dict)
+        if not result.inserted_id:
+            raise HTTPException(status_code=500, detail="Failed to create sale")
+        
+        # Update bills to SOLD status
+        await db.bills.update_many(
+            {"id": {"$in": sale_data.bill_ids}},
+            {"$set": {
+                "status": BillStatus.SOLD,
+                "is_in_inventory": False,
+                "inventory_status": InventoryStatus.SOLD_FROM_INVENTORY,
+                "updated_at": datetime.now(timezone.utc)
+            }}
+        )
+        
+        # Update customer stats
+        await db.customers.update_one(
+            {"id": sale_data.customer_id},
+            {"$inc": {
+                "total_transactions": 1,
+                "total_spent": total,
+                "total_profit_generated": profit_value
+            }}
+        )
+        
+        # Return created sale
+        created_sale = await db.sales.find_one({"id": sale_dict["id"]})
+        return Sale(**uuid_processor.clean_response(created_sale))
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating sale: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/sales", response_model=List[Sale])
+async def get_sales(skip: int = 0, limit: int = 100, customer_id: Optional[str] = None):
+    """Get sales transactions - UUID only"""
+    try:
+        # Build filter
+        filter_dict = {}
+        if customer_id:
+            if not is_valid_uuid(customer_id):
+                raise HTTPException(status_code=400, detail="Invalid customer UUID format")
+            filter_dict["customer_id"] = customer_id
+        
+        # Query sales
+        cursor = db.sales.find(filter_dict).skip(skip).limit(limit).sort("created_at", -1)
+        sales = await cursor.to_list(length=limit)
+        
+        # Clean responses
+        cleaned_sales = [uuid_processor.clean_response(sale) for sale in sales]
+        return [Sale(**sale) for sale in cleaned_sales]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching sales: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/sales/{sale_id}", response_model=Sale)
+async def get_sale(sale_id: str):
+    """Get sale by UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(sale_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Single lookup
+        sale = await db.sales.find_one({"id": sale_id})
+        if not sale:
+            raise HTTPException(status_code=404, detail="Sale not found")
+        
+        return Sale(**uuid_processor.clean_response(sale))
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching sale {sale_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ========================================
+# DASHBOARD STATS API - UUID ONLY
+# ========================================
+
+@app.get("/api/stats/dashboard")
+async def get_dashboard_stats():
+    """Get dashboard statistics - UUID only system"""
+    try:
+        # Customer stats
+        total_customers = await db.customers.count_documents({})
+        active_customers = await db.customers.count_documents({"is_active": True})
+        
+        # Bill stats
+        total_bills = await db.bills.count_documents({})
+        available_bills = await db.bills.count_documents({"status": BillStatus.AVAILABLE})
+        inventory_bills = await db.bills.count_documents({"is_in_inventory": True})
+        sold_bills = await db.bills.count_documents({"status": BillStatus.SOLD})
+        
+        # Sales stats
+        total_sales = await db.sales.count_documents({})
+        
+        # Calculate revenue and profit
+        sales_pipeline = [
+            {"$group": {
+                "_id": None,
+                "total_revenue": {"$sum": "$total"},
+                "total_profit": {"$sum": "$profit_value"}
+            }}
+        ]
+        
+        sales_stats = await db.sales.aggregate(sales_pipeline).to_list(1)
+        total_revenue = sales_stats[0]["total_revenue"] if sales_stats else 0
+        total_profit = sales_stats[0]["total_profit"] if sales_stats else 0
+        
+        return {
+            "customers": {
+                "total": total_customers,
+                "active": active_customers
+            },
+            "bills": {
+                "total": total_bills,
+                "available": available_bills,
+                "in_inventory": inventory_bills,
+                "sold": sold_bills
+            },
+            "sales": {
+                "total_transactions": total_sales,
+                "total_revenue": total_revenue,
+                "total_profit": total_profit
+            },
+            "system": {
+                "architecture": "uuid_only",
+                "version": "2.0.0"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching dashboard stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ========================================
+# SYSTEM HEALTH API
+# ========================================
+
+@app.get("/api/health")
+async def health_check():
+    """System health check - UUID only"""
+    try:
+        # Test database connection
+        await db.command("ping")
+        
+        # Check collections exist
+        collections = await db.list_collection_names()
+        required_collections = ["customers", "bills", "sales"]
+        
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "database": "connected",
+            "architecture": "uuid_only",
+            "version": "2.0.0",
+            "collections": {
+                collection: collection in collections 
+                for collection in required_collections
+            }
+        }
+        
+        return health_status
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "error": str(e)
+        }
+
+# ========================================  
+# MAIN APPLICATION MOUNT
+# ========================================
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "server:app",
+        host="0.0.0.0",
+        port=8001,
+        reload=True,
+        log_level="info"
+    )
