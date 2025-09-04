@@ -5026,8 +5026,8 @@ class FPTBillManagerAPITester:
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    # Run the dual collection architecture analysis
-    success = tester.test_dual_collection_architecture_analysis()
+    # Run the UUID-only system comprehensive test as primary focus
+    success = tester.test_uuid_only_system_comprehensive()
     
     print(f"\n🏁 FINAL RESULT: {'✅ SUCCESS' if success else '❌ FAILED'}")
     
