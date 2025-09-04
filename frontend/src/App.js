@@ -752,8 +752,8 @@ const CheckBill = () => {
     }
 
     try {
-      // Use bill_ids from the check results
-      const billIds = selectedBills.map(bill => bill.bill_id).filter(id => id);
+      // Use bill_ids from the check results - UUID only system
+      const billIds = selectedBills.map(bill => bill.id).filter(id => id);
       
       if (billIds.length === 0) {
         toast.error("Không tìm thấy ID bill để thêm vào kho");
