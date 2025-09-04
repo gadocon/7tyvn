@@ -279,8 +279,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Bills DELETE Endpoint Dual Lookup Fix Verification"
-  stuck_tasks: []
+    - "Transactions Page Unsafe Field Access Fix Verification"
+  stuck_tasks:
+    - "Transactions Page Unsafe Field Access Fix Verification"
   test_all: false
   test_priority: "high_first"
 
