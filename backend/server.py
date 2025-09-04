@@ -35,6 +35,10 @@ from datetime import timedelta
 # UUID utilities
 from uuid_utils import generate_uuid, is_valid_uuid, uuid_processor
 
+# HTTP client for external API calls
+import aiohttp
+import asyncio
+
 # ========================================
 # AUTHENTICATION UTILITY FUNCTIONS
 # ========================================
