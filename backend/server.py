@@ -1087,28 +1087,6 @@ async def check_single_bill(customer_code: str, provider_region: str):
     except Exception as e:
         logger.error(f"Error checking bill: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
-        )
-    except Exception as e:
-        logger.error(f"Error validating token: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-            user_dict["created_at"] = datetime.fromisoformat(user_dict["created_at"].replace('Z', '+00:00'))
-        
-        # Don't use uuid_processor for user response as it may have ObjectId references
-        user_response = UserResponse(**user_dict)
-        
-        return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            user=user_response
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error during login: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 # ========================================
 # SYSTEM HEALTH API
