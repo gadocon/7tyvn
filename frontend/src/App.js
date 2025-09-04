@@ -658,12 +658,13 @@ const CheckBill = () => {
 
       for (let i = 0; i < codeList.length; i++) {
         const code = codeList[i];
+        console.log('Checking code:', code, 'Type:', typeof code); // Debug log
         setProcessingStep(`Đang kiểm tra mã ${code}... (${i + 1}/${codeList.length})`);
         
         try {
           const response = await axios.post(`${API}/bill/check/single`, null, {
             params: {
-              customer_code: code,
+              customer_code: String(code).trim(), // Ensure string and trim
               provider_region: provider
             }
           });
