@@ -304,9 +304,9 @@ class Sale(SaleBase):
 # DATABASE CONNECTION - UUID OPTIMIZED
 # ========================================
 
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/test_database')
+MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 client = AsyncIOMotorClient(MONGO_URL)
-db = client.get_default_database()
+db = client.crm_7ty_vn  # Use crm_7ty_vn database where user exists
 
 async def ensure_uuid_indexes():
     """Create UUID-optimized indexes"""
