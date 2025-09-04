@@ -1171,18 +1171,44 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                             if bills and len(bills) > 0:
                                 bill = bills[0]  # Take first bill
                                 
+                                # Create or update bill in database for inventory management
+                                bill_uuid = generate_uuid()
+                                bill_record = {
+                                    "id": bill_uuid,
+                                    "customer_code": customer_code,
+                                    "customer_name": bill.get("customerName", "N/A"),
+                                    "address": bill.get("address", "N/A"),
+                                    "amount": bill.get("moneyAmount", 0),
+                                    "billing_cycle": bill.get("month", "N/A"),
+                                    "provider_region": provider_region,
+                                    "status": BillStatus.AVAILABLE,
+                                    "is_in_inventory": False,
+                                    "external_bill_id": bill.get("billId"),
+                                    "gateway": "FPT_N8N",
+                                    "created_at": datetime.now(timezone.utc)
+                                }
+                                
+                                # Save to database
+                                await db.bills.update_one(
+                                    {"customer_code": customer_code, "provider_region": provider_region},
+                                    {"$set": bill_record},
+                                    upsert=True
+                                )
+                                
                                 return {
                                     "success": True,
                                     "status": "OK", 
                                     "message": "Bill found via N8N Webhook",
+                                    "id": bill_uuid,  # Add UUID for inventory management
                                     "customer_code": customer_code,
-                                    "full_name": bill.get("customerName", "N/A"),  # Changed from customer_name
-                                    "address": bill.get("address", "N/A"),       # Changed from customer_address
+                                    "full_name": bill.get("customerName", "N/A"),
+                                    "address": bill.get("address", "N/A"),
                                     "amount": bill.get("moneyAmount", 0),
                                     "billing_cycle": bill.get("month", "N/A"),
                                     "bill_status": "AVAILABLE",
                                     "provider_region": provider_region,
                                     "bill": {
+                                        "id": bill_uuid,
                                         "billId": bill.get("billId"),
                                         "contractNumber": bill.get("contractNumber"),
                                         "customerName": bill.get("customerName"),
