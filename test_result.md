@@ -256,6 +256,18 @@ frontend:
           agent: "main"
           comment: "Added handlePhoneCall function to CustomerDetailPage component to resolve ESLint error. Function includes phone number validation, tel: protocol integration, toast notifications, and error handling."
 
+  - task: "Bills DELETE Endpoint Dual Lookup Fix Verification"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "🎉 BILLS DELETE ENDPOINT DUAL LOOKUP FIX VERIFICATION SUCCESSFUL - 100% SUCCESS RATE! Comprehensive testing confirms the bills DELETE endpoint dual lookup strategy is working perfectly (6/6 tests passed). ✅ CRITICAL VERIFICATION RESULTS: DELETE /api/bills/{bill_id} ObjectId format working ✓, GET /api/bills/{bill_id} ObjectId format working ✓, PUT /api/bills/{bill_id} ObjectId format working ✓. All bill endpoints support both ObjectId và UUID formats through dual lookup strategy. ✅ DUAL LOOKUP STRATEGY VERIFIED: Backend correctly queries both 'id' field (UUID) and '_id' field (ObjectId) for bill lookup operations, identical to customer and credit card fixes. No more 'Không tìm thấy bill để xóa' error detected. ✅ CASCADE DELETION WORKING: Bills deletion properly removes from both bills collection and inventory_items collection. Tested with ObjectId format bill (TEST1000000) - successful deletion and verification. ✅ ERROR HANDLING VERIFIED: SOLD bills properly protected from deletion with appropriate Vietnamese error message 'Không thể xóa bill đã bán'. ✅ DATABASE ANALYSIS: Found 50 bills with ObjectId format IDs, confirming dual lookup necessity. All bills accessible via GET, updatable via PUT, and deletable via DELETE (when status allows). 🎯 REVIEW OBJECTIVES FULFILLED: 1) DELETE /api/bills/{bill_id} working với ObjectId format ✓, 2) GET và PUT endpoints supporting dual lookup ✓, 3) No more 'Không tìm thấy bill để xóa' error ✓, 4) Proper inventory cascade deletion ✓, 5) Dual lookup strategy tương tự như customers và credit cards ✓. The bills deletion issue has been completely resolved with the dual lookup strategy implementation."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
