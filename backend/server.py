@@ -1093,16 +1093,54 @@ async def get_recent_activities(days: int = 3, limit: int = 20):
 
 @app.post("/api/bill/check/single")
 async def check_single_bill(customer_code: str = Query(...), provider_region: str = Query(...)):
-    """Single bill check (placeholder)"""
+    """Single bill check - UUID only system"""
     try:
-        # For now, return not found - to be implemented
+        logger.info(f"Checking bill: {customer_code} in {provider_region}")
+        
+        # Check if bill exists in database
+        bill = await db.bills.find_one({
+            "customer_code": customer_code,
+            "provider_region": provider_region
+        })
+        
+        if bill:
+            # Bill found
+            bill_clean = uuid_processor.clean_response(bill)
+            return {
+                "success": True,
+                "status": "OK",
+                "message": "Bill found",
+                "customer_code": customer_code,
+                "amount": bill.get("amount", 0),
+                "billing_cycle": bill.get("billing_cycle", "N/A"),
+                "status": bill.get("status", "UNKNOWN"),
+                "bill": bill_clean
+            }
+        else:
+            # Bill not found - this is normal, not an error
+            return {
+                "success": True,
+                "status": "NOT_FOUND", 
+                "message": "Bill not found",
+                "customer_code": customer_code,
+                "amount": 0,
+                "billing_cycle": "N/A",
+                "status": "NOT_FOUND",
+                "bill": None
+            }
+            
+    except Exception as e:
+        logger.error(f"Error checking bill {customer_code}: {e}")
         return {
-            "success": False,
-            "message": "Bill checking not implemented in UUID-only system yet",
+            "success": True,
+            "status": "ERROR",
+            "message": f"Error checking bill: {str(e)}",
+            "customer_code": customer_code,
+            "amount": 0,
+            "billing_cycle": "N/A",
+            "status": "ERROR", 
             "bill": None
         }
-    except Exception as e:
-        logger.error(f"Error checking bill: {e}")
 @app.get("/api/inventory/stats")
 async def get_inventory_stats():
     """Inventory stats for dashboard"""
