@@ -1074,8 +1074,8 @@ async def get_recent_activities(days: int = 3, limit: int = 20):
         logger.error(f"Error fetching recent activities: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/bill/check/single")
-async def check_single_bill(customer_code: str, provider_region: str):
+@app.post("/api/bill/check/single")
+async def check_single_bill(customer_code: str = Query(...), provider_region: str = Query(...)):
     """Single bill check (placeholder)"""
     try:
         # For now, return not found - to be implemented
