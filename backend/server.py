@@ -1093,107 +1093,129 @@ async def get_recent_activities(days: int = 3, limit: int = 20):
 
 @app.post("/api/bill/check/single")
 async def check_single_bill(customer_code: str = Query(...), provider_region: str = Query(...)):
-    """Single bill check - Call external FPT API"""
+    """Single bill check - REAL N8N Webhook Call"""
     try:
-        logger.info(f"Checking bill via external API: {customer_code} in {provider_region}")
+        logger.info(f"Calling REAL webhook for: {customer_code} in {provider_region}")
         
-        # Prepare external API call to FPT
-        import aiohttp
-        import random
+        # REAL N8N Webhook URL  
+        webhook_url = "https://n8n.phamthanh.net/webhook/checkbill"
         
-        # Simulate external FPT API call (replace with real webhook URL)
-        external_url = "https://api.fpt.com.vn/bill/check"  # Example external API
-        
+        # Prepare payload for N8N webhook
         payload = {
             "customer_code": customer_code,
             "provider_region": provider_region,
-            "gateway": "FPT"
+            "gateway": "FPT",
+            "webhookUrl": webhook_url,
+            "executionMode": "production"
         }
         
-        # For demo: simulate realistic responses
-        # In production, replace this with actual external API call
-        await asyncio.sleep(0.5)  # Simulate network delay
+        # Configure timeout for external API call (30 seconds)
+        timeout = aiohttp.ClientTimeout(total=30, connect=10)
         
-        # Simulate different responses based on customer code patterns
-        if "PA" in customer_code and len(customer_code) >= 10:
-            # Simulate found bill with customer info
-            amount = random.randint(50000, 500000)  # Random amount
-            cycle = f"{random.randint(1, 12):02d}/2025"
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            logger.info(f"Making REAL API call to: {webhook_url}")
+            logger.info(f"Payload: {payload}")
             
-            # Generate realistic customer info based on region
-            customer_names = [
-                "Nguyễn Văn Minh", "Trần Thị Hoa", "Lê Văn Dũng", 
-                "Phạm Thị Lan", "Hoàng Văn Nam", "Vũ Thị Mai"
-            ]
-            
-            addresses = {
-                "MIEN_BAC": [
-                    "123 Phố Huế, Hoàn Kiếm, Hà Nội",
-                    "456 Trần Phú, Ba Đình, Hà Nội", 
-                    "789 Lê Lợi, Hai Bà Trưng, Hà Nội"
-                ],
-                "MIEN_NAM": [
-                    "123 Nguyễn Huệ, Quận 1, TP.HCM",
-                    "456 Lê Lợi, Quận 3, TP.HCM",
-                    "789 Trần Hưng Đạo, Quận 5, TP.HCM"
-                ]
-            }
-            
-            customer_name = random.choice(customer_names)
-            address_list = addresses.get(provider_region, addresses["MIEN_BAC"])
-            customer_address = random.choice(address_list)
-            
-            return {
-                "success": True,
-                "status": "OK",
-                "message": "Bill found via FPT API",
-                "customer_code": customer_code,
-                "customer_name": customer_name,
-                "customer_address": customer_address,
-                "amount": amount,
-                "billing_cycle": cycle,
-                "bill_status": "AVAILABLE",
-                "provider_region": provider_region,
-                "bill": {
-                    "customer_code": customer_code,
-                    "customer_name": customer_name,
-                    "customer_address": customer_address,
-                    "amount": amount,
-                    "billing_cycle": cycle,
-                    "gateway": "FPT",
-                    "provider_region": provider_region
-                }
-            }
-        else:
-            # Simulate not found
-            return {
-                "success": True,
-                "status": "NOT_FOUND",
-                "message": "Bill not found in FPT system",
-                "customer_code": customer_code,
-                "amount": 0,
-                "billing_cycle": "N/A",
-                "bill_status": "NOT_FOUND",
-                "provider_region": provider_region,
-                "bill": None
-            }
-            
-        # TODO: Replace simulation with real external API call:
-        # async with aiohttp.ClientSession() as session:
-        #     async with session.post(external_url, json=payload) as response:
-        #         if response.status == 200:
-        #             data = await response.json()
-        #             return process_external_response(data)
-        #         else:
-        #             return error_response()
-            
-    except Exception as e:
-        logger.error(f"Error calling external API for {customer_code}: {e}")
+            async with session.post(
+                webhook_url,
+                json=payload,
+                headers={"Content-Type": "application/json"}
+            ) as response:
+                response_text = await response.text()
+                logger.info(f"External API response status: {response.status}")
+                logger.info(f"External API response: {response_text[:500]}...")
+                
+                if response.status == 200:
+                    try:
+                        data = await response.json()
+                        
+                        # Process successful response
+                        if data.get("success") and data.get("status") == "OK":
+                            return {
+                                "success": True,
+                                "status": "OK", 
+                                "message": "Bill found via N8N Webhook",
+                                "customer_code": customer_code,
+                                "customer_name": data.get("customer_name", "N/A"),
+                                "customer_address": data.get("customer_address", "N/A"),
+                                "amount": data.get("amount", 0),
+                                "billing_cycle": data.get("billing_cycle", "N/A"),
+                                "bill_status": "AVAILABLE",
+                                "provider_region": provider_region,
+                                "bill": data.get("bill", {})
+                            }
+                        else:
+                            # Bill not found
+                            return {
+                                "success": True,
+                                "status": "NOT_FOUND",
+                                "message": "Bill not found via N8N Webhook",
+                                "customer_code": customer_code,
+                                "customer_name": "N/A",
+                                "customer_address": "N/A", 
+                                "amount": 0,
+                                "billing_cycle": "N/A",
+                                "bill_status": "NOT_FOUND",
+                                "provider_region": provider_region,
+                                "bill": None
+                            }
+                            
+                    except Exception as parse_error:
+                        logger.error(f"Error parsing webhook response: {parse_error}")
+                        # Try to parse as text response
+                        return {
+                            "success": True,
+                            "status": "ERROR", 
+                            "message": f"Webhook response parse error: {str(parse_error)}",
+                            "customer_code": customer_code,
+                            "customer_name": "N/A",
+                            "customer_address": "N/A",
+                            "amount": 0,
+                            "billing_cycle": "N/A",
+                            "bill_status": "ERROR",
+                            "provider_region": provider_region,
+                            "bill": None
+                        }
+                else:
+                    logger.error(f"Webhook returned status {response.status}: {response_text}")
+                    return {
+                        "success": True,
+                        "status": "ERROR",
+                        "message": f"Webhook error (Status {response.status})",
+                        "customer_code": customer_code,
+                        "customer_name": "N/A",
+                        "customer_address": "N/A",
+                        "amount": 0,
+                        "billing_cycle": "N/A", 
+                        "bill_status": "ERROR",
+                        "provider_region": provider_region,
+                        "bill": None
+                    }
+                    
+    except asyncio.TimeoutError:
+        logger.error(f"Timeout calling webhook for {customer_code}")
         return {
             "success": True,
             "status": "ERROR",
-            "message": f"External API error: {str(e)}",
+            "message": "Webhook timeout (30s)",
             "customer_code": customer_code,
+            "customer_name": "N/A",
+            "customer_address": "N/A",
+            "amount": 0,
+            "billing_cycle": "N/A",
+            "bill_status": "ERROR",
+            "provider_region": provider_region,
+            "bill": None
+        }
+    except Exception as e:
+        logger.error(f"Error calling webhook for {customer_code}: {e}")
+        return {
+            "success": True,
+            "status": "ERROR",
+            "message": f"Webhook API error: {str(e)}",
+            "customer_code": customer_code,
+            "customer_name": "N/A", 
+            "customer_address": "N/A",
             "amount": 0,
             "billing_cycle": "N/A",
             "bill_status": "ERROR",
