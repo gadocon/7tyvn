@@ -1104,13 +1104,19 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
         # REAL N8N Webhook URL  
         webhook_url = "https://n8n.phamthanh.net/webhook/checkbill"
         
-        # Prepare payload for N8N webhook
+        # Map provider_region to SKU codes
+        sku_mapping = {
+            "MIEN_BAC": "00906819",
+            "MIEN_NAM": "00906815", 
+            "TPHCM": "00906818"
+        }
+        
+        sku = sku_mapping.get(provider_region, "00906819")  # Default to MIEN_BAC
+        
+        # Prepare payload for N8N webhook - only contractNumber and sku
         payload = {
-            "customer_code": customer_code,
-            "provider_region": provider_region,
-            "gateway": "FPT",
-            "webhookUrl": webhook_url,
-            "executionMode": "production"
+            "contractNumber": customer_code,  # Use customer_code as contractNumber
+            "sku": sku
         }
         
         # Configure timeout for external API call (30 seconds)
