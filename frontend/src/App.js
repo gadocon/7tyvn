@@ -1032,12 +1032,13 @@ const Inventory = () => {
         setInventoryItems(inventoryResponse.data);
         setAllBills([]);
       } else {
-        // Fetch all bills for "Tất cả bills" tab
+        // All bills tab: Use inventory API to ensure consistency
+        // Get all inventory items regardless of status
         const params = new URLSearchParams();
         if (searchTerm) {
           params.append("search", searchTerm);
         }
-        const billsResponse = await axios.get(`${API}/bills?${params.toString()}&limit=100`);
+        const billsResponse = await axios.get(`${API}/inventory?${params.toString()}&limit=100`);
         setAllBills(billsResponse.data);
         setInventoryItems([]);
       }
