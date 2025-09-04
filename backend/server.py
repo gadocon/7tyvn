@@ -4631,11 +4631,11 @@ async def get_customer_detailed_profile(customer_id: str):
                     
             dao_type = "CREDIT_DAO_POS" if dao.get("payment_method", "POS") == "POS" else "CREDIT_DAO_BILL"
             recent_activities.append({
-                "id": dao["id"],
+                "id": dao.get("id"),
                 "type": dao_type,
                 "amount": dao.get("total_amount", 0),
                 "profit": dao.get("profit_value", 0),
-                "created_at": dao["created_at"],
+                "created_at": dao.get("created_at"),
                 "description": f"Đáo Thẻ {dao.get('payment_method', 'POS')} {card_number}",
                 "card_number": card_number
             })
