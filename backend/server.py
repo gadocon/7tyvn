@@ -718,6 +718,63 @@ async def remove_from_inventory(bill_id: str):
     try:
         # Validate UUID format
         if not is_valid_uuid(bill_id):
+@app.post("/api/inventory/add")
+async def add_bills_to_inventory(request_data: dict):
+    """Add multiple bills to inventory - UUID only"""
+    try:
+        bill_ids = request_data.get("bill_ids", [])
+        note = request_data.get("note", "")
+        batch_name = request_data.get("batch_name", "")
+        
+        if not bill_ids:
+            raise HTTPException(status_code=400, detail="No bill IDs provided")
+        
+        added_count = 0
+        errors = []
+        
+        for bill_id in bill_ids:
+            try:
+                # Validate UUID format
+                if not is_valid_uuid(bill_id):
+                    errors.append(f"Invalid UUID format: {bill_id}")
+                    continue
+                
+                # Check if bill exists
+                bill = await db.bills.find_one({"id": bill_id})
+                if not bill:
+                    errors.append(f"Bill not found: {bill_id}")
+                    continue
+                
+                if bill.get("is_in_inventory"):
+                    errors.append(f"Bill already in inventory: {bill_id}")
+                    continue
+                
+                # Add to inventory
+                await db.bills.update_one(
+                    {"id": bill_id},
+                    {"$set": {
+                        "is_in_inventory": True,
+                        "inventory_status": "IN_INVENTORY",
+                        "added_to_inventory_at": datetime.now(timezone.utc),
+                        "inventory_note": note,
+                        "batch_name": batch_name
+                    }}
+                )
+                added_count += 1
+                
+            except Exception as e:
+                errors.append(f"Error processing {bill_id}: {str(e)}")
+        
+        return {
+            "success": True,
+            "message": f"Added {added_count} bills to inventory",
+            "added_count": added_count,
+            "errors": errors
+        }
+        
+    except Exception as e:
+        logger.error(f"Error adding bills to inventory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
             raise HTTPException(status_code=400, detail="Invalid UUID format")
         
         # Check if bill exists and is in inventory
