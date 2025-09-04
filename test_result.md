@@ -264,7 +264,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Tất Cả Kho Tab Verification After 50 Bills Creation"
+    - "Bills DELETE Endpoint Dual Lookup Fix Verification"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
