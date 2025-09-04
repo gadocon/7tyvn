@@ -763,9 +763,9 @@ async def add_bills_to_inventory(request_data: dict):
         
         for bill_id in bill_ids:
             try:
-                # Validate UUID format
-                if not is_valid_uuid(bill_id):
-                    errors.append(f"Invalid UUID format: {bill_id}")
+                # Validate composite bill_id format
+                if not is_valid_composite_bill_id(bill_id):
+                    errors.append(f"Invalid composite bill_id format: {bill_id}")
                     continue
                 
                 # Check if bill exists
