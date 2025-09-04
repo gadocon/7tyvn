@@ -567,9 +567,9 @@ async def get_bills(
 async def get_bill(bill_id: str):
     """Get bill by UUID only"""
     try:
-        # Validate UUID format
-        if not is_valid_uuid(bill_id):
-            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        # Validate composite bill_id format
+        if not is_valid_composite_bill_id(bill_id):
+            raise HTTPException(status_code=400, detail="Invalid composite bill_id format")
         
         # Single lookup - no dual strategy
         bill = await db.bills.find_one({"id": bill_id})
