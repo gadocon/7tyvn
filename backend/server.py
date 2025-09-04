@@ -1199,7 +1199,18 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                         
                         # Handle array response from N8N webhook
                         if isinstance(response_data, list) and len(response_data) > 0:
-                            data = response_data[0]  # Take first item from array
+                            # Find success response (ignore error responses)
+                            success_response = None
+                            for item in response_data:
+                                if "status" in item and item.get("status") == 200:
+                                    success_response = item
+                                    break
+                            
+                            if success_response:
+                                data = success_response
+                            else:
+                                # All responses are errors, take first one
+                                data = response_data[0]
                         else:
                             data = response_data
                         
