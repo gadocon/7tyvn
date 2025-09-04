@@ -22,6 +22,294 @@ class FPTBillManagerAPITester:
             print(f"⚠️ MongoDB connection failed: {e}")
             self.mongo_connected = False
 
+    def test_database_cleanup_for_fresh_testing(self):
+        """Clean toàn bộ database để chuẩn bị fresh testing - REVIEW REQUEST"""
+        print(f"\n🎯 DATABASE CLEANUP FOR FRESH TESTING")
+        print("=" * 80)
+        print("🔍 CLEANUP OBJECTIVES:")
+        print("   1. Xóa tất cả customers và related data")
+        print("   2. Xóa tất cả credit cards và transactions")
+        print("   3. Xóa tất cả bills và inventory items")
+        print("   4. Xóa tất cả sales transactions")
+        print("   5. Keep users collection (admin_test account)")
+        print("   6. Verify database completely empty except for users")
+        print("   Expected Result: Clean slate database for fresh testing")
+        
+        cleanup_results = {
+            "customers_deleted": 0,
+            "credit_cards_deleted": 0,
+            "credit_card_transactions_deleted": 0,
+            "bills_deleted": 0,
+            "inventory_items_deleted": 0,
+            "sales_deleted": 0,
+            "activities_deleted": 0,
+            "users_preserved": 0,
+            "admin_test_exists": False,
+            "database_clean": False,
+            "total_operations": 0,
+            "successful_operations": 0,
+            "critical_issues": []
+        }
+        
+        if not self.mongo_connected:
+            print("❌ MongoDB connection required for database cleanup")
+            return False
+        
+        # Step 1: Count current data before cleanup
+        print(f"\n🔍 STEP 1: Count Current Data Before Cleanup")
+        print("=" * 60)
+        
+        try:
+            collections_to_clean = {
+                "customers": self.db.customers.count_documents({}),
+                "credit_cards": self.db.credit_cards.count_documents({}),
+                "credit_card_transactions": self.db.credit_card_transactions.count_documents({}),
+                "bills": self.db.bills.count_documents({}),
+                "inventory_items": self.db.inventory_items.count_documents({}),
+                "sales": self.db.sales.count_documents({}),
+                "activities": self.db.activities.count_documents({})
+            }
+            
+            users_count = self.db.users.count_documents({})
+            admin_test_user = self.db.users.find_one({"username": "admin_test"})
+            
+            print(f"📊 CURRENT DATABASE STATE:")
+            for collection, count in collections_to_clean.items():
+                print(f"   {collection}: {count} documents")
+            print(f"   users: {users_count} documents (will be preserved)")
+            print(f"   admin_test user: {'✅ EXISTS' if admin_test_user else '❌ NOT FOUND'}")
+            
+            if admin_test_user:
+                cleanup_results["admin_test_exists"] = True
+                cleanup_results["users_preserved"] = users_count
+            
+        except Exception as e:
+            print(f"❌ Error counting documents: {e}")
+            cleanup_results["critical_issues"].append(f"Document counting failed: {e}")
+            return False
+        
+        # Step 2: Delete all customers and related data
+        print(f"\n🔍 STEP 2: Delete All Customers and Related Data")
+        print("=" * 60)
+        
+        try:
+            customers_result = self.db.customers.delete_many({})
+            cleanup_results["customers_deleted"] = customers_result.deleted_count
+            print(f"✅ Deleted {customers_result.deleted_count} customers")
+            cleanup_results["successful_operations"] += 1
+        except Exception as e:
+            print(f"❌ Error deleting customers: {e}")
+            cleanup_results["critical_issues"].append(f"Customers deletion failed: {e}")
+        
+        cleanup_results["total_operations"] += 1
+        
+        # Step 3: Delete all credit cards and transactions
+        print(f"\n🔍 STEP 3: Delete All Credit Cards and Transactions")
+        print("=" * 60)
+        
+        try:
+            credit_cards_result = self.db.credit_cards.delete_many({})
+            cleanup_results["credit_cards_deleted"] = credit_cards_result.deleted_count
+            print(f"✅ Deleted {credit_cards_result.deleted_count} credit cards")
+            cleanup_results["successful_operations"] += 1
+        except Exception as e:
+            print(f"❌ Error deleting credit cards: {e}")
+            cleanup_results["critical_issues"].append(f"Credit cards deletion failed: {e}")
+        
+        cleanup_results["total_operations"] += 1
+        
+        try:
+            credit_transactions_result = self.db.credit_card_transactions.delete_many({})
+            cleanup_results["credit_card_transactions_deleted"] = credit_transactions_result.deleted_count
+            print(f"✅ Deleted {credit_transactions_result.deleted_count} credit card transactions")
+            cleanup_results["successful_operations"] += 1
+        except Exception as e:
+            print(f"❌ Error deleting credit card transactions: {e}")
+            cleanup_results["critical_issues"].append(f"Credit card transactions deletion failed: {e}")
+        
+        cleanup_results["total_operations"] += 1
+        
+        # Step 4: Delete all bills and inventory items
+        print(f"\n🔍 STEP 4: Delete All Bills and Inventory Items")
+        print("=" * 60)
+        
+        try:
+            bills_result = self.db.bills.delete_many({})
+            cleanup_results["bills_deleted"] = bills_result.deleted_count
+            print(f"✅ Deleted {bills_result.deleted_count} bills")
+            cleanup_results["successful_operations"] += 1
+        except Exception as e:
+            print(f"❌ Error deleting bills: {e}")
+            cleanup_results["critical_issues"].append(f"Bills deletion failed: {e}")
+        
+        cleanup_results["total_operations"] += 1
+        
+        try:
+            inventory_result = self.db.inventory_items.delete_many({})
+            cleanup_results["inventory_items_deleted"] = inventory_result.deleted_count
+            print(f"✅ Deleted {inventory_result.deleted_count} inventory items")
+            cleanup_results["successful_operations"] += 1
+        except Exception as e:
+            print(f"❌ Error deleting inventory items: {e}")
+            cleanup_results["critical_issues"].append(f"Inventory items deletion failed: {e}")
+        
+        cleanup_results["total_operations"] += 1
+        
+        # Step 5: Delete all sales transactions
+        print(f"\n🔍 STEP 5: Delete All Sales Transactions")
+        print("=" * 60)
+        
+        try:
+            sales_result = self.db.sales.delete_many({})
+            cleanup_results["sales_deleted"] = sales_result.deleted_count
+            print(f"✅ Deleted {sales_result.deleted_count} sales transactions")
+            cleanup_results["successful_operations"] += 1
+        except Exception as e:
+            print(f"❌ Error deleting sales: {e}")
+            cleanup_results["critical_issues"].append(f"Sales deletion failed: {e}")
+        
+        cleanup_results["total_operations"] += 1
+        
+        # Step 6: Delete activities (optional cleanup)
+        print(f"\n🔍 STEP 6: Delete All Activities")
+        print("=" * 60)
+        
+        try:
+            activities_result = self.db.activities.delete_many({})
+            cleanup_results["activities_deleted"] = activities_result.deleted_count
+            print(f"✅ Deleted {activities_result.deleted_count} activities")
+            cleanup_results["successful_operations"] += 1
+        except Exception as e:
+            print(f"❌ Error deleting activities: {e}")
+            cleanup_results["critical_issues"].append(f"Activities deletion failed: {e}")
+        
+        cleanup_results["total_operations"] += 1
+        
+        # Step 7: Verify users collection preserved
+        print(f"\n🔍 STEP 7: Verify Users Collection Preserved")
+        print("=" * 60)
+        
+        try:
+            final_users_count = self.db.users.count_documents({})
+            final_admin_test = self.db.users.find_one({"username": "admin_test"})
+            
+            print(f"📊 USERS COLLECTION AFTER CLEANUP:")
+            print(f"   Total users: {final_users_count}")
+            print(f"   admin_test user: {'✅ PRESERVED' if final_admin_test else '❌ MISSING'}")
+            
+            if final_admin_test and final_users_count > 0:
+                cleanup_results["users_preserved"] = final_users_count
+                cleanup_results["admin_test_exists"] = True
+                print(f"✅ Users collection properly preserved")
+                cleanup_results["successful_operations"] += 1
+            else:
+                print(f"❌ Users collection not properly preserved")
+                cleanup_results["critical_issues"].append("Users collection not preserved")
+        except Exception as e:
+            print(f"❌ Error verifying users: {e}")
+            cleanup_results["critical_issues"].append(f"Users verification failed: {e}")
+        
+        cleanup_results["total_operations"] += 1
+        
+        # Step 8: Verify database completely empty except users
+        print(f"\n🔍 STEP 8: Verify Database Completely Empty Except Users")
+        print("=" * 60)
+        
+        try:
+            final_counts = {
+                "customers": self.db.customers.count_documents({}),
+                "credit_cards": self.db.credit_cards.count_documents({}),
+                "credit_card_transactions": self.db.credit_card_transactions.count_documents({}),
+                "bills": self.db.bills.count_documents({}),
+                "inventory_items": self.db.inventory_items.count_documents({}),
+                "sales": self.db.sales.count_documents({}),
+                "activities": self.db.activities.count_documents({})
+            }
+            
+            print(f"📊 FINAL DATABASE STATE:")
+            all_empty = True
+            for collection, count in final_counts.items():
+                status = "✅ EMPTY" if count == 0 else f"❌ {count} REMAINING"
+                print(f"   {collection}: {status}")
+                if count > 0:
+                    all_empty = False
+            
+            print(f"   users: {cleanup_results['users_preserved']} documents (preserved)")
+            
+            if all_empty and cleanup_results["admin_test_exists"]:
+                cleanup_results["database_clean"] = True
+                print(f"✅ Database successfully cleaned - only users preserved")
+                cleanup_results["successful_operations"] += 1
+            else:
+                print(f"❌ Database cleanup incomplete")
+                cleanup_results["critical_issues"].append("Database not completely clean")
+        except Exception as e:
+            print(f"❌ Error verifying final state: {e}")
+            cleanup_results["critical_issues"].append(f"Final verification failed: {e}")
+        
+        cleanup_results["total_operations"] += 1
+        
+        # Step 9: Final Assessment
+        print(f"\n📊 STEP 9: Final Assessment - Database Cleanup Results")
+        print("=" * 60)
+        
+        success_rate = (cleanup_results["successful_operations"] / cleanup_results["total_operations"] * 100) if cleanup_results["total_operations"] > 0 else 0
+        
+        print(f"\n🔍 DATABASE CLEANUP RESULTS:")
+        print(f"   Customers deleted: {cleanup_results['customers_deleted']}")
+        print(f"   Credit cards deleted: {cleanup_results['credit_cards_deleted']}")
+        print(f"   Credit card transactions deleted: {cleanup_results['credit_card_transactions_deleted']}")
+        print(f"   Bills deleted: {cleanup_results['bills_deleted']}")
+        print(f"   Inventory items deleted: {cleanup_results['inventory_items_deleted']}")
+        print(f"   Sales deleted: {cleanup_results['sales_deleted']}")
+        print(f"   Activities deleted: {cleanup_results['activities_deleted']}")
+        print(f"   Users preserved: {cleanup_results['users_preserved']}")
+        print(f"   Admin test exists: {'✅ YES' if cleanup_results['admin_test_exists'] else '❌ NO'}")
+        print(f"   Database clean: {'✅ YES' if cleanup_results['database_clean'] else '❌ NO'}")
+        print(f"   Success Rate: {success_rate:.1f}% ({cleanup_results['successful_operations']}/{cleanup_results['total_operations']})")
+        
+        print(f"\n🎯 CLEANUP OBJECTIVES VERIFICATION:")
+        objectives_met = (
+            cleanup_results["database_clean"] and
+            cleanup_results["admin_test_exists"] and
+            cleanup_results["users_preserved"] > 0
+        )
+        
+        if objectives_met:
+            print(f"   ✅ All customers and related data deleted")
+            print(f"   ✅ All credit cards and transactions deleted")
+            print(f"   ✅ All bills and inventory items deleted")
+            print(f"   ✅ All sales transactions deleted")
+            print(f"   ✅ Users collection preserved (admin_test account)")
+            print(f"   ✅ Database completely empty except for users")
+        else:
+            print(f"   ❌ Some cleanup objectives not met:")
+            if not cleanup_results["database_clean"]:
+                print(f"      - Database not completely clean")
+            if not cleanup_results["admin_test_exists"]:
+                print(f"      - admin_test account not found")
+            if cleanup_results["users_preserved"] == 0:
+                print(f"      - Users collection not preserved")
+        
+        if cleanup_results["critical_issues"]:
+            print(f"\n🚨 CRITICAL ISSUES FOUND:")
+            for issue in cleanup_results["critical_issues"]:
+                print(f"   - {issue}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if objectives_met:
+            print(f"   ✅ DATABASE CLEANUP SUCCESSFUL")
+            print(f"   - Clean slate database ready for fresh testing")
+            print(f"   - Only admin_test user remains for authentication")
+            print(f"   - All business data completely removed")
+            print(f"   - Ready for comprehensive end-to-end testing from scratch")
+        else:
+            print(f"   ❌ DATABASE CLEANUP NEEDS ATTENTION")
+            print(f"   - Some data may still remain in database")
+            print(f"   - Manual cleanup may be required")
+        
+        return objectives_met
+
     def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
         """Run a single API test"""
         url = f"{self.api_url}/{endpoint}"
