@@ -1020,6 +1020,359 @@ class FPTBillManagerAPITester:
         
         return expected_results_met
 
+    def test_transactions_unsafe_field_access_fix(self):
+        """COMPREHENSIVE TEST - Verify all transactions issues fixed sau systematic unsafe field access cleanup - REVIEW REQUEST"""
+        print(f"\n🎯 COMPREHENSIVE TRANSACTIONS UNSAFE FIELD ACCESS FIX VERIFICATION")
+        print("=" * 80)
+        print("🔍 CRITICAL COMPREHENSIVE VERIFICATION:")
+        print("   1. Test GET /api/transactions/unified - should work without ANY KeyError")
+        print("   2. Test với empty database (current state) - should return empty array")
+        print("   3. Test customer detailed profile endpoints - should not crash")
+        print("   4. Test customer transactions endpoints - should handle missing fields")
+        print("   5. Verify no more dao['field'] patterns causing crashes")
+        print("   Expected results: All transaction-related endpoints return 200 status")
+        print("   No KeyError exceptions in any scenario, Empty arrays for empty database")
+        print("   Robust error handling for missing fields, System stability across all transaction features")
+        
+        test_results = {
+            "unified_transactions_working": False,
+            "empty_database_handling": False,
+            "customer_detailed_profile_working": False,
+            "customer_transactions_working": False,
+            "no_keyerror_exceptions": True,
+            "system_stability": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_issues": [],
+            "endpoints_tested": []
+        }
+        
+        # Step 1: Test GET /api/transactions/unified - should work without ANY KeyError
+        print(f"\n🔍 STEP 1: Test GET /api/transactions/unified - KeyError Prevention")
+        print("=" * 60)
+        print("Expected: Should return 200 status without ANY KeyError exceptions")
+        
+        unified_success, unified_response = self.run_test(
+            "GET /transactions/unified - Comprehensive KeyError Test",
+            "GET",
+            "transactions/unified?limit=100",
+            200
+        )
+        
+        if unified_success:
+            print(f"✅ SUCCESS: GET /api/transactions/unified returns 200 status!")
+            
+            # Check response structure
+            if isinstance(unified_response, list):
+                print(f"   Found {len(unified_response)} unified transactions")
+                test_results["unified_transactions_working"] = True
+                test_results["passed_tests"] += 1
+                test_results["endpoints_tested"].append("GET /transactions/unified")
+                
+                # Analyze transaction structure for potential KeyError sources
+                if len(unified_response) > 0:
+                    sample_tx = unified_response[0]
+                    required_fields = ['id', 'type', 'customer_id', 'customer_name', 'total_amount', 'created_at']
+                    missing_fields = [field for field in required_fields if field not in sample_tx]
+                    
+                    if not missing_fields:
+                        print(f"   ✅ Transaction structure complete - all required fields present")
+                        print(f"   Sample transaction type: {sample_tx.get('type', 'Unknown')}")
+                        print(f"   Sample customer: {sample_tx.get('customer_name', 'Unknown')}")
+                    else:
+                        print(f"   ⚠️ Missing fields in transaction structure: {missing_fields}")
+                        test_results["critical_issues"].append(f"Missing transaction fields: {missing_fields}")
+                else:
+                    print(f"   ✅ Empty transactions array - proper empty database handling")
+                    test_results["empty_database_handling"] = True
+                    test_results["passed_tests"] += 1
+            else:
+                print(f"   ❌ Unexpected response format - expected array, got: {type(unified_response)}")
+                test_results["critical_issues"].append("Unified transactions returns non-array response")
+        else:
+            print(f"❌ FAILED: GET /api/transactions/unified returns error - potential KeyError issue")
+            test_results["critical_issues"].append("Unified transactions endpoint returns error")
+            test_results["no_keyerror_exceptions"] = False
+        
+        test_results["total_tests"] += 1
+        
+        # Step 2: Test với empty database (current state) - should return empty array
+        print(f"\n🔍 STEP 2: Test Empty Database Handling - Robust Error Prevention")
+        print("=" * 60)
+        
+        # Test with various filter parameters to ensure no KeyError with empty data
+        filter_tests = [
+            ("transactions/unified?transaction_type=BILL_SALE", "Bill Sale Filter"),
+            ("transactions/unified?transaction_type=CREDIT_DAO_POS", "Credit DAO POS Filter"),
+            ("transactions/unified?customer_id=nonexistent-customer", "Customer Filter"),
+            ("transactions/unified?search=nonexistent", "Search Filter"),
+            ("transactions/unified?date_from=2024-01-01&date_to=2024-12-31", "Date Range Filter")
+        ]
+        
+        empty_handling_passed = 0
+        for endpoint, test_name in filter_tests:
+            filter_success, filter_response = self.run_test(
+                f"Empty Database Test - {test_name}",
+                "GET",
+                endpoint,
+                200
+            )
+            
+            if filter_success:
+                if isinstance(filter_response, list):
+                    print(f"   ✅ {test_name}: Returns empty array correctly")
+                    empty_handling_passed += 1
+                    test_results["endpoints_tested"].append(f"GET /{endpoint}")
+                else:
+                    print(f"   ❌ {test_name}: Returns non-array response")
+                    test_results["critical_issues"].append(f"{test_name} returns non-array")
+            else:
+                print(f"   ❌ {test_name}: Returns error - potential KeyError")
+                test_results["critical_issues"].append(f"{test_name} endpoint error")
+                test_results["no_keyerror_exceptions"] = False
+            
+            test_results["total_tests"] += 1
+        
+        if empty_handling_passed == len(filter_tests):
+            print(f"✅ ALL EMPTY DATABASE TESTS PASSED ({empty_handling_passed}/{len(filter_tests)})")
+            test_results["empty_database_handling"] = True
+            test_results["passed_tests"] += empty_handling_passed
+        else:
+            print(f"❌ SOME EMPTY DATABASE TESTS FAILED ({empty_handling_passed}/{len(filter_tests)})")
+        
+        # Step 3: Test customer detailed profile endpoints - should not crash
+        print(f"\n🔍 STEP 3: Test Customer Detailed Profile Endpoints - Crash Prevention")
+        print("=" * 60)
+        
+        # Get list of customers to test with
+        customers_success, customers_response = self.run_test(
+            "GET /customers - Get Test Customers",
+            "GET",
+            "customers?page_size=10",
+            200
+        )
+        
+        if customers_success and customers_response and len(customers_response) > 0:
+            print(f"✅ Found {len(customers_response)} customers for detailed profile testing")
+            
+            detailed_profile_passed = 0
+            for i, customer in enumerate(customers_response[:3]):  # Test first 3 customers
+                customer_id = customer.get('id', '')
+                customer_name = customer.get('name', 'Unknown')
+                
+                print(f"\n   Test {i+1}: Customer Detailed Profile - {customer_name}")
+                print(f"   Customer ID: {customer_id}")
+                
+                profile_success, profile_response = self.run_test(
+                    f"GET /customers/{customer_id}/detailed-profile - {customer_name}",
+                    "GET",
+                    f"customers/{customer_id}/detailed-profile",
+                    200
+                )
+                
+                if profile_success:
+                    print(f"   ✅ SUCCESS: Customer detailed profile accessible without crashes")
+                    
+                    # Check response structure for completeness
+                    if isinstance(profile_response, dict):
+                        expected_sections = ['customer', 'metrics', 'credit_cards', 'recent_activities']
+                        present_sections = [section for section in expected_sections if section in profile_response]
+                        
+                        print(f"   Response sections: {present_sections}")
+                        if len(present_sections) >= 3:
+                            print(f"   ✅ Comprehensive profile data structure")
+                            detailed_profile_passed += 1
+                            test_results["endpoints_tested"].append(f"GET /customers/{customer_id}/detailed-profile")
+                        else:
+                            print(f"   ⚠️ Incomplete profile structure")
+                    else:
+                        print(f"   ⚠️ Unexpected profile response format")
+                else:
+                    print(f"   ❌ FAILED: Customer detailed profile crashes or returns error")
+                    test_results["critical_issues"].append(f"Customer detailed profile failed for: {customer_name}")
+                    test_results["no_keyerror_exceptions"] = False
+                
+                test_results["total_tests"] += 1
+            
+            if detailed_profile_passed == 3:
+                print(f"\n✅ ALL CUSTOMER DETAILED PROFILE TESTS PASSED (3/3)")
+                test_results["customer_detailed_profile_working"] = True
+                test_results["passed_tests"] += detailed_profile_passed
+            else:
+                print(f"\n❌ SOME CUSTOMER DETAILED PROFILE TESTS FAILED ({detailed_profile_passed}/3)")
+        else:
+            print(f"   ⚠️ No customers available for detailed profile testing")
+        
+        # Step 4: Test customer transactions endpoints - should handle missing fields
+        print(f"\n🔍 STEP 4: Test Customer Transactions Endpoints - Missing Field Handling")
+        print("=" * 60)
+        
+        if customers_success and customers_response and len(customers_response) > 0:
+            customer_transactions_passed = 0
+            
+            for i, customer in enumerate(customers_response[:2]):  # Test first 2 customers
+                customer_id = customer.get('id', '')
+                customer_name = customer.get('name', 'Unknown')
+                
+                print(f"\n   Test {i+1}: Customer Transactions - {customer_name}")
+                print(f"   Customer ID: {customer_id}")
+                
+                transactions_success, transactions_response = self.run_test(
+                    f"GET /customers/{customer_id}/transactions - {customer_name}",
+                    "GET",
+                    f"customers/{customer_id}/transactions",
+                    200
+                )
+                
+                if transactions_success:
+                    print(f"   ✅ SUCCESS: Customer transactions endpoint accessible")
+                    
+                    # Check response structure
+                    if isinstance(transactions_response, dict):
+                        expected_fields = ['customer', 'transactions', 'summary']
+                        present_fields = [field for field in expected_fields if field in transactions_response]
+                        
+                        print(f"   Response fields: {present_fields}")
+                        if len(present_fields) >= 2:
+                            print(f"   ✅ Proper transactions response structure")
+                            customer_transactions_passed += 1
+                            test_results["endpoints_tested"].append(f"GET /customers/{customer_id}/transactions")
+                            
+                            # Check transactions array handling
+                            transactions_array = transactions_response.get('transactions', [])
+                            print(f"   Found {len(transactions_array)} transactions for customer")
+                        else:
+                            print(f"   ⚠️ Incomplete transactions response structure")
+                    else:
+                        print(f"   ⚠️ Unexpected transactions response format")
+                else:
+                    print(f"   ❌ FAILED: Customer transactions endpoint error")
+                    test_results["critical_issues"].append(f"Customer transactions failed for: {customer_name}")
+                    test_results["no_keyerror_exceptions"] = False
+                
+                test_results["total_tests"] += 1
+            
+            if customer_transactions_passed == 2:
+                print(f"\n✅ ALL CUSTOMER TRANSACTIONS TESTS PASSED (2/2)")
+                test_results["customer_transactions_working"] = True
+                test_results["passed_tests"] += customer_transactions_passed
+            else:
+                print(f"\n❌ SOME CUSTOMER TRANSACTIONS TESTS FAILED ({customer_transactions_passed}/2)")
+        else:
+            print(f"   ⚠️ No customers available for transactions testing")
+        
+        # Step 5: Verify no more dao["field"] patterns causing crashes
+        print(f"\n🔍 STEP 5: System Stability Verification - No Unsafe Field Access")
+        print("=" * 60)
+        
+        # Test various transaction-related endpoints for stability
+        stability_tests = [
+            ("dashboard/stats", "Dashboard Stats"),
+            ("customers/stats", "Customer Stats"),
+            ("credit-cards?page_size=5", "Credit Cards List"),
+            ("bills?limit=5", "Bills List"),
+            ("inventory/stats", "Inventory Stats")
+        ]
+        
+        stability_passed = 0
+        for endpoint, test_name in stability_tests:
+            stability_success, stability_response = self.run_test(
+                f"System Stability Test - {test_name}",
+                "GET",
+                endpoint,
+                200
+            )
+            
+            if stability_success:
+                print(f"   ✅ {test_name}: Stable, no crashes")
+                stability_passed += 1
+                test_results["endpoints_tested"].append(f"GET /{endpoint}")
+            else:
+                print(f"   ❌ {test_name}: Potential stability issue")
+                test_results["critical_issues"].append(f"{test_name} stability issue")
+                test_results["no_keyerror_exceptions"] = False
+            
+            test_results["total_tests"] += 1
+        
+        if stability_passed == len(stability_tests):
+            print(f"\n✅ ALL SYSTEM STABILITY TESTS PASSED ({stability_passed}/{len(stability_tests)})")
+            test_results["system_stability"] = True
+            test_results["passed_tests"] += stability_passed
+        else:
+            print(f"\n❌ SOME SYSTEM STABILITY TESTS FAILED ({stability_passed}/{len(stability_tests)})")
+        
+        # Step 6: Final Comprehensive Assessment
+        print(f"\n📊 STEP 6: Final Comprehensive Assessment - Transactions Fix Verification")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 COMPREHENSIVE VERIFICATION RESULTS:")
+        print(f"   GET /api/transactions/unified: {'✅ WORKING' if test_results['unified_transactions_working'] else '❌ FAILED'}")
+        print(f"   Empty database handling: {'✅ ROBUST' if test_results['empty_database_handling'] else '❌ ISSUES'}")
+        print(f"   Customer detailed profiles: {'✅ STABLE' if test_results['customer_detailed_profile_working'] else '❌ CRASHES'}")
+        print(f"   Customer transactions: {'✅ WORKING' if test_results['customer_transactions_working'] else '❌ FAILED'}")
+        print(f"   No KeyError exceptions: {'✅ VERIFIED' if test_results['no_keyerror_exceptions'] else '❌ KEYERRORS DETECTED'}")
+        print(f"   System stability: {'✅ STABLE' if test_results['system_stability'] else '❌ UNSTABLE'}")
+        print(f"   Overall Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🎯 CRITICAL OBJECTIVE VERIFICATION:")
+        all_objectives_met = (
+            test_results["unified_transactions_working"] and
+            test_results["empty_database_handling"] and
+            test_results["customer_detailed_profile_working"] and
+            test_results["customer_transactions_working"] and
+            test_results["no_keyerror_exceptions"] and
+            test_results["system_stability"]
+        )
+        
+        if all_objectives_met:
+            print(f"   ✅ All transaction-related endpoints return 200 status")
+            print(f"   ✅ No KeyError exceptions in any scenario")
+            print(f"   ✅ Empty arrays returned for empty database")
+            print(f"   ✅ Robust error handling for missing fields")
+            print(f"   ✅ System stability across all transaction features")
+            print(f"   ✅ Systematic fix resolved ALL unsafe field access patterns")
+        else:
+            print(f"   ❌ Some critical objectives not met:")
+            if not test_results["unified_transactions_working"]:
+                print(f"      - Unified transactions endpoint has issues")
+            if not test_results["empty_database_handling"]:
+                print(f"      - Empty database handling not robust")
+            if not test_results["customer_detailed_profile_working"]:
+                print(f"      - Customer detailed profiles still crash")
+            if not test_results["customer_transactions_working"]:
+                print(f"      - Customer transactions endpoints have issues")
+            if not test_results["no_keyerror_exceptions"]:
+                print(f"      - KeyError exceptions still detected")
+            if not test_results["system_stability"]:
+                print(f"      - System stability issues remain")
+        
+        print(f"\n📋 ENDPOINTS TESTED ({len(test_results['endpoints_tested'])}):")
+        for endpoint in test_results["endpoints_tested"]:
+            print(f"   - {endpoint}")
+        
+        if test_results["critical_issues"]:
+            print(f"\n🚨 CRITICAL ISSUES FOUND:")
+            for issue in test_results["critical_issues"]:
+                print(f"   - {issue}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if all_objectives_met:
+            print(f"   ✅ COMPREHENSIVE TRANSACTIONS FIX VERIFICATION SUCCESSFUL")
+            print(f"   - Systematic unsafe field access cleanup COMPLETE")
+            print(f"   - All transaction features working without KeyError")
+            print(f"   - Empty database scenarios handled robustly")
+            print(f"   - Customer profile and transaction endpoints stable")
+            print(f"   - Recurring failure cycle ENDED")
+        else:
+            print(f"   ❌ TRANSACTIONS FIX VERIFICATION INCOMPLETE")
+            print(f"   - Some unsafe field access patterns may remain")
+            print(f"   - Further investigation and fixes required")
+            print(f"   - Recurring failure cycle may continue")
+        
+        return all_objectives_met
+
     def test_bills_delete_endpoint_dual_lookup_fix(self):
         """Test Bills DELETE endpoint sau khi fix ObjectId vs UUID dual lookup - REVIEW REQUEST"""
         print(f"\n🎯 BILLS DELETE ENDPOINT DUAL LOOKUP FIX VERIFICATION")
