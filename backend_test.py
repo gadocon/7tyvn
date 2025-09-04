@@ -3177,14 +3177,14 @@ class FPTBillManagerAPITester:
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    # Run bills data verification and creation test (review request)
-    print("🎯 RUNNING BILLS DATA VERIFICATION AND CREATION")
-    success = tester.test_bills_data_verification_and_creation()
+    # Run bills DELETE endpoint dual lookup fix test (review request)
+    print("🎯 RUNNING BILLS DELETE ENDPOINT DUAL LOOKUP FIX VERIFICATION")
+    success = tester.test_bills_delete_endpoint_dual_lookup_fix()
     
     if success:
-        print("\n✅ Bills data verification and creation PASSED!")
+        print("\n✅ Bills DELETE endpoint dual lookup fix PASSED!")
     else:
-        print("\n❌ Bills data verification and creation NEEDS ATTENTION!")
+        print("\n❌ Bills DELETE endpoint dual lookup fix NEEDS ATTENTION!")
     
     # Close MongoDB connection
     if tester.mongo_connected:
