@@ -1162,33 +1162,64 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                                 "bill": None
                             }
                         
-                        # Process successful response
-                        if data.get("success") and data.get("status") == "OK":
-                            return {
-                                "success": True,
-                                "status": "OK", 
-                                "message": "Bill found via N8N Webhook",
-                                "customer_code": customer_code,
-                                "customer_name": data.get("customer_name", "N/A"),
-                                "customer_address": data.get("customer_address", "N/A"),
-                                "amount": data.get("amount", 0),
-                                "billing_cycle": data.get("billing_cycle", "N/A"),
-                                "bill_status": "AVAILABLE",
-                                "provider_region": provider_region,
-                                "bill": data.get("bill", {})
-                            }
+                        # Process successful N8N response format
+                        if data.get("status") == 200 and data.get("message") == "success":
+                            # Extract bill data from N8N response
+                            bill_data = data.get("data", {})
+                            bills = bill_data.get("bills", [])
+                            
+                            if bills and len(bills) > 0:
+                                bill = bills[0]  # Take first bill
+                                
+                                return {
+                                    "success": True,
+                                    "status": "OK", 
+                                    "message": "Bill found via N8N Webhook",
+                                    "customer_code": customer_code,
+                                    "customer_name": bill.get("customerName", "N/A"),
+                                    "customer_address": bill.get("address", "N/A"),
+                                    "amount": bill.get("moneyAmount", 0),
+                                    "billing_cycle": bill.get("month", "N/A"),
+                                    "bill_status": "AVAILABLE",
+                                    "provider_region": provider_region,
+                                    "bill": {
+                                        "billId": bill.get("billId"),
+                                        "contractNumber": bill.get("contractNumber"),
+                                        "customerName": bill.get("customerName"),
+                                        "address": bill.get("address"),
+                                        "amount": bill.get("moneyAmount", 0),
+                                        "month": bill.get("month"),
+                                        "totalAmount": bill_data.get("totalContractAmount", 0),
+                                        "gateway": "FPT_N8N"
+                                    }
+                                }
+                            else:
+                                # No bills found in response
+                                return {
+                                    "success": True,
+                                    "status": "NOT_FOUND",
+                                    "message": "No bills found in N8N response",
+                                    "customer_code": customer_code,
+                                    "customer_name": "N/A",
+                                    "customer_address": "N/A", 
+                                    "amount": 0,
+                                    "billing_cycle": "N/A",
+                                    "bill_status": "NOT_FOUND",
+                                    "provider_region": provider_region,
+                                    "bill": None
+                                }
                         else:
-                            # Bill not found
+                            # Unexpected response format
                             return {
                                 "success": True,
-                                "status": "NOT_FOUND",
-                                "message": "Bill not found via N8N Webhook",
+                                "status": "ERROR",
+                                "message": f"Unexpected N8N response format",
                                 "customer_code": customer_code,
                                 "customer_name": "N/A",
                                 "customer_address": "N/A", 
                                 "amount": 0,
                                 "billing_cycle": "N/A",
-                                "bill_status": "NOT_FOUND",
+                                "bill_status": "ERROR",
                                 "provider_region": provider_region,
                                 "bill": None
                             }
