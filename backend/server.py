@@ -1711,13 +1711,23 @@ async def delete_bill(bill_id: str):
 
 @api_router.get("/bills/{bill_id}")
 async def get_bill(bill_id: str):
-    """Get single bill by ID - used for existence check"""
+    """Get single bill by ID - used for existence check - supports both UUID and ObjectId lookup"""
     try:
+        # Try to find bill by 'id' field first (UUID format)
         bill = await db.bills.find_one({"id": bill_id})
-        if not bill:
-            raise HTTPException(status_code=404, detail="Không tìm thấy bill")
         
-        return Bill(**parse_from_mongo(bill))
+        # If not found and bill_id looks like ObjectId, try _id field
+        if not bill and len(bill_id) == 24 and all(c in '0123456789abcdef' for c in bill_id.lower()):
+            try:
+                from bson import ObjectId
+                bill = await db.bills.find_one({"_id": ObjectId(bill_id)})
+            except:
+                pass  # Invalid ObjectId format, continue with None
+        
+        if not bill:
+            raise HTTPException(status_code=404, detail="Bill không tồn tại")
+        
+        return parse_from_mongo(bill)
     except HTTPException:
         raise
     except Exception as e:
