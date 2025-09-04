@@ -3754,10 +3754,10 @@ async def get_unified_transactions(
                     }],
                     item_codes=[masked_card],
                     item_display=masked_card,
-                    payment_method=dao["payment_method"],
+                    payment_method=dao.get("payment_method", "POS"),
                     status=dao.get("status", "COMPLETED"),
                     notes=dao.get("notes"),
-                    created_at=dao["created_at"]
+                    created_at=dao.get("created_at")
                 )
                 unified_transactions.append(transaction)
         
