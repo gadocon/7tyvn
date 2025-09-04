@@ -1736,15 +1736,28 @@ async def get_bill(bill_id: str):
 
 @api_router.put("/bills/{bill_id}")
 async def update_bill(bill_id: str, bill_data: dict):
-    """Update bill information - used for recheck functionality"""
+    """Update bill information - used for recheck functionality - supports both UUID and ObjectId lookup"""
     try:
         print(f"PUT /bills/{bill_id} called with data keys: {list(bill_data.keys())}")
         
-        # Check if bill exists
+        # Try to find bill by 'id' field first (UUID format)
         existing_bill = await db.bills.find_one({"id": bill_id})
+        actual_bill_id = bill_id
+        
+        # If not found and bill_id looks like ObjectId, try _id field
+        if not existing_bill and len(bill_id) == 24 and all(c in '0123456789abcdef' for c in bill_id.lower()):
+            try:
+                from bson import ObjectId
+                existing_bill = await db.bills.find_one({"_id": ObjectId(bill_id)})
+                # If found by ObjectId, use the actual 'id' field for subsequent operations
+                if existing_bill and existing_bill.get('id'):
+                    actual_bill_id = existing_bill.get('id')
+            except:
+                pass  # Invalid ObjectId format, continue with original bill_id
+        
         if not existing_bill:
             print(f"Bill {bill_id} not found in database")
-            raise HTTPException(status_code=404, detail="Không tìm thấy bill")
+            raise HTTPException(status_code=404, detail="Không tìm thấy bill để cập nhật")
         
         print(f"Found existing bill: {existing_bill.get('id')}")
         
