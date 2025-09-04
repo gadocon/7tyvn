@@ -966,18 +966,23 @@ async def login_user(login_data: UserLogin):
         user_dict = dict(user)
         user_dict.pop("password", None)
         
-        # Convert ObjectId to string for UUID compatibility
-        if "_id" in user_dict:
+        # Use the UUID id field we created, not ObjectId
+        if "id" in user_dict:
+            # User already has UUID id field
+            pass
+        elif "_id" in user_dict:
+            # Fallback to ObjectId as string (shouldn't happen with updated user)
             user_dict["id"] = str(user_dict["_id"])
-            user_dict.pop("_id", None)
         
-        # Ensure all datetime fields are properly handled
+        # Remove ObjectId to avoid confusion
+        user_dict.pop("_id", None)
+        
+        # Handle datetime fields
         if "created_at" in user_dict and isinstance(user_dict["created_at"], str):
             user_dict["created_at"] = datetime.fromisoformat(user_dict["created_at"].replace('Z', '+00:00'))
         
-        # Use uuid_processor to clean response
-        cleaned_user = uuid_processor.clean_response(user_dict)
-        user_response = UserResponse(**cleaned_user)
+        # Don't use uuid_processor for user response as it may have ObjectId references
+        user_response = UserResponse(**user_dict)
         
         return TokenResponse(
             access_token=access_token,
