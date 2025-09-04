@@ -40,6 +40,54 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ========================================
+# AUTHENTICATION CONSTANTS
+# ========================================
+
+SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# ========================================
+# AUTHENTICATION MODELS
+# ========================================
+
+class UserRole(str, Enum):
+    ADMIN = "ADMIN"
+    MANAGER = "MANAGER"
+    USER = "USER"
+
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    phone: Optional[str] = Field(None, min_length=10, max_length=15)
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=1, max_length=100)
+    role: UserRole = UserRole.USER
+
+class UserLogin(BaseModel):
+    login: str  # Can be username, email, or phone
+    password: str
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    email: str
+    phone: Optional[str]
+    full_name: str
+    role: UserRole
+    is_active: bool
+    created_at: datetime
+    last_login: Optional[datetime] = None
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+# ========================================
 # PYDANTIC MODELS - UUID ONLY SYSTEM
 # ========================================
 
