@@ -20,6 +20,59 @@ def is_valid_uuid(uuid_string: str) -> bool:
     except (ValueError, TypeError):
         return False
 
+def is_valid_composite_bill_id(bill_id: str) -> bool:
+    """Check if string is valid composite bill_id format (customer_code + MMYY)"""
+    try:
+        # Should be at least customer_code (10+ chars) + MMYY (4 chars) = 14+ chars
+        if len(bill_id) < 14:
+            return False
+        
+        # Extract MMYY from end (last 4 characters)
+        mmyy = bill_id[-4:]
+        
+        # Check if MMYY is numeric
+        if not mmyy.isdigit():
+            return False
+        
+        # Extract MM and YY
+        mm = int(mmyy[:2])
+        yy = int(mmyy[2:])
+        
+        # Validate month (01-12)
+        if mm < 1 or mm > 12:
+            return False
+        
+        # Validate year (basic range check, e.g., 23-30 for 2023-2030)
+        if yy < 23 or yy > 30:
+            return False
+        
+        return True
+        
+    except (ValueError, TypeError):
+        return False
+
+def generate_composite_bill_id(customer_code: str, billing_cycle: str) -> str:
+    """Generate composite bill_id from customer_code and billing_cycle"""
+    try:
+        # Extract month/year from billing_cycle (e.g., "08/2025" -> "0825")
+        if "/" in billing_cycle:
+            month, year = billing_cycle.split("/")
+            mmyy = f"{month.zfill(2)}{year[-2:]}"  # MM + YY
+        else:
+            # Fallback to current date if cycle format is unexpected
+            from datetime import datetime
+            now = datetime.now()
+            mmyy = f"{now.month:02d}{str(now.year)[-2:]}"
+        
+        return f"{customer_code}{mmyy}"
+        
+    except Exception:
+        # Fallback to current date
+        from datetime import datetime
+        now = datetime.now()
+        mmyy = f"{now.month:02d}{str(now.year)[-2:]}"
+        return f"{customer_code}{mmyy}"
+
 class UUIDProcessor:
     """Clean UUID processing - NO ObjectId handling"""
     
