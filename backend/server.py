@@ -33,7 +33,7 @@ import jwt
 from datetime import timedelta
 
 # UUID utilities
-from uuid_utils import generate_uuid, is_valid_uuid, uuid_processor
+from uuid_utils import generate_uuid, is_valid_uuid, uuid_processor, is_valid_composite_bill_id, generate_composite_bill_id
 
 # HTTP client for external API calls
 import aiohttp
