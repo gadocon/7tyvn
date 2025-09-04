@@ -3742,9 +3742,9 @@ async def get_unified_transactions(
                     customer_id=dao["customer_id"],
                     customer_name=customer.get("name", "N/A"),
                     customer_phone=customer.get("phone"),
-                    total_amount=dao["total_amount"],
-                    profit_amount=dao["profit_value"],
-                    profit_percentage=dao["profit_pct"],
+                    total_amount=dao.get("total_amount", 0),
+                    profit_amount=dao.get("profit_value", 0),
+                    profit_percentage=dao.get("profit_pct", 0),
                     payback=dao.get("payback"),
                     items=[{
                         "id": card["id"],
