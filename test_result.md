@@ -325,6 +325,17 @@ test_plan:
     - "UUID-Only System Final Validation"
   stuck_tasks: []
   test_all: false
+  - task: "Frontend UUID-Only System Adaptation"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Identified and fixed frontend inconsistencies with UUID-only backend system. Fixed 3 key issues: 1) Line 756: Changed bill.bill_id to bill.id for inventory add functionality, 2) Line 1772: Simplified item.bill_id || item.id to just item.id for delete operations, 3) Line 3358: Changed billItem.bill_id to billItem.id for sales creation. Frontend was already using correct customer_id and other UUID fields, but had some remnant bill_id references from old ObjectId system. All field references now consistent with UUID-only backend."
   test_priority: "critical_first"
 
 backend:
