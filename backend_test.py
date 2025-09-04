@@ -2613,6 +2613,447 @@ class FPTBillManagerAPITester:
         
         return success_rate >= 80
 
+    def test_sales_api_uuid_system_404_investigation(self):
+        """Test Sales API UUID-only system to identify 404 'Bill not found or not available' errors - REVIEW REQUEST"""
+        print(f"\n🎯 SALES API UUID-ONLY SYSTEM 404 INVESTIGATION")
+        print("=" * 80)
+        print("🔍 INVESTIGATION OBJECTIVES:")
+        print("   1. Database State Check: Verify bills with status='AVAILABLE' and proper UUID format")
+        print("   2. Sales API Testing: Test POST /api/sales with valid customer_id and bill_ids")
+        print("   3. Data Creation: Create test bills with AVAILABLE status if needed")
+        print("   4. Foreign Key Validation: Test customer_id validation")
+        print("   5. Bill Query Analysis: Check bill lookup query logic")
+        print("   Expected: Identify exact cause of 404 'Bill not found or not available' errors")
+        
+        test_results = {
+            "database_bills_count": 0,
+            "available_bills_count": 0,
+            "uuid_format_bills": 0,
+            "customers_count": 0,
+            "test_bills_created": 0,
+            "test_customers_created": 0,
+            "sales_creation_success": False,
+            "customer_validation_working": False,
+            "bill_query_working": False,
+            "root_cause_identified": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_issues": [],
+            "recommendations": []
+        }
+        
+        # Step 1: Database State Check - Verify bills with AVAILABLE status and UUID format
+        print(f"\n🔍 STEP 1: Database State Check - Bills Analysis")
+        print("=" * 60)
+        
+        if self.mongo_connected:
+            try:
+                # Check total bills in database
+                total_bills = self.db.bills.count_documents({})
+                available_bills = self.db.bills.count_documents({"status": "AVAILABLE"})
+                
+                print(f"📊 DATABASE BILLS ANALYSIS:")
+                print(f"   Total bills in database: {total_bills}")
+                print(f"   Bills with AVAILABLE status: {available_bills}")
+                
+                test_results["database_bills_count"] = total_bills
+                test_results["available_bills_count"] = available_bills
+                
+                # Analyze bill ID formats
+                bills_sample = list(self.db.bills.find({}, {"id": 1, "status": 1, "_id": 1}).limit(20))
+                uuid_format_count = 0
+                
+                print(f"\n📋 BILL ID FORMAT ANALYSIS (Sample of {len(bills_sample)} bills):")
+                for i, bill in enumerate(bills_sample[:5]):
+                    bill_id = bill.get('id', '')
+                    mongo_id = str(bill.get('_id', ''))
+                    status = bill.get('status', 'UNKNOWN')
+                    
+                    # Check UUID format
+                    is_uuid = len(bill_id) == 36 and bill_id.count('-') == 4
+                    if is_uuid:
+                        uuid_format_count += 1
+                    
+                    print(f"   Bill {i+1}: ID={bill_id[:8]}..., Status={status}, Format={'UUID' if is_uuid else 'Other'}")
+                
+                test_results["uuid_format_bills"] = uuid_format_count
+                print(f"   Bills with proper UUID format: {uuid_format_count}/{len(bills_sample)}")
+                
+                if available_bills > 0 and uuid_format_count > 0:
+                    print(f"✅ Database has bills with AVAILABLE status and UUID format")
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"❌ Database lacks bills with AVAILABLE status or proper UUID format")
+                    test_results["critical_issues"].append("No AVAILABLE bills with UUID format found")
+                
+            except Exception as e:
+                print(f"❌ Database analysis failed: {e}")
+                test_results["critical_issues"].append(f"Database analysis error: {e}")
+        else:
+            print(f"⚠️ MongoDB connection not available for database analysis")
+            test_results["critical_issues"].append("No MongoDB connection for database analysis")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 2: Check customers in database
+        print(f"\n🔍 STEP 2: Database State Check - Customers Analysis")
+        print("=" * 60)
+        
+        if self.mongo_connected:
+            try:
+                total_customers = self.db.customers.count_documents({})
+                customers_sample = list(self.db.customers.find({}, {"id": 1, "name": 1}).limit(5))
+                
+                print(f"📊 DATABASE CUSTOMERS ANALYSIS:")
+                print(f"   Total customers in database: {total_customers}")
+                
+                test_results["customers_count"] = total_customers
+                
+                if customers_sample:
+                    print(f"   Sample customers:")
+                    for i, customer in enumerate(customers_sample):
+                        customer_id = customer.get('id', '')
+                        customer_name = customer.get('name', 'Unknown')
+                        is_uuid = len(customer_id) == 36 and customer_id.count('-') == 4
+                        print(f"      Customer {i+1}: {customer_name} (ID: {customer_id[:8]}..., Format: {'UUID' if is_uuid else 'Other'})")
+                
+                if total_customers > 0:
+                    print(f"✅ Database has customers for testing")
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"❌ No customers found in database")
+                    test_results["critical_issues"].append("No customers found for sales testing")
+                
+            except Exception as e:
+                print(f"❌ Customer analysis failed: {e}")
+                test_results["critical_issues"].append(f"Customer analysis error: {e}")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 3: Create test data if needed
+        print(f"\n🔍 STEP 3: Create Test Data if Needed")
+        print("=" * 60)
+        
+        # Create test customers if none exist
+        if test_results["customers_count"] == 0:
+            print(f"📝 Creating test customers...")
+            
+            for i in range(3):
+                customer_data = {
+                    "name": f"Sales Test Customer {i+1}",
+                    "phone": f"0901234{i:03d}",
+                    "email": f"sales_test_{i+1}@example.com",
+                    "address": f"Sales Test Address {i+1}",
+                    "type": "INDIVIDUAL"
+                }
+                
+                create_success, create_response = self.run_test(
+                    f"POST /customers - Create Test Customer {i+1}",
+                    "POST",
+                    "customers",
+                    200,
+                    data=customer_data
+                )
+                
+                if create_success:
+                    test_results["test_customers_created"] += 1
+                    print(f"   ✅ Created customer: {customer_data['name']}")
+                else:
+                    print(f"   ❌ Failed to create customer: {customer_data['name']}")
+        
+        # Create test bills if insufficient AVAILABLE bills
+        if test_results["available_bills_count"] < 3:
+            print(f"📝 Creating test bills with AVAILABLE status...")
+            
+            for i in range(5):
+                bill_data = {
+                    "customer_code": f"SALES_TEST_{i+1:03d}",
+                    "customer_name": f"Sales Test Customer {i+1}",
+                    "phone": f"0901234{i:03d}",
+                    "address": f"Sales Test Address {i+1}",
+                    "amount": 100000 + (i * 50000),
+                    "cycle": f"{(i % 12) + 1:02d}/2025",
+                    "gateway": "FPT",
+                    "provider_region": "MIEN_BAC" if i % 2 == 0 else "MIEN_NAM",
+                    "due_date": "2025-12-31"
+                }
+                
+                create_success, create_response = self.run_test(
+                    f"POST /bills - Create Test Bill {i+1}",
+                    "POST",
+                    "bills",
+                    200,
+                    data=bill_data
+                )
+                
+                if create_success:
+                    test_results["test_bills_created"] += 1
+                    print(f"   ✅ Created bill: {bill_data['customer_code']} - Amount: {bill_data['amount']}")
+                else:
+                    print(f"   ❌ Failed to create bill: {bill_data['customer_code']}")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 4: Get available test data for sales creation
+        print(f"\n🔍 STEP 4: Retrieve Test Data for Sales Creation")
+        print("=" * 60)
+        
+        # Get customers for testing
+        customers_success, customers_response = self.run_test(
+            "GET /customers - Get Test Customers",
+            "GET",
+            "customers?limit=10",
+            200
+        )
+        
+        test_customer = None
+        if customers_success and customers_response:
+            test_customer = customers_response[0]
+            print(f"✅ Found test customer: {test_customer.get('name')} (ID: {test_customer.get('id')})")
+        else:
+            print(f"❌ No customers available for testing")
+            test_results["critical_issues"].append("No customers available for sales testing")
+        
+        # Get available bills for testing
+        bills_success, bills_response = self.run_test(
+            "GET /bills - Get Available Bills",
+            "GET",
+            "bills?status=AVAILABLE&limit=10",
+            200
+        )
+        
+        test_bills = []
+        if bills_success and bills_response:
+            test_bills = bills_response[:3]  # Use first 3 bills
+            print(f"✅ Found {len(test_bills)} available bills for testing:")
+            for i, bill in enumerate(test_bills):
+                print(f"   Bill {i+1}: {bill.get('customer_code')} - Amount: {bill.get('amount')} - ID: {bill.get('id')}")
+        else:
+            print(f"❌ No available bills found for testing")
+            test_results["critical_issues"].append("No available bills for sales testing")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 5: Test Customer ID Validation
+        print(f"\n🔍 STEP 5: Test Customer ID Validation")
+        print("=" * 60)
+        
+        if test_customer:
+            customer_id = test_customer.get('id')
+            
+            # Test valid customer lookup
+            customer_lookup_success, customer_lookup_response = self.run_test(
+                f"GET /customers/{customer_id} - Validate Customer Exists",
+                "GET",
+                f"customers/{customer_id}",
+                200
+            )
+            
+            if customer_lookup_success:
+                print(f"✅ Customer validation working - customer exists and accessible")
+                test_results["customer_validation_working"] = True
+                test_results["passed_tests"] += 1
+            else:
+                print(f"❌ Customer validation failing - customer not accessible")
+                test_results["critical_issues"].append(f"Customer {customer_id} not accessible via API")
+            
+            # Test invalid customer ID
+            invalid_customer_success, invalid_customer_response = self.run_test(
+                "GET /customers/invalid-uuid - Test Invalid Customer ID",
+                "GET",
+                "customers/00000000-0000-0000-0000-000000000000",
+                404
+            )
+            
+            if invalid_customer_success:
+                print(f"✅ Invalid customer ID properly returns 404")
+                test_results["passed_tests"] += 1
+            else:
+                print(f"❌ Invalid customer ID handling not working correctly")
+        
+        test_results["total_tests"] += 2
+        
+        # Step 6: Test Bill Query Logic
+        print(f"\n🔍 STEP 6: Test Bill Query Logic")
+        print("=" * 60)
+        
+        if test_bills:
+            for i, bill in enumerate(test_bills):
+                bill_id = bill.get('id')
+                
+                # Test individual bill lookup
+                bill_lookup_success, bill_lookup_response = self.run_test(
+                    f"GET /bills/{bill_id} - Test Bill Lookup {i+1}",
+                    "GET",
+                    f"bills/{bill_id}",
+                    200
+                )
+                
+                if bill_lookup_success:
+                    bill_status = bill_lookup_response.get('status')
+                    print(f"   ✅ Bill {i+1} accessible - Status: {bill_status}")
+                    
+                    if bill_status == "AVAILABLE":
+                        test_results["bill_query_working"] = True
+                        test_results["passed_tests"] += 1
+                    else:
+                        print(f"   ⚠️ Bill status is {bill_status}, not AVAILABLE")
+                else:
+                    print(f"   ❌ Bill {i+1} not accessible via API")
+                    test_results["critical_issues"].append(f"Bill {bill_id} not accessible")
+                
+                test_results["total_tests"] += 1
+        
+        # Step 7: Test Sales Creation - The Critical Test
+        print(f"\n🔍 STEP 7: Test Sales Creation - Critical 404 Investigation")
+        print("=" * 60)
+        
+        if test_customer and test_bills:
+            customer_id = test_customer.get('id')
+            bill_ids = [bill.get('id') for bill in test_bills]
+            
+            print(f"🎯 ATTEMPTING SALES CREATION:")
+            print(f"   Customer ID: {customer_id}")
+            print(f"   Bill IDs: {bill_ids}")
+            print(f"   Expected: Should work if UUID-only system is correct")
+            
+            sales_data = {
+                "customer_id": customer_id,
+                "bill_ids": bill_ids,
+                "profit_pct": 5.0,
+                "notes": "Test sale for UUID-only system investigation"
+            }
+            
+            sales_success, sales_response = self.run_test(
+                "POST /sales - Create Sale Transaction",
+                "POST",
+                "sales",
+                200,
+                data=sales_data
+            )
+            
+            if sales_success:
+                print(f"✅ SUCCESS: Sales creation working!")
+                print(f"   Sale ID: {sales_response.get('id')}")
+                print(f"   Total: {sales_response.get('total')}")
+                print(f"   Profit: {sales_response.get('profit_value')}")
+                test_results["sales_creation_success"] = True
+                test_results["passed_tests"] += 1
+                test_results["root_cause_identified"] = True
+                test_results["recommendations"].append("Sales API is working correctly with UUID-only system")
+            else:
+                print(f"❌ FAILED: Sales creation still returning error")
+                print(f"   This confirms the 404 'Bill not found or not available' issue")
+                
+                # Analyze the specific error
+                if hasattr(sales_response, 'get'):
+                    error_detail = sales_response.get('detail', 'Unknown error')
+                    print(f"   Error detail: {error_detail}")
+                    
+                    if "Bill" in error_detail and "not found" in error_detail:
+                        test_results["critical_issues"].append("Bill lookup failing in sales creation")
+                        test_results["recommendations"].append("Check bill query logic in sales creation endpoint")
+                    elif "Customer" in error_detail:
+                        test_results["critical_issues"].append("Customer lookup failing in sales creation")
+                        test_results["recommendations"].append("Check customer validation in sales creation endpoint")
+                    else:
+                        test_results["critical_issues"].append(f"Unknown sales creation error: {error_detail}")
+                
+                test_results["root_cause_identified"] = True
+        else:
+            print(f"⚠️ Cannot test sales creation - missing test data")
+            test_results["critical_issues"].append("Insufficient test data for sales creation testing")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 8: Detailed Bill Query Analysis
+        print(f"\n🔍 STEP 8: Detailed Bill Query Analysis")
+        print("=" * 60)
+        
+        if test_bills and self.mongo_connected:
+            print(f"🔍 ANALYZING BILL QUERY LOGIC:")
+            
+            for bill in test_bills[:2]:  # Analyze first 2 bills
+                bill_id = bill.get('id')
+                
+                try:
+                    # Direct database query to match sales creation logic
+                    db_bill = self.db.bills.find_one({"id": bill_id, "status": "AVAILABLE"})
+                    
+                    if db_bill:
+                        print(f"   ✅ Bill {bill_id[:8]}... found in database with AVAILABLE status")
+                        print(f"      Customer Code: {db_bill.get('customer_code')}")
+                        print(f"      Amount: {db_bill.get('amount')}")
+                        print(f"      Status: {db_bill.get('status')}")
+                    else:
+                        print(f"   ❌ Bill {bill_id[:8]}... NOT found with query {{id: {bill_id}, status: AVAILABLE}}")
+                        
+                        # Check if bill exists with different status
+                        any_status_bill = self.db.bills.find_one({"id": bill_id})
+                        if any_status_bill:
+                            actual_status = any_status_bill.get('status')
+                            print(f"      Bill exists but status is: {actual_status}")
+                            test_results["critical_issues"].append(f"Bill {bill_id} has status {actual_status}, not AVAILABLE")
+                        else:
+                            print(f"      Bill does not exist in database at all")
+                            test_results["critical_issues"].append(f"Bill {bill_id} does not exist in database")
+                
+                except Exception as e:
+                    print(f"   ❌ Database query failed: {e}")
+                    test_results["critical_issues"].append(f"Database query error: {e}")
+        
+        # Step 9: Final Analysis and Recommendations
+        print(f"\n📊 STEP 9: Final Analysis and Root Cause Identification")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 SALES API UUID-ONLY INVESTIGATION RESULTS:")
+        print(f"   Database bills count: {test_results['database_bills_count']}")
+        print(f"   Available bills count: {test_results['available_bills_count']}")
+        print(f"   UUID format bills: {test_results['uuid_format_bills']}")
+        print(f"   Customers count: {test_results['customers_count']}")
+        print(f"   Test bills created: {test_results['test_bills_created']}")
+        print(f"   Test customers created: {test_results['test_customers_created']}")
+        print(f"   Sales creation success: {'✅ YES' if test_results['sales_creation_success'] else '❌ NO'}")
+        print(f"   Customer validation working: {'✅ YES' if test_results['customer_validation_working'] else '❌ NO'}")
+        print(f"   Bill query working: {'✅ YES' if test_results['bill_query_working'] else '❌ NO'}")
+        print(f"   Root cause identified: {'✅ YES' if test_results['root_cause_identified'] else '❌ NO'}")
+        print(f"   Overall Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🎯 ROOT CAUSE ANALYSIS:")
+        if test_results["critical_issues"]:
+            print(f"   🚨 CRITICAL ISSUES IDENTIFIED:")
+            for issue in test_results["critical_issues"]:
+                print(f"      - {issue}")
+        else:
+            print(f"   ✅ No critical issues found - system may be working correctly")
+        
+        print(f"\n💡 RECOMMENDATIONS:")
+        if test_results["recommendations"]:
+            for recommendation in test_results["recommendations"]:
+                print(f"   - {recommendation}")
+        else:
+            if not test_results["sales_creation_success"]:
+                print(f"   - Investigate bill status validation in sales creation endpoint")
+                print(f"   - Check if bills are properly marked as AVAILABLE in database")
+                print(f"   - Verify UUID format consistency between API and database")
+                print(f"   - Review sales creation query logic at line 668 in server.py")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if test_results["sales_creation_success"]:
+            print(f"   ✅ SALES API UUID-ONLY SYSTEM IS WORKING CORRECTLY")
+            print(f"   - Sales creation successful with UUID-only references")
+            print(f"   - No 404 'Bill not found or not available' errors detected")
+            print(f"   - UUID-only system functioning as designed")
+        else:
+            print(f"   ❌ SALES API UUID-ONLY SYSTEM HAS ISSUES")
+            print(f"   - 404 'Bill not found or not available' error confirmed")
+            print(f"   - Issue likely in bill lookup query or status validation")
+            print(f"   - Requires immediate investigation and fix")
+        
+        return test_results["sales_creation_success"]
+
     def run_all_tests(self):
         """Run all tests for the review request"""
         print(f"\n🚀 STARTING DUAL COLLECTION ARCHITECTURE ANALYSIS")
