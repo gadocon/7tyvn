@@ -1037,6 +1037,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(H
         )
     except jwt.JWTError:
         raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials"
+        )
+    except Exception as e:
+        logger.error(f"Error validating token: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/dashboard/stats") 
 async def get_dashboard_stats_redirect():
     """Redirect old dashboard stats endpoint to new one"""
