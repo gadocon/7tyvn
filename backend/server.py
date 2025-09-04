@@ -2991,9 +2991,32 @@ async def process_card_payment(card_id: str, payment_data: CreditCardTransaction
             if not payment_data.bill_ids:
                 raise HTTPException(status_code=400, detail="Cần chọn ít nhất một bill điện")
             
-            # Get bills and validate they're available
-            bill_filter = {"id": {"$in": payment_data.bill_ids}, "status": BillStatus.AVAILABLE}
-            bills = await db.bills.find(bill_filter).to_list(None)
+            # Get bills from inventory system (consistent with inventory tab)
+            # Use aggregation pipeline to ensure bills are in inventory
+            bill_pipeline = [
+                {
+                    "$lookup": {
+                        "from": "bills",
+                        "localField": "bill_id",
+                        "foreignField": "id",
+                        "as": "bill_info"
+                    }
+                },
+                {
+                    "$unwind": "$bill_info"
+                },
+                {
+                    "$match": {
+                        "bill_info.id": {"$in": payment_data.bill_ids},
+                        "bill_info.status": BillStatus.AVAILABLE
+                    }
+                },
+                {
+                    "$replaceRoot": {"newRoot": "$bill_info"}
+                }
+            ]
+            
+            bills = await db.inventory_items.aggregate(bill_pipeline).to_list(None)
             
             if len(bills) != len(payment_data.bill_ids):
                 raise HTTPException(status_code=400, detail="Một số bill không khả dụng hoặc không tồn tại")
