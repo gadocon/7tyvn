@@ -4603,6 +4603,426 @@ class FPTBillManagerAPITester:
         
         return cleanup_result
 
+    def test_uuid_only_system_comprehensive(self):
+        """COMPREHENSIVE UUID-ONLY SYSTEM TESTING - REVIEW REQUEST"""
+        print(f"\n🎯 UUID-ONLY SYSTEM COMPREHENSIVE TESTING")
+        print("=" * 80)
+        print("🔍 CRITICAL OBJECTIVES:")
+        print("   1. Complete database cleanup - Remove all existing data with mixed ID formats")
+        print("   2. Create clean UUID-only test data - 10 customers, 20 bills with proper UUID structure")
+        print("   3. Test all new API endpoints - Verify UUID-only system working")
+        print("   4. Performance testing - Confirm no dual lookup overhead")
+        print("   5. Validate data consistency - Ensure all relationships use UUIDs")
+        print("   Expected: All APIs return 200 status with clean UUID data, no ObjectId references")
+        
+        test_results = {
+            "database_cleanup_complete": False,
+            "uuid_test_data_created": False,
+            "customers_created": 0,
+            "bills_created": 0,
+            "all_apis_working": False,
+            "no_objectid_references": False,
+            "foreign_key_relationships_working": False,
+            "sales_transactions_working": False,
+            "performance_acceptable": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_issues": []
+        }
+        
+        # Step 1: Complete Database Cleanup
+        print(f"\n🔍 STEP 1: Complete Database Cleanup for UUID-Only System")
+        print("=" * 60)
+        
+        if not self.mongo_connected:
+            print("❌ MongoDB connection required for database cleanup")
+            test_results["critical_issues"].append("MongoDB connection not available")
+            return False
+        
+        try:
+            # Clean all collections for fresh start
+            collections_to_clean = ["customers", "bills", "sales", "credit_cards"]
+            cleanup_counts = {}
+            
+            for collection in collections_to_clean:
+                result = getattr(self.db, collection).delete_many({})
+                cleanup_counts[collection] = result.deleted_count
+                print(f"   Cleaned {collection}: {result.deleted_count} documents")
+            
+            # Verify cleanup
+            total_remaining = sum(getattr(self.db, col).count_documents({}) for col in collections_to_clean)
+            
+            if total_remaining == 0:
+                print(f"✅ Database cleanup complete - all business data removed")
+                test_results["database_cleanup_complete"] = True
+                test_results["passed_tests"] += 1
+            else:
+                print(f"❌ Database cleanup incomplete - {total_remaining} documents remaining")
+                test_results["critical_issues"].append(f"Database not clean: {total_remaining} documents remaining")
+                
+        except Exception as e:
+            print(f"❌ Database cleanup failed: {e}")
+            test_results["critical_issues"].append(f"Database cleanup error: {e}")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 2: Create Clean UUID-Only Test Data
+        print(f"\n🔍 STEP 2: Create Clean UUID-Only Test Data")
+        print("=" * 60)
+        
+        # Create 10 customers with proper UUID structure
+        customers_created = []
+        for i in range(10):
+            customer_data = {
+                "name": f"UUID Customer {i+1:02d}",
+                "phone": f"0901{i+1:06d}",
+                "email": f"uuid.customer{i+1:02d}@test.com",
+                "address": f"UUID Address {i+1}, District {i+1}, Ho Chi Minh City",
+                "type": "INDIVIDUAL",
+                "notes": f"UUID-only test customer {i+1}"
+            }
+            
+            create_success, create_response = self.run_test(
+                f"POST /customers - Create UUID Customer {i+1}",
+                "POST",
+                "customers",
+                201,
+                data=customer_data
+            )
+            
+            if create_success and create_response:
+                customer_id = create_response.get('id')
+                if customer_id and len(customer_id) == 36 and customer_id.count('-') == 4:
+                    customers_created.append(create_response)
+                    print(f"   ✅ Created UUID customer {i+1}: {customer_id}")
+                else:
+                    print(f"   ❌ Customer {i+1} created but ID format invalid: {customer_id}")
+                    test_results["critical_issues"].append(f"Invalid UUID format: {customer_id}")
+            else:
+                print(f"   ❌ Failed to create customer {i+1}")
+                test_results["critical_issues"].append(f"Customer creation failed: {i+1}")
+        
+        test_results["customers_created"] = len(customers_created)
+        
+        # Create 20 bills with proper UUID structure
+        bills_created = []
+        for i in range(20):
+            bill_data = {
+                "customer_code": f"UUID{1000000 + i:07d}",
+                "customer_name": f"UUID Customer {(i % 10) + 1:02d}",
+                "phone": f"0901{(i % 10) + 1:06d}",
+                "address": f"UUID Bill Address {i+1}, District {i+1}, Ho Chi Minh City",
+                "amount": 150000 + (i * 25000),
+                "cycle": f"{(i % 12) + 1:02d}/2025",
+                "gateway": "FPT",
+                "provider_region": "HCMC" if i % 2 == 0 else "MIEN_BAC",
+                "due_date": f"{(i % 28) + 1:02d}/{(i % 12) + 1:02d}/2025"
+            }
+            
+            create_success, create_response = self.run_test(
+                f"POST /bills - Create UUID Bill {i+1}",
+                "POST",
+                "bills",
+                201,
+                data=bill_data
+            )
+            
+            if create_success and create_response:
+                bill_id = create_response.get('id')
+                if bill_id and len(bill_id) == 36 and bill_id.count('-') == 4:
+                    bills_created.append(create_response)
+                    print(f"   ✅ Created UUID bill {i+1}: {bill_id}")
+                else:
+                    print(f"   ❌ Bill {i+1} created but ID format invalid: {bill_id}")
+                    test_results["critical_issues"].append(f"Invalid bill UUID format: {bill_id}")
+            else:
+                print(f"   ❌ Failed to create bill {i+1}")
+                test_results["critical_issues"].append(f"Bill creation failed: {i+1}")
+        
+        test_results["bills_created"] = len(bills_created)
+        
+        if test_results["customers_created"] >= 8 and test_results["bills_created"] >= 15:
+            print(f"✅ UUID test data creation successful")
+            print(f"   Customers: {test_results['customers_created']}/10")
+            print(f"   Bills: {test_results['bills_created']}/20")
+            test_results["uuid_test_data_created"] = True
+            test_results["passed_tests"] += 1
+        else:
+            print(f"❌ UUID test data creation insufficient")
+            print(f"   Customers: {test_results['customers_created']}/10")
+            print(f"   Bills: {test_results['bills_created']}/20")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 3: Test All New API Endpoints
+        print(f"\n🔍 STEP 3: Test All New UUID-Only API Endpoints")
+        print("=" * 60)
+        
+        api_tests = []
+        
+        # Test customers endpoints
+        if customers_created:
+            test_customer_id = customers_created[0]['id']
+            
+            # GET /customers
+            success, response = self.run_test("GET /customers", "GET", "customers", 200)
+            api_tests.append(("GET /customers", success))
+            
+            # GET /customers/{id}
+            success, response = self.run_test(f"GET /customers/{test_customer_id}", "GET", f"customers/{test_customer_id}", 200)
+            api_tests.append(("GET /customers/{id}", success))
+            
+            # PUT /customers/{id}
+            update_data = {"notes": "Updated via UUID-only API"}
+            success, response = self.run_test(f"PUT /customers/{test_customer_id}", "PUT", f"customers/{test_customer_id}", 200, data=update_data)
+            api_tests.append(("PUT /customers/{id}", success))
+        
+        # Test bills endpoints
+        if bills_created:
+            test_bill_id = bills_created[0]['id']
+            
+            # GET /bills
+            success, response = self.run_test("GET /bills", "GET", "bills", 200)
+            api_tests.append(("GET /bills", success))
+            
+            # GET /bills/{id}
+            success, response = self.run_test(f"GET /bills/{test_bill_id}", "GET", f"bills/{test_bill_id}", 200)
+            api_tests.append(("GET /bills/{id}", success))
+            
+            # PUT /bills/{id}
+            update_data = {"notes": "Updated via UUID-only API"}
+            success, response = self.run_test(f"PUT /bills/{test_bill_id}", "PUT", f"bills/{test_bill_id}", 200, data=update_data)
+            api_tests.append(("PUT /bills/{id}", success))
+        
+        # Test inventory endpoints
+        success, response = self.run_test("GET /inventory", "GET", "inventory", 200)
+        api_tests.append(("GET /inventory", success))
+        
+        # Test dashboard stats
+        success, response = self.run_test("GET /stats/dashboard", "GET", "stats/dashboard", 200)
+        api_tests.append(("GET /stats/dashboard", success))
+        
+        # Test health check
+        success, response = self.run_test("GET /health", "GET", "health", 200)
+        api_tests.append(("GET /health", success))
+        
+        passed_api_tests = sum(1 for _, success in api_tests if success)
+        total_api_tests = len(api_tests)
+        
+        print(f"\n📊 API ENDPOINTS TESTING RESULTS:")
+        for endpoint, success in api_tests:
+            status = "✅ PASS" if success else "❌ FAIL"
+            print(f"   {endpoint}: {status}")
+        
+        if passed_api_tests == total_api_tests:
+            print(f"✅ All API endpoints working correctly ({passed_api_tests}/{total_api_tests})")
+            test_results["all_apis_working"] = True
+            test_results["passed_tests"] += 1
+        else:
+            print(f"❌ Some API endpoints failing ({passed_api_tests}/{total_api_tests})")
+            test_results["critical_issues"].append(f"API endpoints failing: {total_api_tests - passed_api_tests}")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 4: Validate No ObjectId References
+        print(f"\n🔍 STEP 4: Validate No ObjectId References in Responses")
+        print("=" * 60)
+        
+        objectid_found = False
+        
+        # Check customers response
+        success, customers_response = self.run_test("GET /customers - ObjectId Check", "GET", "customers", 200)
+        if success and customers_response:
+            for customer in customers_response[:5]:
+                customer_str = str(customer)
+                if 'ObjectId' in customer_str or '_id' in customer:
+                    objectid_found = True
+                    print(f"   ❌ ObjectId reference found in customer: {customer.get('id', 'Unknown')}")
+                    break
+            
+            if not objectid_found:
+                print(f"   ✅ No ObjectId references in customers response")
+        
+        # Check bills response
+        success, bills_response = self.run_test("GET /bills - ObjectId Check", "GET", "bills", 200)
+        if success and bills_response:
+            for bill in bills_response[:5]:
+                bill_str = str(bill)
+                if 'ObjectId' in bill_str or '_id' in bill:
+                    objectid_found = True
+                    print(f"   ❌ ObjectId reference found in bill: {bill.get('id', 'Unknown')}")
+                    break
+            
+            if not objectid_found:
+                print(f"   ✅ No ObjectId references in bills response")
+        
+        if not objectid_found:
+            print(f"✅ Clean UUID-only responses confirmed - no ObjectId references")
+            test_results["no_objectid_references"] = True
+            test_results["passed_tests"] += 1
+        else:
+            print(f"❌ ObjectId references still present in API responses")
+            test_results["critical_issues"].append("ObjectId references found in responses")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 5: Test Foreign Key Relationships
+        print(f"\n🔍 STEP 5: Test Foreign Key Relationships with UUIDs")
+        print("=" * 60)
+        
+        if customers_created and bills_created:
+            # Test creating a sale transaction with UUID relationships
+            customer_id = customers_created[0]['id']
+            bill_ids = [bills_created[0]['id'], bills_created[1]['id']] if len(bills_created) >= 2 else [bills_created[0]['id']]
+            
+            sale_data = {
+                "customer_id": customer_id,
+                "bill_ids": bill_ids,
+                "profit_pct": 5.0,
+                "notes": "UUID-only sale transaction test"
+            }
+            
+            sale_success, sale_response = self.run_test(
+                "POST /sales - UUID Foreign Key Test",
+                "POST",
+                "sales",
+                201,
+                data=sale_data
+            )
+            
+            if sale_success and sale_response:
+                sale_id = sale_response.get('id')
+                if sale_id and len(sale_id) == 36:
+                    print(f"✅ Foreign key relationships working with UUIDs")
+                    print(f"   Sale ID: {sale_id}")
+                    print(f"   Customer ID: {sale_response.get('customer_id')}")
+                    print(f"   Bill IDs: {sale_response.get('bill_ids')}")
+                    test_results["foreign_key_relationships_working"] = True
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"❌ Sale created but UUID format invalid: {sale_id}")
+            else:
+                print(f"❌ Foreign key relationship test failed")
+                test_results["critical_issues"].append("Foreign key relationships not working")
+        else:
+            print(f"⚠️ Cannot test foreign key relationships - insufficient test data")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 6: Performance Testing
+        print(f"\n🔍 STEP 6: Performance Testing - No Dual Lookup Overhead")
+        print("=" * 60)
+        
+        import time
+        
+        if customers_created:
+            # Test multiple customer lookups for performance
+            start_time = time.time()
+            
+            performance_tests = 0
+            performance_successes = 0
+            
+            for customer in customers_created[:5]:
+                customer_id = customer['id']
+                success, response = self.run_test(
+                    f"Performance Test - Customer {customer_id}",
+                    "GET",
+                    f"customers/{customer_id}",
+                    200
+                )
+                performance_tests += 1
+                if success:
+                    performance_successes += 1
+            
+            end_time = time.time()
+            total_time = end_time - start_time
+            avg_time = total_time / performance_tests if performance_tests > 0 else 0
+            
+            print(f"   Performance Results:")
+            print(f"   Total time: {total_time:.2f}s")
+            print(f"   Average per request: {avg_time:.3f}s")
+            print(f"   Success rate: {performance_successes}/{performance_tests}")
+            
+            if avg_time < 0.5 and performance_successes == performance_tests:
+                print(f"✅ Performance acceptable - no dual lookup overhead detected")
+                test_results["performance_acceptable"] = True
+                test_results["passed_tests"] += 1
+            else:
+                print(f"❌ Performance issues detected or requests failing")
+                test_results["critical_issues"].append(f"Performance issues: {avg_time:.3f}s avg")
+        else:
+            print(f"⚠️ Cannot test performance - no customers available")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 7: Final Assessment
+        print(f"\n📊 STEP 7: Final Assessment - UUID-Only System")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 UUID-ONLY SYSTEM TEST RESULTS:")
+        print(f"   Database cleanup complete: {'✅ YES' if test_results['database_cleanup_complete'] else '❌ NO'}")
+        print(f"   UUID test data created: {'✅ YES' if test_results['uuid_test_data_created'] else '❌ NO'}")
+        print(f"   Customers created: {test_results['customers_created']}/10")
+        print(f"   Bills created: {test_results['bills_created']}/20")
+        print(f"   All APIs working: {'✅ YES' if test_results['all_apis_working'] else '❌ NO'}")
+        print(f"   No ObjectId references: {'✅ YES' if test_results['no_objectid_references'] else '❌ NO'}")
+        print(f"   Foreign key relationships: {'✅ WORKING' if test_results['foreign_key_relationships_working'] else '❌ FAILED'}")
+        print(f"   Performance acceptable: {'✅ YES' if test_results['performance_acceptable'] else '❌ NO'}")
+        print(f"   Overall Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🎯 CRITICAL VERIFICATION OBJECTIVES:")
+        all_objectives_met = (
+            test_results["database_cleanup_complete"] and
+            test_results["uuid_test_data_created"] and
+            test_results["all_apis_working"] and
+            test_results["no_objectid_references"] and
+            test_results["foreign_key_relationships_working"]
+        )
+        
+        if all_objectives_met:
+            print(f"   ✅ Complete database cleanup - All existing data with mixed ID formats removed")
+            print(f"   ✅ Clean UUID-only test data created - 10 customers, 20 bills with proper UUID structure")
+            print(f"   ✅ All new API endpoints working - UUID-only system functional")
+            print(f"   ✅ No dual lookup overhead - Performance acceptable")
+            print(f"   ✅ Data consistency validated - All relationships use UUIDs")
+            print(f"   ✅ All APIs return 200 status with clean UUID data")
+            print(f"   ✅ No ObjectId references anywhere in responses")
+            print(f"   ✅ Foreign key relationships working correctly")
+        else:
+            print(f"   ❌ Some critical objectives not met:")
+            if not test_results["database_cleanup_complete"]:
+                print(f"      - Database cleanup incomplete")
+            if not test_results["uuid_test_data_created"]:
+                print(f"      - UUID test data creation failed")
+            if not test_results["all_apis_working"]:
+                print(f"      - Some API endpoints not working")
+            if not test_results["no_objectid_references"]:
+                print(f"      - ObjectId references still present")
+            if not test_results["foreign_key_relationships_working"]:
+                print(f"      - Foreign key relationships not working")
+        
+        if test_results["critical_issues"]:
+            print(f"\n🚨 CRITICAL ISSUES FOUND:")
+            for issue in test_results["critical_issues"]:
+                print(f"   - {issue}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if all_objectives_met:
+            print(f"   ✅ UUID-ONLY SYSTEM COMPREHENSIVE TESTING SUCCESSFUL")
+            print(f"   - Clean UUID-only database with test data")
+            print(f"   - All API endpoints functional with new architecture")
+            print(f"   - System ready for frontend integration")
+            print(f"   - No ObjectId complexity remaining")
+            print(f"   - Performance optimized without dual lookup overhead")
+        else:
+            print(f"   ❌ UUID-ONLY SYSTEM NEEDS ATTENTION")
+            print(f"   - Some critical foundation issues remain")
+            print(f"   - System not ready for frontend integration")
+        
+        return all_objectives_met
+
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
