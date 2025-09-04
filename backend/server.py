@@ -1199,18 +1199,27 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                         
                         # Handle array response from N8N webhook
                         if isinstance(response_data, list) and len(response_data) > 0:
-                            # Find success response (ignore error responses)
+                            # Find success response (prioritize success over errors)
                             success_response = None
-                            for item in response_data:
-                                if "status" in item and item.get("status") == 200:
-                                    success_response = item
-                                    break
+                            error_response = None
                             
+                            for item in response_data:
+                                if "status" in item and item.get("status") == 200 and item.get("message") == "success":
+                                    success_response = item
+                                    break  # Prioritize success response
+                                elif "error" in item:
+                                    error_response = item
+                            
+                            # Use success response if available, otherwise use error
                             if success_response:
                                 data = success_response
+                                logger.info(f"Using SUCCESS response from N8N webhook")
+                            elif error_response:
+                                data = error_response
+                                logger.info(f"Using ERROR response from N8N webhook")
                             else:
-                                # All responses are errors, take first one
                                 data = response_data[0]
+                                logger.info(f"Using FIRST response from N8N webhook")
                         else:
                             data = response_data
                         
