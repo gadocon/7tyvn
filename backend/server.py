@@ -1020,6 +1020,49 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(H
         )
     except jwt.JWTError:
         raise HTTPException(
+@app.get("/api/dashboard/stats") 
+async def get_dashboard_stats_redirect():
+    """Redirect old dashboard stats endpoint to new one"""
+    return await get_dashboard_stats()
+
+@app.get("/api/credit-cards/stats")
+async def get_credit_cards_stats():
+    """Credit cards stats for dashboard (placeholder)"""
+    try:
+        # For now, return empty stats - to be implemented
+        return {
+            "total": 0,
+            "active": 0,
+            "expired": 0,
+            "this_month": 0
+        }
+    except Exception as e:
+        logger.error(f"Error fetching credit card stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/activities/recent")
+async def get_recent_activities(days: int = 3, limit: int = 20):
+    """Recent activities for dashboard (placeholder)"""
+    try:
+        # For now, return empty activities - to be implemented  
+        return []
+    except Exception as e:
+        logger.error(f"Error fetching recent activities: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/bill/check/single")
+async def check_single_bill(customer_code: str, provider_region: str):
+    """Single bill check (placeholder)"""
+    try:
+        # For now, return not found - to be implemented
+        return {
+            "success": False,
+            "message": "Bill checking not implemented in UUID-only system yet",
+            "bill": None
+        }
+    except Exception as e:
+        logger.error(f"Error checking bill: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials"
         )
