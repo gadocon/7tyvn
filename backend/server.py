@@ -3726,8 +3726,12 @@ async def get_unified_transactions(
             dao_results = await dao_cursor.to_list(length=None)
             
             for dao in dao_results:
-                customer = dao.get("customer", [{}])[0]
-                card = dao.get("card", [{}])[0]
+                customer_array = dao.get("customer", [])
+                card_array = dao.get("card", [])
+                
+                # Safe array access with fallback
+                customer = customer_array[0] if customer_array else {}
+                card = card_array[0] if card_array else {}
                 
                 # Create masked card number
                 card_number = card.get("card_number", "0000")
@@ -3747,7 +3751,7 @@ async def get_unified_transactions(
                     profit_percentage=dao.get("profit_pct", 0),
                     payback=dao.get("payback"),
                     items=[{
-                        "id": card["id"],
+                        "id": card.get("id", "unknown"),
                         "code": masked_card,
                         "amount": dao.get("total_amount", 0),
                         "type": "CREDIT_CARD"
