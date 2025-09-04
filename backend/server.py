@@ -349,3 +349,302 @@ async def get_customer(customer_id: str):
     except Exception as e:
         logger.error(f"Error fetching customer {customer_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/customers/{customer_id}", response_model=Customer)
+async def update_customer(customer_id: str, customer_data: CustomerUpdate):
+    """Update customer by UUID only - NO ObjectId handling"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(customer_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Check if customer exists
+        existing_customer = await db.customers.find_one({"id": customer_id})
+        if not existing_customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        
+        # Prepare update data
+        update_data = customer_data.dict(exclude_unset=True)
+        if update_data:
+            update_data["updated_at"] = datetime.now(timezone.utc)
+            await db.customers.update_one({"id": customer_id}, {"$set": update_data})
+        
+        # Return updated customer
+        updated_customer = await db.customers.find_one({"id": customer_id})
+        return Customer(**uuid_processor.clean_response(updated_customer))
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating customer {customer_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/customers/{customer_id}")
+async def delete_customer(customer_id: str):
+    """Delete customer by UUID only with cascade deletion"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(customer_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Check if customer exists
+        customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        
+        # Cascade delete related data - UUID only references
+        await db.credit_cards.delete_many({"customer_id": customer_id})
+        await db.sales.delete_many({"customer_id": customer_id})
+        
+        # Delete customer
+        result = await db.customers.delete_one({"id": customer_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=500, detail="Failed to delete customer")
+        
+        return {"success": True, "message": "Customer deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting customer {customer_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ========================================
+# BILLS API - UUID ONLY WITH UNIFIED INVENTORY
+# ========================================
+
+@app.post("/api/bills", response_model=Bill)
+async def create_bill(bill_data: BillCreate):
+    """Create bill with UUID only"""
+    try:
+        # Prepare document with UUID
+        bill_dict = bill_data.dict()
+        bill_dict = uuid_processor.prepare_document(bill_dict)
+        
+        # Insert to database
+        result = await db.bills.insert_one(bill_dict)
+        if not result.inserted_id:
+            raise HTTPException(status_code=500, detail="Failed to create bill")
+        
+        # Return clean response
+        created_bill = await db.bills.find_one({"id": bill_dict["id"]})
+        return Bill(**uuid_processor.clean_response(created_bill))
+        
+    except DuplicateKeyError:
+        raise HTTPException(status_code=409, detail="Bill ID already exists")
+    except Exception as e:
+        logger.error(f"Error creating bill: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/bills", response_model=List[Bill])
+async def get_bills(
+    skip: int = 0, 
+    limit: int = 100,
+    status: Optional[BillStatus] = None,
+    is_in_inventory: Optional[bool] = None
+):
+    """Get bills with optional filtering - UUID only"""
+    try:
+        # Build filter
+        filter_dict = {}
+        if status:
+            filter_dict["status"] = status
+        if is_in_inventory is not None:
+            filter_dict["is_in_inventory"] = is_in_inventory
+        
+        # Query bills
+        cursor = db.bills.find(filter_dict).skip(skip).limit(limit).sort("created_at", -1)
+        bills = await cursor.to_list(length=limit)
+        
+        # Clean responses
+        cleaned_bills = [uuid_processor.clean_response(bill) for bill in bills]
+        return [Bill(**bill) for bill in cleaned_bills]
+        
+    except Exception as e:
+        logger.error(f"Error fetching bills: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/bills/{bill_id}", response_model=Bill)
+async def get_bill(bill_id: str):
+    """Get bill by UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(bill_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Single lookup - no dual strategy
+        bill = await db.bills.find_one({"id": bill_id})
+        if not bill:
+            raise HTTPException(status_code=404, detail="Bill not found")
+        
+        return Bill(**uuid_processor.clean_response(bill))
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching bill {bill_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/bills/{bill_id}", response_model=Bill)
+async def update_bill(bill_id: str, bill_data: BillUpdate):
+    """Update bill by UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(bill_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Check if bill exists
+        existing_bill = await db.bills.find_one({"id": bill_id})
+        if not existing_bill:
+            raise HTTPException(status_code=404, detail="Bill not found")
+        
+        # Prepare update data
+        update_data = bill_data.dict(exclude_unset=True)
+        if update_data:
+            update_data["updated_at"] = datetime.now(timezone.utc)
+            await db.bills.update_one({"id": bill_id}, {"$set": update_data})
+        
+        # Return updated bill
+        updated_bill = await db.bills.find_one({"id": bill_id})
+        return Bill(**uuid_processor.clean_response(updated_bill))
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating bill {bill_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/bills/{bill_id}")
+async def delete_bill(bill_id: str):
+    """Delete bill by UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(bill_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Check if bill exists
+        bill = await db.bills.find_one({"id": bill_id})
+        if not bill:
+            raise HTTPException(status_code=404, detail="Bill not found")
+        
+        # Check if bill is referenced in any sales
+        sales_using_bill = await db.sales.find_one({"bill_ids": bill_id})
+        if sales_using_bill:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete bill - it is referenced in sales transactions"
+            )
+        
+        # Delete bill
+        result = await db.bills.delete_one({"id": bill_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=500, detail="Failed to delete bill")
+        
+        return {"success": True, "message": "Bill deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting bill {bill_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ========================================
+# INVENTORY API - UNIFIED WITH BILLS
+# ========================================
+
+@app.get("/api/inventory", response_model=List[Bill])
+async def get_inventory(
+    skip: int = 0,
+    limit: int = 100, 
+    status: Optional[BillStatus] = None
+):
+    """Get inventory items (bills marked as in_inventory) - UUID only"""
+    try:
+        # Build filter for inventory items
+        filter_dict = {"is_in_inventory": True}
+        if status:
+            filter_dict["status"] = status
+        
+        # Query bills in inventory
+        cursor = db.bills.find(filter_dict).skip(skip).limit(limit).sort("added_to_inventory_at", -1)
+        bills = await cursor.to_list(length=limit)
+        
+        # Clean responses
+        cleaned_bills = [uuid_processor.clean_response(bill) for bill in bills]
+        return [Bill(**bill) for bill in cleaned_bills]
+        
+    except Exception as e:
+        logger.error(f"Error fetching inventory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/inventory/add/{bill_id}")
+async def add_to_inventory(bill_id: str, note: Optional[str] = None):
+    """Add bill to inventory - UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(bill_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Check if bill exists and is available
+        bill = await db.bills.find_one({"id": bill_id})
+        if not bill:
+            raise HTTPException(status_code=404, detail="Bill not found")
+        
+        if bill.get("is_in_inventory"):
+            raise HTTPException(status_code=400, detail="Bill already in inventory")
+        
+        # Add to inventory
+        update_data = {
+            "is_in_inventory": True,
+            "inventory_status": InventoryStatus.IN_INVENTORY,
+            "added_to_inventory_at": datetime.now(timezone.utc),
+            "inventory_note": note,
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        await db.bills.update_one({"id": bill_id}, {"$set": update_data})
+        
+        return {"success": True, "message": "Bill added to inventory successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding bill {bill_id} to inventory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/inventory/remove/{bill_id}")
+async def remove_from_inventory(bill_id: str):
+    """Remove bill from inventory - UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(bill_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Check if bill exists and is in inventory
+        bill = await db.bills.find_one({"id": bill_id})
+        if not bill:
+            raise HTTPException(status_code=404, detail="Bill not found")
+        
+        if not bill.get("is_in_inventory"):
+            raise HTTPException(status_code=400, detail="Bill not in inventory")
+        
+        # Remove from inventory
+        update_data = {
+            "is_in_inventory": False,
+            "inventory_status": InventoryStatus.NOT_IN_INVENTORY,
+            "added_to_inventory_at": None,
+            "inventory_note": None,
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        await db.bills.update_one({"id": bill_id}, {"$set": update_data})
+        
+        return {"success": True, "message": "Bill removed from inventory successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing bill {bill_id} from inventory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
