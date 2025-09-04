@@ -3174,20 +3174,271 @@ class FPTBillManagerAPITester:
         
         return expected_results_met
 
+    def debug_data_inconsistency_inventory_vs_dao_modal(self):
+        """DEBUG data inconsistency - so sánh APIs trực tiếp để tìm phantom bills source"""
+        print(f"\n🎯 DEBUG DATA INCONSISTENCY - INVENTORY vs ĐÁO MODAL")
+        print("=" * 80)
+        print("🔍 CRITICAL DEBUGGING OBJECTIVES:")
+        print("   1. Test GET /api/inventory?status=AVAILABLE (should match inventory tab - 0 bills)")
+        print("   2. Test GET /api/bills?status=AVAILABLE (should show phantom bills source)")  
+        print("   3. So sánh results để tìm ra data source của phantom bills")
+        print("   4. Check database trực tiếp để xem bills data state")
+        print("   5. Identify tại sao ĐÁO modal vẫn có 35 bills")
+        print("   Expected findings:")
+        print("   - Inventory API: 0 bills (matching inventory tab)")
+        print("   - Bills API: 35+ bills (phantom bills source)")
+        print("   - Database inconsistency giữa bills collection vs inventory_items")
+        
+        test_results = {
+            "inventory_api_count": 0,
+            "bills_api_count": 0,
+            "database_bills_count": 0,
+            "database_inventory_count": 0,
+            "phantom_bills_identified": False,
+            "data_source_found": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_findings": []
+        }
+        
+        # Step 1: Test GET /api/inventory?status=AVAILABLE
+        print(f"\n🔍 STEP 1: Test GET /api/inventory?status=AVAILABLE")
+        print("=" * 60)
+        print("Expected: Should return 0 bills (matching inventory Available tab)")
+        
+        inventory_success, inventory_response = self.run_test(
+            "GET /inventory?status=AVAILABLE - Inventory API",
+            "GET",
+            "inventory?status=AVAILABLE",
+            200
+        )
+        
+        if inventory_success:
+            inventory_count = len(inventory_response) if isinstance(inventory_response, list) else 0
+            test_results["inventory_api_count"] = inventory_count
+            print(f"✅ Inventory API Response: {inventory_count} bills")
+            print(f"   Expected: 0 bills (matching inventory tab)")
+            print(f"   Actual: {inventory_count} bills")
+            
+            if inventory_count == 0:
+                print(f"   ✅ MATCHES EXPECTED: Inventory API shows 0 bills")
+                test_results["passed_tests"] += 1
+            else:
+                print(f"   ⚠️ UNEXPECTED: Inventory API shows {inventory_count} bills (expected 0)")
+                test_results["critical_findings"].append(f"Inventory API shows {inventory_count} bills instead of 0")
+        else:
+            print(f"❌ FAILED: Cannot access inventory API")
+            test_results["critical_findings"].append("Inventory API not accessible")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 2: Test GET /api/bills?status=AVAILABLE  
+        print(f"\n🔍 STEP 2: Test GET /api/bills?status=AVAILABLE")
+        print("=" * 60)
+        print("Expected: Should show phantom bills source (35+ bills)")
+        
+        bills_success, bills_response = self.run_test(
+            "GET /bills?status=AVAILABLE - Bills API",
+            "GET", 
+            "bills?status=AVAILABLE",
+            200
+        )
+        
+        if bills_success:
+            bills_count = len(bills_response) if isinstance(bills_response, list) else 0
+            test_results["bills_api_count"] = bills_count
+            print(f"✅ Bills API Response: {bills_count} bills")
+            print(f"   Expected: 35+ bills (phantom bills source)")
+            print(f"   Actual: {bills_count} bills")
+            
+            if bills_count >= 35:
+                print(f"   🚨 PHANTOM BILLS FOUND: Bills API shows {bills_count} bills")
+                print(f"   This is likely the source of ĐÁO modal's 35 bills!")
+                test_results["phantom_bills_identified"] = True
+                test_results["data_source_found"] = True
+                test_results["passed_tests"] += 1
+            elif bills_count > 0:
+                print(f"   ⚠️ SOME BILLS FOUND: Bills API shows {bills_count} bills")
+                test_results["critical_findings"].append(f"Bills API shows {bills_count} bills")
+            else:
+                print(f"   ✅ NO BILLS: Bills API shows 0 bills (consistent with inventory)")
+                test_results["passed_tests"] += 1
+        else:
+            print(f"❌ FAILED: Cannot access bills API")
+            test_results["critical_findings"].append("Bills API not accessible")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 3: Compare APIs and identify inconsistency
+        print(f"\n🔍 STEP 3: Compare APIs and Identify Data Inconsistency")
+        print("=" * 60)
+        
+        inventory_count = test_results["inventory_api_count"]
+        bills_count = test_results["bills_api_count"]
+        
+        print(f"📊 API COMPARISON RESULTS:")
+        print(f"   Inventory API (AVAILABLE): {inventory_count} bills")
+        print(f"   Bills API (AVAILABLE): {bills_count} bills")
+        print(f"   Difference: {abs(bills_count - inventory_count)} bills")
+        
+        if inventory_count != bills_count:
+            print(f"🚨 DATA INCONSISTENCY CONFIRMED!")
+            print(f"   Root cause: Different APIs returning different data for same status")
+            print(f"   ĐÁO modal likely uses Bills API ({bills_count} bills)")
+            print(f"   Inventory tab uses Inventory API ({inventory_count} bills)")
+            test_results["critical_findings"].append(f"API inconsistency: Inventory={inventory_count}, Bills={bills_count}")
+            test_results["passed_tests"] += 1
+        else:
+            print(f"✅ APIs are consistent - both return {inventory_count} bills")
+            print(f"   Issue may be elsewhere (frontend caching, different endpoints)")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 4: Check database directly
+        print(f"\n🔍 STEP 4: Check Database Directly")
+        print("=" * 60)
+        
+        if self.mongo_connected:
+            try:
+                # Check bills collection
+                bills_cursor = self.db.bills.find({"status": "AVAILABLE"})
+                db_bills = list(bills_cursor)
+                test_results["database_bills_count"] = len(db_bills)
+                
+                print(f"✅ Database bills collection (AVAILABLE): {len(db_bills)} bills")
+                
+                # Check inventory_items collection
+                inventory_cursor = self.db.inventory_items.find({})
+                db_inventory = list(inventory_cursor)
+                test_results["database_inventory_count"] = len(db_inventory)
+                
+                print(f"✅ Database inventory_items collection: {len(db_inventory)} items")
+                
+                # Analyze inventory items status
+                available_inventory = 0
+                for item in db_inventory:
+                    bill_id = item.get('bill_id')
+                    if bill_id:
+                        # Check if corresponding bill is AVAILABLE
+                        bill = self.db.bills.find_one({"id": bill_id})
+                        if bill and bill.get('status') == 'AVAILABLE':
+                            available_inventory += 1
+                
+                print(f"✅ Inventory items with AVAILABLE bills: {available_inventory}")
+                
+                print(f"\n📊 DATABASE ANALYSIS:")
+                print(f"   Bills collection (AVAILABLE): {len(db_bills)}")
+                print(f"   Inventory_items collection (total): {len(db_inventory)}")
+                print(f"   Inventory items with AVAILABLE bills: {available_inventory}")
+                
+                # Compare database with APIs
+                print(f"\n🔍 DATABASE vs API COMPARISON:")
+                print(f"   Database bills (AVAILABLE): {len(db_bills)}")
+                print(f"   Bills API (AVAILABLE): {bills_count}")
+                print(f"   Inventory API (AVAILABLE): {inventory_count}")
+                print(f"   Inventory items (AVAILABLE): {available_inventory}")
+                
+                if len(db_bills) == bills_count:
+                    print(f"   ✅ Bills API matches database")
+                else:
+                    print(f"   ❌ Bills API doesn't match database")
+                    test_results["critical_findings"].append(f"Bills API mismatch: DB={len(db_bills)}, API={bills_count}")
+                
+                if available_inventory == inventory_count:
+                    print(f"   ✅ Inventory API matches database")
+                else:
+                    print(f"   ❌ Inventory API doesn't match database")
+                    test_results["critical_findings"].append(f"Inventory API mismatch: DB={available_inventory}, API={inventory_count}")
+                
+                test_results["passed_tests"] += 1
+                
+            except Exception as e:
+                print(f"❌ Database analysis failed: {e}")
+                test_results["critical_findings"].append(f"Database analysis error: {e}")
+        else:
+            print(f"⚠️ MongoDB connection not available for database analysis")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 5: Identify why ĐÁO modal has 35 bills
+        print(f"\n🔍 STEP 5: Identify Why ĐÁO Modal Has 35 Bills")
+        print("=" * 60)
+        
+        print(f"🔍 ROOT CAUSE ANALYSIS:")
+        
+        if test_results["phantom_bills_identified"]:
+            print(f"✅ PHANTOM BILLS SOURCE IDENTIFIED:")
+            print(f"   - Bills API returns {bills_count} AVAILABLE bills")
+            print(f"   - Inventory API returns {inventory_count} AVAILABLE bills")
+            print(f"   - ĐÁO modal likely uses Bills API directly")
+            print(f"   - This explains the 35 phantom bills in ĐÁO modal")
+            
+            print(f"\n💡 SOLUTION NEEDED:")
+            print(f"   - ĐÁO modal should use Inventory API instead of Bills API")
+            print(f"   - Or fix data consistency between bills and inventory_items collections")
+            print(f"   - Ensure both APIs return same data for AVAILABLE status")
+            
+        else:
+            print(f"⚠️ PHANTOM BILLS SOURCE NOT CLEARLY IDENTIFIED:")
+            print(f"   - Both APIs may be returning consistent data")
+            print(f"   - Issue may be in frontend caching or different endpoints")
+            print(f"   - Need to check actual ĐÁO modal API calls")
+        
+        # Step 6: Final assessment and recommendations
+        print(f"\n📊 STEP 6: Final Assessment and Recommendations")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 DEBUG INVESTIGATION RESULTS:")
+        print(f"   Inventory API (AVAILABLE): {test_results['inventory_api_count']} bills")
+        print(f"   Bills API (AVAILABLE): {test_results['bills_api_count']} bills")
+        print(f"   Database bills (AVAILABLE): {test_results['database_bills_count']} bills")
+        print(f"   Database inventory items: {test_results['database_inventory_count']} items")
+        print(f"   Phantom bills identified: {'✅ YES' if test_results['phantom_bills_identified'] else '❌ NO'}")
+        print(f"   Data source found: {'✅ YES' if test_results['data_source_found'] else '❌ NO'}")
+        print(f"   Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🎯 CRITICAL FINDINGS:")
+        if test_results["critical_findings"]:
+            for finding in test_results["critical_findings"]:
+                print(f"   🚨 {finding}")
+        else:
+            print(f"   ✅ No critical inconsistencies found")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if test_results["phantom_bills_identified"] and test_results["data_source_found"]:
+            print(f"   ✅ PHANTOM BILLS SOURCE IDENTIFIED SUCCESSFULLY")
+            print(f"   - Bills API shows {test_results['bills_api_count']} AVAILABLE bills")
+            print(f"   - Inventory API shows {test_results['inventory_api_count']} AVAILABLE bills")
+            print(f"   - This explains ĐÁO modal's 35 phantom bills")
+            print(f"   - ĐÁO modal needs to use consistent data source")
+        else:
+            print(f"   ⚠️ PHANTOM BILLS SOURCE INVESTIGATION INCOMPLETE")
+            print(f"   - May need deeper frontend investigation")
+            print(f"   - Check actual API calls made by ĐÁO modal")
+            print(f"   - Verify data architecture fix implementation")
+        
+        return test_results["phantom_bills_identified"] and test_results["data_source_found"]
+
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    # Run bills DELETE endpoint dual lookup fix test (review request)
-    print("🎯 RUNNING BILLS DELETE ENDPOINT DUAL LOOKUP FIX VERIFICATION")
-    success = tester.test_bills_delete_endpoint_dual_lookup_fix()
+    print("🎯 STARTING DEBUG DATA INCONSISTENCY INVESTIGATION")
+    print("=" * 80)
+    print("Focus: Inventory vs ĐÁO Modal Consistency - Finding Phantom Bills Source")
     
-    if success:
-        print("\n✅ Bills DELETE endpoint dual lookup fix PASSED!")
-    else:
-        print("\n❌ Bills DELETE endpoint dual lookup fix NEEDS ATTENTION!")
+    # Run the debug investigation
+    result = tester.debug_data_inconsistency_inventory_vs_dao_modal()
+    
+    print(f"\n🏁 INVESTIGATION COMPLETE")
+    print(f"Result: {'✅ SUCCESS' if result else '❌ NEEDS MORE INVESTIGATION'}")
+    print(f"Total tests run: {tester.tests_run}")
+    print(f"Tests passed: {tester.tests_passed}")
+    print(f"Success rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
     
     # Close MongoDB connection
     if tester.mongo_connected:
         tester.mongo_client.close()
     
-    sys.exit(0 if success else 1)
+    sys.exit(0 if result else 1)
