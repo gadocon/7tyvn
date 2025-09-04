@@ -306,10 +306,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Database Cleanup for Fresh Testing"
+    - "Sales Transaction Foreign Key Relationships Fix"
+    - "UUID-Only System Final Validation"
   stuck_tasks: []
   test_all: false
-  test_priority: "high_first"
+  test_priority: "critical_first"
 
   - task: "Customer ID 68b86b157a314c251c8c863b Debug Investigation"
     implemented: true
