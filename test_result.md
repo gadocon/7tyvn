@@ -294,7 +294,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Transactions Page Unsafe Field Access Fix Verification"
+    - "Database Cleanup for Fresh Testing"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
