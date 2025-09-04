@@ -3266,8 +3266,17 @@ async def initialize_credit_card_cycles():
 async def create_sale(sale_data: SaleCreate):
     """Create new sale transaction"""
     try:
-        # Validate customer exists
+        # Validate customer exists - supports both UUID and ObjectId lookup
         customer = await db.customers.find_one({"id": sale_data.customer_id})
+        
+        # If not found and customer_id looks like ObjectId, try _id field
+        if not customer and len(sale_data.customer_id) == 24 and all(c in '0123456789abcdef' for c in sale_data.customer_id.lower()):
+            try:
+                from bson import ObjectId
+                customer = await db.customers.find_one({"_id": ObjectId(sale_data.customer_id)})
+            except:
+                pass  # Invalid ObjectId format, continue with None
+        
         if not customer:
             raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
         
