@@ -109,8 +109,8 @@
 - Password: `admin123`
 
 **System URLs:**
-- Frontend: `https://crm7ty.preview.emergentagent.com/`
-- Backend API: `https://crm7ty.preview.emergentagent.com/api/`
+- Frontend: `https://bill-manager-crm.preview.emergentagent.com/`
+- Backend API: `https://bill-manager-crm.preview.emergentagent.com/api/`
 
 ## 🚀 READY FOR PRODUCTION
 

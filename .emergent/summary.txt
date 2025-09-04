@@ -1,25 +1,33 @@
 <analysis>
-The AI engineer, Tèo em, initiated work by fixing a recurring  error for the Check Lại button and correctly handling the  error. This involved robust client-side validation and early returns in  and combining API calls for dashboard statistics.
-Next, Tèo em addressed a user bug report regarding bill deletion. This led to a comprehensive refactor of inventory management, fixing 405/404 errors by adding a  endpoint, separating Available inventory items from All Bills, and updating delete logic, recheck functionality, and error handling.
-The engineer then implemented a user-requested checkbox selection feature for the Customers page, enabling bulk actions like delete and export. A critical system review followed, which, while documenting existing features, alarmingly exposed a severe authorization vulnerability where all users could access sensitive business data due to missing role checks on API endpoints.
-After resolving a 500 error in the Credit Card DAO functionality (due to a missing enum value), a full authentication and role-based access control review was conducted. Following this, an attempt to implement a dynamic webhook rotation system with delay for external bill checks was initiated but then explicitly rolled back by the user, reverting to a hardcoded webhook without the previous 5-6 second delay.
-Finally, the login page UI was visually enhanced with a dark green gradient and modern JavaScript animations. The current task involves implementing missing functionalities on the Customer Detail page, starting with the DAO Modal (completed) and now progressing to phone call integration.
+The previous AI engineer, Tèo em, inherited an MVP CRM for FPT/Shopee bill management. Initially, it addressed several critical bugs like  errors, incorrect inventory logic, and  errors in DAO functionality. A significant challenge was the pervasive  vs.  inconsistency across the MongoDB database, leading to numerous not found errors and data integrity issues. Data synchronization problems between inventory tabs and DAO modals also emerged due to dual data sources. The engineer systematically debugged and applied dual lookup strategies to most API endpoints as a temporary fix. Facing recurring issues, a comprehensive system audit was conducted, which surprisingly yielded a 100% stable assessment, despite immediate re-emergence of bugs. Finally, the user mandated a full refactor to a UUID-only system, abandoning the band-aid fixes. The current state is mid-backend refactor, with core Customer, Bill, and Inventory APIs already converted to use only UUIDs.
 </analysis>
 
 <product_requirements>
-The 7ty.vn CRM is a mini-CRM for FPT/Shopee bill management, featuring Dashboard, Bill Checks, Inventory, Customers, and Transactions, all in Vietnamese and responsive. Key features include a Customer 360° View (profile, cards, transactions, analytics across four tabs), a JWT-based authentication system with Admin/Manager/User roles and a glassmorphism login UI.
-Enhanced navigation includes clickable customer names, and the Dashboard has Quick Actions with consistent green-yellow branding. The application maintains a unified visual identity by replacing blue UI elements with dark green-to-green gradients.
-Recent fixes include resolving UI overflow, a persistent 404 bug with the Check Lại button, post-login navigation, inaccurate dashboard statistics, and the setCustomerDetail is not a function error.
-During the trajectory, further requirements emerged: fixing a bill deletion error, implementing a customer checkbox selection with bulk actions, and addressing a 500 error in credit card DAO. The user also requested to review the authentication and roles, document the entire system, manage external webhook calls with delays and rotation (later rolled back to single webhook, no delay), and update the Login Page UI.
+The 7ty.vn CRM is a Vietnamese, responsive mini-CRM for FPT/Shopee bill management. It includes Dashboard, Bill Checks, Inventory, Customers (with a 360° view), and Transactions. Authentication is JWT-based with Admin/Manager/User roles and a modern glassmorphism login UI. The application uses a consistent green-yellow branding.
+
+Key features and fixes implemented/requested include:
+- Fixing UI overflow, 404 errors for Check Lại button, post-login navigation, inaccurate dashboard stats, and  error.
+- Comprehensive inventory management refactor to fix bill deletion, 405/404 errors, separating Available and All Bills tabs, and updating delete logic.
+- Implementing customer multi-selection with bulk actions (delete, export).
+- Resolving a  error in Credit Card DAO by adding  enum value.
+- Full authentication and role-based access control review.
+- Documenting the entire system.
+- Implementing (and later rolling back) a dynamic webhook rotation system, reverting to a hardcoded webhook without delay.
+- Enhancing the Login Page UI.
+- Implementing missing functionalities on the Customer Detail page, specifically the DAO Modal (completed) and phone call integration (later deprioritized).
+- Implementing Analytics line chart for revenue and profit transactions with edit functionality for all fields.
+- User-requested database cleanup and seeding with consistent test data.
+- User-mandated full system refactor to a UUID-only architecture for all IDs (customers, bills, transactions, credit cards) to eliminate data inconsistency and architectural flaws.
 </product_requirements>
 
 <key_technical_concepts>
-- **Full-stack Development**: FastAPI (Python), React (JavaScript), MongoDB.
-- **UI/UX**: TailwindCSS, Shadcn UI, Recharts, Glassmorphism, responsive design, custom CSS animations.
-- **Authentication/Authorization**: JWT, , role-based access control (Admin, Manager, User).
-- **Asynchronous Operations**:  for HTTP requests,  for task scheduling.
-- **Data Handling**: Pydantic for data validation, MongoDB aggregation, UUIDs.
+- **Full-stack**: FastAPI (Python), React (JavaScript), MongoDB.
+- **UI/UX**: TailwindCSS, Shadcn UI, Recharts, Glassmorphism, CSS animations.
+- **Authentication**: JWT, bcrypt, role-based access control.
+- **Asynchronous**: aiohttp, asyncio.
+- **Data Handling**: Pydantic, MongoDB aggregation, UUIDs.
 - **Error Handling**: Custom exceptions, toast notifications.
+- **Data Consistency**: ObjectId vs. UUID handling, dual lookup strategy (deprecated), UUID-only architecture (new).
 </key_technical_concepts>
 
 <code_architecture>
@@ -30,62 +38,85 @@ The application uses a monorepo structure:
     - **Importance**: Python dependency management.
     - **Changes**: Added , , , , , , .
 - :
-    - **Importance**: Core FastAPI application, all API routes, database interactions.
-    - **Changes**:
-        - Added  for existence checks.
-        - Enhanced  for better error handling.
-        - Corrected  enum to include  value to fix a 500 error in DAO.
-        - Modified  function to remove random delay but retain timeout configuration and enhanced exception handling (, ).
-        - Implemented (and later rolled back)  model and associated CRUD APIs, plus logic for webhook rotation and request distribution in  and  endpoint.
-        - Added detailed debug logging.
+    - **Importance**: Core FastAPI application, all API routes, database interactions. Currently undergoing a major refactor to be UUID-only.
+    - **Changes**: Historically, extensive fixes for 404/500 errors, datetime comparison, ObjectId serialization, unsafe field/array access, dual lookup for customer/bill/credit card IDs, webhook logic (rolled back).
+    - **Current State**: Being rewritten for UUID-only architecture. , , and  APIs are now fully refactored to use only UUIDs for IDs and foreign keys. This includes updated Pydantic models, database queries, and response handling.
+-  (NEW):
+    - **Importance**: Centralizes UUID generation and validation logic for consistency across the backend.
+    - **Changes**: Created to provide utility functions for handling UUIDs in the new architecture.
 - :
     - **Importance**: Frontend dependency management.
     - **Changes**: Added .
 - :
     - **Importance**: Main React component, routing, state, UI.
-    - **Changes**:
-        - Fixed Check Lại button's 404 error with client-side validation.
-        - Refactored  with confirmation dialogs, detailed error messages, and visual indicators.
-        - Corrected inventory logic in  to fetch from  for available tab.
-        - Updated delete button logic in Inventory based on tab.
-        - Implemented customer multi-selection with  state, , , ,  functions. Added checkboxes and a bulk actions toolbar to the Customers table.
-        - Started implementing missing functions on , including  (added , ,  states, and the  UI component), and  function.
+    - **Changes**: Fixed Check Lại button, refactored , corrected inventory logic, implemented customer multi-selection, added DAO Modal ( UI, states, ), moved  to . Updated  for edit functionality,  callback, and fixed . Also, updated  to use  for DAO modal and both inventory tabs for consistency.
 - :
     - **Importance**: Dedicated user login component.
-    - **Changes**: Updated background to dark green gradient, integrated modern JavaScript animations, enhanced glassmorphism card styling, and applied dark theme styling to logo, text, inputs, and buttons.
+    - **Changes**: Updated background, integrated animations, enhanced glassmorphism.
 - :
     - **Importance**: Global CSS.
-    - **Changes**: Added custom CSS animations (, , ) to support the new LoginPage UI.
-- :
-    - **Importance**: Manages global authentication state. No direct changes in trajectory.
-- :
-    - **Importance**: Wraps routes requiring authentication. No direct changes in trajectory.
-- :
-    - **Importance**: Displays user profile. No direct changes in trajectory.
+    - **Changes**: Added custom CSS animations (, , ).
 -  (NEW):
     - **Importance**: Comprehensive documentation of the system.
-    - **Changes**: Created to cover architecture, features, database, APIs, roles, project structure, installation, usage, troubleshooting, performance, security, and roadmap.
+    - **Changes**: Created during a system review.
+-  (NEW):
+    - **Importance**: Documents all critical bug fixes.
+    - **Changes**: Created to log resolution of ObjectId/UUID issues, data inconsistencies, and unsafe access patterns.
+-  (NEW):
+    - **Importance**: Summarizes the session for the next engineer.
+    - **Changes**: Created for context transfer, detailing database state and key fixes.
+-  (NEW):
+    - **Importance**: Outlines a plan to unify bills and inventory data into a single collection.
+    - **Changes**: Created to address the architectural flaw of dual data sources.
+-  (NEW):
+    - **Importance**: Details the strategy for migrating to a UUID-only system.
+    - **Changes**: Created as part of the refactor plan.
+-  (NEW):
+    - **Importance**: The overarching plan for the current UUID refactor.
+    - **Changes**: Created to guide the comprehensive overhaul of the ID system.
+-  (NEW):
+    - **Importance**: Script for migrating existing data to standardized formats.
+    - **Changes**: Proposed for future data cleanup.
+-  (NEW):
+    - **Importance**: Defines functions for standardized data creation and validation.
+    - **Changes**: Created to prevent future data inconsistency issues.
+-  (NEW):
+    - **Importance**: Cleans all business data and seeds a fresh database with consistent test data.
+    - **Changes**: Created and used multiple times to reset the database for testing, also updated to fix CreditCard schema issues in test data generation.
 </code_architecture>
 
 <pending_tasks>
 - Complete  on the Customer Detail page.
-- Implement  for Quick Actions on the Customer Detail page.
 - Implement  functionality in the Transactions tab.
-- Implement  in the Transactions tab.
-- Integrate  (with Recharts) in the Analytics tab.
-- Add  to the Transactions tab.
+- Implement  in the Transactions tab. (Editing capability was added, but the full scope may imply more, e.g., view details without edit mode).
+- Implement  to the Transactions tab.
 - Implement  and  in the Analytics tab.
+- Implement  (for revenue and profit transactions) in the Analytics tab.
+- Complete the frontend refactor to exclusively use UUIDs, adapting to the new backend.
+- Run the full database migration to standardize all existing records to UUIDs.
 </pending_tasks>
 
 <current_work>
-Immediately before this summary request, the AI engineer was focused on implementing missing functionalities for the Customer Detail Page, following a prioritized roadmap. The first priority was the **ĐÁO Modal** (Credit Card DAO Modal). This involved:
-1.  **Frontend Implementation**: Adding necessary states (, , ) to  and integrating the  function with the Đáo button in the . A  UI component was also created and integrated into the  in , supporting both POS and BILL payment methods.
-2.  **Backend Verification**: Backend APIs for credit card DAO were thoroughly tested and confirmed to be working, handling both POS and BILL payment methods, accurate calculations, database updates, and comprehensive error handling.
+Immediately before this summary, the AI engineer commenced a comprehensive system refactor to exclusively use UUIDs for all entity identifiers across the application. This decision was driven by persistent data inconsistency issues, such as the ObjectId vs. UUID conflict, which caused recurring 404 errors, broken relationships, and general system instability. The user explicitly chose this Option B to eliminate technical debt and ensure a clean, maintainable architecture.
 
-With the ĐÁO Modal successfully implemented and verified, the engineer moved to the second priority on the roadmap: **Phone Call Integration**.
-The current work specifically involves adding the  function to . This function is intended to initiate a phone call via  and potentially log the activity. The very last action in the trajectory was the statement, Bây giờ tôi cần connect phone call function với Quick Actions buttons, indicating that the function itself has been added, and the next step is to integrate it with the UI elements.
+The work is currently in PHASE 1: BACKEND SYSTEM REDESIGN of the . This phase involves rewriting the  to remove all ObjectId handling and instead rely solely on UUIDs.
+
+Specific progress includes:
+1.  **Creation of **: A new utility file to centralize UUID generation and validation.
+2.  **Extensive rewrite of **:
+    *   **Customer APIs**: Fully refactored for UUID-only.
+    *   **Bills APIs**: Fully refactored for UUID-only, now based on a unified inventory system (eliminating the previous dual  and  collection problem).
+    *   **Inventory APIs**: Integrated into the new UUID-only structure.
+    *   **Pydantic Models**: Updated to enforce UUID validation for all relevant ID fields.
+    *   **Database Interactions**: Modified to query and store data using UUIDs exclusively.
+    *   **Error Handling**: Adjusted for UUID-specific validation and not found scenarios.
+
+The engineer has confirmed that the refactored Customer, Bill, and Inventory APIs are now UUID-only and integrated with the unified inventory system. The next step is to continue this refactor for the Sales API and other remaining backend endpoints.
 </current_work>
 
 <optional_next_step>
-Connect the  function to the respective Gọi (Call) button in the Customer Detail page's Quick Actions section.
+Complete the backend UUID-only refactor by implementing the Sales API.
 </optional_next_step>
+<direct_quotes>
+📋 Continue with SALES API và complete backend:
+</direct_quotes>

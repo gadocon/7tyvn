@@ -642,7 +642,7 @@ ENVIRONMENT=production
 ### **Frontend Environment (.env)**
 ```bash
 # Backend API Configuration
-REACT_APP_BACKEND_URL=https://crm7ty.preview.emergentagent.com
+REACT_APP_BACKEND_URL=https://bill-manager-crm.preview.emergentagent.com
 
 # Application Configuration
 REACT_APP_NAME=7ty.vn CRM

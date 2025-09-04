@@ -14,7 +14,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 
 class CustomerLookupFixTester:
-    def __init__(self, base_url="https://crm7ty.preview.emergentagent.com"):
+    def __init__(self, base_url="https://bill-manager-crm.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
