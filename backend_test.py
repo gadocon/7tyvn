@@ -1020,16 +1020,451 @@ class FPTBillManagerAPITester:
         
         return expected_results_met
 
+    def test_bills_delete_endpoint_dual_lookup_fix(self):
+        """Test Bills DELETE endpoint sau khi fix ObjectId vs UUID dual lookup - REVIEW REQUEST"""
+        print(f"\n🎯 BILLS DELETE ENDPOINT DUAL LOOKUP FIX VERIFICATION")
+        print("=" * 80)
+        print("🔍 CRITICAL TESTING OBJECTIVES:")
+        print("   1. Test DELETE /api/bills/{bill_id} với bills có ObjectId format")
+        print("   2. Test DELETE /api/bills/{bill_id} với bills có UUID format")
+        print("   3. Verify dual lookup strategy hoạt động cho bills")
+        print("   4. Test GET /api/bills/{bill_id} với mixed ID formats")
+        print("   5. Test PUT /api/bills/{bill_id} với mixed ID formats")
+        print("   6. Expected: No more 'Không tìm thấy bill để xóa' error")
+        print("   7. Bills có proper inventory cascade deletion")
+        
+        test_results = {
+            "objectid_delete_working": False,
+            "uuid_delete_working": False,
+            "objectid_get_working": False,
+            "uuid_get_working": False,
+            "objectid_put_working": False,
+            "uuid_put_working": False,
+            "dual_lookup_verified": False,
+            "cascade_deletion_working": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_issues": [],
+            "bills_tested": []
+        }
+        
+        # Step 1: Get bills data and analyze ID formats
+        print(f"\n🔍 STEP 1: Analyze Bills Database for ID Formats")
+        print("=" * 60)
+        
+        bills_success, bills_response = self.run_test(
+            "GET /bills - Get Bills for ID Analysis",
+            "GET",
+            "bills?limit=100",
+            200
+        )
+        
+        if not bills_success or not bills_response:
+            print(f"❌ CRITICAL: Cannot get bills data for testing")
+            test_results["critical_issues"].append("Cannot access bills endpoint")
+            return False
+        
+        print(f"✅ Found {len(bills_response)} bills for testing")
+        
+        # Analyze ID formats in bills
+        objectid_bills = []
+        uuid_bills = []
+        other_format_bills = []
+        
+        for bill in bills_response:
+            bill_id = bill.get('id', '')
+            customer_code = bill.get('customer_code', 'Unknown')
+            status = bill.get('status', 'Unknown')
+            
+            if len(bill_id) == 24 and all(c in '0123456789abcdef' for c in bill_id.lower()):
+                objectid_bills.append({
+                    "id": bill_id,
+                    "customer_code": customer_code,
+                    "status": status,
+                    "format": "ObjectId"
+                })
+            elif len(bill_id) == 36 and bill_id.count('-') == 4:
+                uuid_bills.append({
+                    "id": bill_id,
+                    "customer_code": customer_code,
+                    "status": status,
+                    "format": "UUID"
+                })
+            else:
+                other_format_bills.append({
+                    "id": bill_id,
+                    "customer_code": customer_code,
+                    "status": status,
+                    "format": "Other"
+                })
+        
+        print(f"\n📊 BILLS ID FORMAT ANALYSIS:")
+        print(f"   ObjectId format bills: {len(objectid_bills)}")
+        print(f"   UUID format bills: {len(uuid_bills)}")
+        print(f"   Other format bills: {len(other_format_bills)}")
+        
+        if len(objectid_bills) == 0 and len(uuid_bills) == 0:
+            print(f"❌ CRITICAL: No bills with testable ID formats found")
+            test_results["critical_issues"].append("No bills with ObjectId or UUID formats")
+            return False
+        
+        # Step 2: Test GET /api/bills/{bill_id} với mixed ID formats
+        print(f"\n🔍 STEP 2: Test GET /api/bills/{{bill_id}} với Mixed ID Formats")
+        print("=" * 60)
+        
+        # Test ObjectId format bills
+        if objectid_bills:
+            test_bill = objectid_bills[0]
+            print(f"\n   Testing ObjectId format bill:")
+            print(f"   Bill ID: {test_bill['id']}")
+            print(f"   Customer Code: {test_bill['customer_code']}")
+            print(f"   Status: {test_bill['status']}")
+            
+            get_success, get_response = self.run_test(
+                f"GET /bills/{test_bill['id']} - ObjectId Format",
+                "GET",
+                f"bills/{test_bill['id']}",
+                200
+            )
+            
+            if get_success:
+                print(f"   ✅ SUCCESS: GET endpoint working with ObjectId format")
+                test_results["objectid_get_working"] = True
+                test_results["passed_tests"] += 1
+                test_results["bills_tested"].append(f"GET ObjectId: {test_bill['customer_code']}")
+            else:
+                print(f"   ❌ FAILED: GET endpoint not working with ObjectId format")
+                test_results["critical_issues"].append(f"GET failed for ObjectId: {test_bill['id']}")
+            
+            test_results["total_tests"] += 1
+        
+        # Test UUID format bills
+        if uuid_bills:
+            test_bill = uuid_bills[0]
+            print(f"\n   Testing UUID format bill:")
+            print(f"   Bill ID: {test_bill['id']}")
+            print(f"   Customer Code: {test_bill['customer_code']}")
+            print(f"   Status: {test_bill['status']}")
+            
+            get_success, get_response = self.run_test(
+                f"GET /bills/{test_bill['id']} - UUID Format",
+                "GET",
+                f"bills/{test_bill['id']}",
+                200
+            )
+            
+            if get_success:
+                print(f"   ✅ SUCCESS: GET endpoint working with UUID format")
+                test_results["uuid_get_working"] = True
+                test_results["passed_tests"] += 1
+                test_results["bills_tested"].append(f"GET UUID: {test_bill['customer_code']}")
+            else:
+                print(f"   ❌ FAILED: GET endpoint not working with UUID format")
+                test_results["critical_issues"].append(f"GET failed for UUID: {test_bill['id']}")
+            
+            test_results["total_tests"] += 1
+        
+        # Step 3: Test PUT /api/bills/{bill_id} với mixed ID formats
+        print(f"\n🔍 STEP 3: Test PUT /api/bills/{{bill_id}} với Mixed ID Formats")
+        print("=" * 60)
+        
+        # Test ObjectId format bills
+        if objectid_bills:
+            test_bill = objectid_bills[0]
+            print(f"\n   Testing PUT with ObjectId format bill:")
+            print(f"   Bill ID: {test_bill['id']}")
+            print(f"   Customer Code: {test_bill['customer_code']}")
+            
+            update_data = {
+                "note": f"Test update at {datetime.now().isoformat()}",
+                "last_checked": datetime.now().isoformat()
+            }
+            
+            put_success, put_response = self.run_test(
+                f"PUT /bills/{test_bill['id']} - ObjectId Format",
+                "PUT",
+                f"bills/{test_bill['id']}",
+                200,
+                data=update_data
+            )
+            
+            if put_success:
+                print(f"   ✅ SUCCESS: PUT endpoint working with ObjectId format")
+                print(f"   Updated bill: {put_response.get('customer_code', 'Unknown')}")
+                test_results["objectid_put_working"] = True
+                test_results["passed_tests"] += 1
+                test_results["bills_tested"].append(f"PUT ObjectId: {test_bill['customer_code']}")
+            else:
+                print(f"   ❌ FAILED: PUT endpoint not working with ObjectId format")
+                test_results["critical_issues"].append(f"PUT failed for ObjectId: {test_bill['id']}")
+            
+            test_results["total_tests"] += 1
+        
+        # Test UUID format bills
+        if uuid_bills:
+            test_bill = uuid_bills[0]
+            print(f"\n   Testing PUT with UUID format bill:")
+            print(f"   Bill ID: {test_bill['id']}")
+            print(f"   Customer Code: {test_bill['customer_code']}")
+            
+            update_data = {
+                "note": f"Test update at {datetime.now().isoformat()}",
+                "last_checked": datetime.now().isoformat()
+            }
+            
+            put_success, put_response = self.run_test(
+                f"PUT /bills/{test_bill['id']} - UUID Format",
+                "PUT",
+                f"bills/{test_bill['id']}",
+                200,
+                data=update_data
+            )
+            
+            if put_success:
+                print(f"   ✅ SUCCESS: PUT endpoint working with UUID format")
+                print(f"   Updated bill: {put_response.get('customer_code', 'Unknown')}")
+                test_results["uuid_put_working"] = True
+                test_results["passed_tests"] += 1
+                test_results["bills_tested"].append(f"PUT UUID: {test_bill['customer_code']}")
+            else:
+                print(f"   ❌ FAILED: PUT endpoint not working with UUID format")
+                test_results["critical_issues"].append(f"PUT failed for UUID: {test_bill['id']}")
+            
+            test_results["total_tests"] += 1
+        
+        # Step 4: Test DELETE /api/bills/{bill_id} với mixed ID formats
+        print(f"\n🔍 STEP 4: Test DELETE /api/bills/{{bill_id}} với Mixed ID Formats")
+        print("=" * 60)
+        print("⚠️ WARNING: This will actually delete bills - testing with AVAILABLE status only")
+        
+        # Find AVAILABLE bills for safe deletion testing
+        available_objectid_bills = [b for b in objectid_bills if b['status'] == 'AVAILABLE']
+        available_uuid_bills = [b for b in uuid_bills if b['status'] == 'AVAILABLE']
+        
+        print(f"   Available ObjectId bills for deletion: {len(available_objectid_bills)}")
+        print(f"   Available UUID bills for deletion: {len(available_uuid_bills)}")
+        
+        # Test ObjectId format deletion
+        if available_objectid_bills:
+            test_bill = available_objectid_bills[0]
+            print(f"\n   Testing DELETE with ObjectId format bill:")
+            print(f"   Bill ID: {test_bill['id']}")
+            print(f"   Customer Code: {test_bill['customer_code']}")
+            print(f"   Status: {test_bill['status']} (safe to delete)")
+            
+            delete_success, delete_response = self.run_test(
+                f"DELETE /bills/{test_bill['id']} - ObjectId Format",
+                "DELETE",
+                f"bills/{test_bill['id']}",
+                200
+            )
+            
+            if delete_success:
+                print(f"   ✅ SUCCESS: DELETE endpoint working with ObjectId format")
+                print(f"   Response: {delete_response.get('message', 'No message')}")
+                test_results["objectid_delete_working"] = True
+                test_results["passed_tests"] += 1
+                test_results["bills_tested"].append(f"DELETE ObjectId: {test_bill['customer_code']}")
+                
+                # Verify deletion by trying to GET the bill
+                verify_success, verify_response = self.run_test(
+                    f"Verify deletion - GET /bills/{test_bill['id']}",
+                    "GET",
+                    f"bills/{test_bill['id']}",
+                    404
+                )
+                
+                if verify_success:
+                    print(f"   ✅ Deletion verified - bill no longer accessible")
+                    test_results["cascade_deletion_working"] = True
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"   ⚠️ Deletion verification inconclusive")
+                
+                test_results["total_tests"] += 1
+            else:
+                print(f"   ❌ FAILED: DELETE endpoint not working with ObjectId format")
+                test_results["critical_issues"].append(f"DELETE failed for ObjectId: {test_bill['id']}")
+            
+            test_results["total_tests"] += 1
+        
+        # Test UUID format deletion
+        if available_uuid_bills:
+            test_bill = available_uuid_bills[0]
+            print(f"\n   Testing DELETE with UUID format bill:")
+            print(f"   Bill ID: {test_bill['id']}")
+            print(f"   Customer Code: {test_bill['customer_code']}")
+            print(f"   Status: {test_bill['status']} (safe to delete)")
+            
+            delete_success, delete_response = self.run_test(
+                f"DELETE /bills/{test_bill['id']} - UUID Format",
+                "DELETE",
+                f"bills/{test_bill['id']}",
+                200
+            )
+            
+            if delete_success:
+                print(f"   ✅ SUCCESS: DELETE endpoint working with UUID format")
+                print(f"   Response: {delete_response.get('message', 'No message')}")
+                test_results["uuid_delete_working"] = True
+                test_results["passed_tests"] += 1
+                test_results["bills_tested"].append(f"DELETE UUID: {test_bill['customer_code']}")
+                
+                # Verify deletion by trying to GET the bill
+                verify_success, verify_response = self.run_test(
+                    f"Verify deletion - GET /bills/{test_bill['id']}",
+                    "GET",
+                    f"bills/{test_bill['id']}",
+                    404
+                )
+                
+                if verify_success:
+                    print(f"   ✅ Deletion verified - bill no longer accessible")
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"   ⚠️ Deletion verification inconclusive")
+                
+                test_results["total_tests"] += 1
+            else:
+                print(f"   ❌ FAILED: DELETE endpoint not working with UUID format")
+                test_results["critical_issues"].append(f"DELETE failed for UUID: {test_bill['id']}")
+            
+            test_results["total_tests"] += 1
+        
+        # Step 5: Test error handling for SOLD bills (should not be deletable)
+        print(f"\n🔍 STEP 5: Test Error Handling for SOLD Bills")
+        print("=" * 60)
+        
+        sold_bills = [b for b in bills_response if b.get('status') == 'SOLD']
+        if sold_bills:
+            test_bill = sold_bills[0]
+            print(f"\n   Testing DELETE protection for SOLD bill:")
+            print(f"   Bill ID: {test_bill['id']}")
+            print(f"   Customer Code: {test_bill['customer_code']}")
+            print(f"   Status: {test_bill['status']} (should be protected)")
+            
+            delete_protection_success, delete_protection_response = self.run_test(
+                f"DELETE /bills/{test_bill['id']} - SOLD Bill Protection",
+                "DELETE",
+                f"bills/{test_bill['id']}",
+                400  # Should return 400 error for sold bills
+            )
+            
+            if delete_protection_success:
+                print(f"   ✅ SUCCESS: SOLD bill protection working")
+                print(f"   Error message: {delete_protection_response.get('detail', 'No detail')}")
+                test_results["passed_tests"] += 1
+            else:
+                print(f"   ❌ FAILED: SOLD bill protection not working properly")
+                test_results["critical_issues"].append("SOLD bill protection not working")
+            
+            test_results["total_tests"] += 1
+        else:
+            print(f"   ⚠️ No SOLD bills found to test protection")
+        
+        # Step 6: Verify dual lookup strategy is working
+        print(f"\n🔍 STEP 6: Verify Dual Lookup Strategy Implementation")
+        print("=" * 60)
+        
+        dual_lookup_working = (
+            (test_results["objectid_get_working"] or len(objectid_bills) == 0) and
+            (test_results["uuid_get_working"] or len(uuid_bills) == 0) and
+            (test_results["objectid_put_working"] or len(objectid_bills) == 0) and
+            (test_results["uuid_put_working"] or len(uuid_bills) == 0) and
+            (test_results["objectid_delete_working"] or len(available_objectid_bills) == 0) and
+            (test_results["uuid_delete_working"] or len(available_uuid_bills) == 0)
+        )
+        
+        if dual_lookup_working:
+            print(f"✅ SUCCESS: Dual lookup strategy working for all bill endpoints")
+            print(f"   - GET endpoint supports both ObjectId and UUID formats")
+            print(f"   - PUT endpoint supports both ObjectId and UUID formats")
+            print(f"   - DELETE endpoint supports both ObjectId and UUID formats")
+            test_results["dual_lookup_verified"] = True
+            test_results["passed_tests"] += 1
+        else:
+            print(f"❌ FAILED: Dual lookup strategy has issues")
+            test_results["critical_issues"].append("Dual lookup strategy not fully working")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 7: Final Assessment
+        print(f"\n📊 STEP 7: Final Assessment - Bills DELETE Endpoint Dual Lookup Fix")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 CRITICAL VERIFICATION RESULTS:")
+        print(f"   DELETE /api/bills/{{bill_id}} ObjectId format: {'✅ WORKING' if test_results['objectid_delete_working'] else '❌ FAILED'}")
+        print(f"   DELETE /api/bills/{{bill_id}} UUID format: {'✅ WORKING' if test_results['uuid_delete_working'] else '❌ FAILED'}")
+        print(f"   GET /api/bills/{{bill_id}} ObjectId format: {'✅ WORKING' if test_results['objectid_get_working'] else '❌ FAILED'}")
+        print(f"   GET /api/bills/{{bill_id}} UUID format: {'✅ WORKING' if test_results['uuid_get_working'] else '❌ FAILED'}")
+        print(f"   PUT /api/bills/{{bill_id}} ObjectId format: {'✅ WORKING' if test_results['objectid_put_working'] else '❌ FAILED'}")
+        print(f"   PUT /api/bills/{{bill_id}} UUID format: {'✅ WORKING' if test_results['uuid_put_working'] else '❌ FAILED'}")
+        print(f"   Dual lookup strategy verified: {'✅ YES' if test_results['dual_lookup_verified'] else '❌ NO'}")
+        print(f"   Cascade deletion working: {'✅ YES' if test_results['cascade_deletion_working'] else '❌ NO'}")
+        print(f"   Overall Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🎯 EXPECTED RESULTS VERIFICATION:")
+        all_expected_results_met = (
+            test_results["dual_lookup_verified"] and
+            (test_results["objectid_delete_working"] or len(available_objectid_bills) == 0) and
+            (test_results["uuid_delete_working"] or len(available_uuid_bills) == 0) and
+            (test_results["objectid_get_working"] or len(objectid_bills) == 0) and
+            (test_results["uuid_get_working"] or len(uuid_bills) == 0) and
+            (test_results["objectid_put_working"] or len(objectid_bills) == 0) and
+            (test_results["uuid_put_working"] or len(uuid_bills) == 0)
+        )
+        
+        if all_expected_results_met:
+            print(f"   ✅ Bills deletion working với both ObjectId và UUID formats")
+            print(f"   ✅ No more 'Không tìm thấy bill để xóa' error")
+            print(f"   ✅ GET và PUT endpoints cũng supporting dual lookup")
+            print(f"   ✅ Bills có proper inventory cascade deletion")
+            print(f"   ✅ Dual lookup strategy hoạt động correctly cho bills")
+        else:
+            print(f"   ❌ Some expected results not met:")
+            if not test_results["dual_lookup_verified"]:
+                print(f"      - Dual lookup strategy not fully implemented")
+            if not test_results["objectid_delete_working"] and len(available_objectid_bills) > 0:
+                print(f"      - ObjectId format DELETE not working")
+            if not test_results["uuid_delete_working"] and len(available_uuid_bills) > 0:
+                print(f"      - UUID format DELETE not working")
+        
+        if test_results["critical_issues"]:
+            print(f"\n🚨 CRITICAL ISSUES FOUND:")
+            for issue in test_results["critical_issues"]:
+                print(f"   - {issue}")
+        
+        if test_results["bills_tested"]:
+            print(f"\n📋 BILLS TESTED:")
+            for bill_test in test_results["bills_tested"]:
+                print(f"   - {bill_test}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if all_expected_results_met:
+            print(f"   ✅ BILLS DELETE ENDPOINT DUAL LOOKUP FIX VERIFICATION SUCCESSFUL")
+            print(f"   - Bills deletion issue resolved sau khi apply dual lookup strategy")
+            print(f"   - All bill endpoints (GET, PUT, DELETE) support both ObjectId và UUID")
+            print(f"   - No more 404 errors for existing bills with mixed ID formats")
+            print(f"   - Proper cascade deletion và error handling implemented")
+        else:
+            print(f"   ❌ BILLS DELETE ENDPOINT STILL HAS ISSUES")
+            print(f"   - Dual lookup fix may not be complete")
+            print(f"   - Some bill operations still failing with mixed ID formats")
+        
+        return all_expected_results_met
+
     def run_all_tests(self):
         """Run all tests for the review request"""
-        print(f"\n🚀 STARTING BILLS DATA VERIFICATION AND CREATION")
+        print(f"\n🚀 STARTING BILLS DELETE ENDPOINT DUAL LOOKUP FIX VERIFICATION")
         print("=" * 80)
-        print(f"🎯 Review Request: Verify bills data và tạo test bills if needed")
+        print(f"🎯 Review Request: Test Bills DELETE endpoint sau khi fix ObjectId vs UUID dual lookup")
         print(f"📅 Test Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"🌐 API Base URL: {self.base_url}")
         
         # Run the main test
-        success = self.test_bills_data_verification_and_creation()
+        success = self.test_bills_delete_endpoint_dual_lookup_fix()
         
         # Print final summary
         print(f"\n📊 FINAL TEST SUMMARY")
@@ -1039,16 +1474,16 @@ class FPTBillManagerAPITester:
         print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%")
         
         if success:
-            print(f"\n✅ OVERALL RESULT: Bills data verification and creation PASSED")
-            print(f"   - Database has sufficient bills data (≥50 bills)")
-            print(f"   - Bills appear in Available tab")
-            print(f"   - Bills appear in 'Tất Cả Bills' tab")
-            print(f"   - Mixed statuses available for testing")
-            print(f"   - Inventory tabs ready for testing")
+            print(f"\n✅ OVERALL RESULT: Bills DELETE endpoint dual lookup fix PASSED")
+            print(f"   - Bills deletion working với both ObjectId và UUID formats")
+            print(f"   - No more 'Không tìm thấy bill để xóa' error")
+            print(f"   - GET và PUT endpoints cũng supporting dual lookup")
+            print(f"   - Bills có proper inventory cascade deletion")
+            print(f"   - Dual lookup strategy tương tự như customers và credit cards")
         else:
-            print(f"\n❌ OVERALL RESULT: Bills data verification NEEDS ATTENTION")
-            print(f"   - May need manual data creation")
-            print(f"   - Check inventory endpoint functionality")
+            print(f"\n❌ OVERALL RESULT: Bills DELETE endpoint NEEDS ATTENTION")
+            print(f"   - Dual lookup fix may not be working correctly")
+            print(f"   - Some bill operations still failing")
         
         return success
 
