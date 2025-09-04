@@ -3749,7 +3749,7 @@ async def get_unified_transactions(
                     items=[{
                         "id": card["id"],
                         "code": masked_card,
-                        "amount": dao["total_amount"],
+                        "amount": dao.get("total_amount", 0),
                         "type": "CREDIT_CARD"
                     }],
                     item_codes=[masked_card],
