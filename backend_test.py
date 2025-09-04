@@ -4606,21 +4606,13 @@ class FPTBillManagerAPITester:
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    print("🎯 STARTING DATABASE CLEANUP FOR FRESH TESTING")
-    print("=" * 80)
-    print("Focus: Clean toàn bộ database để chuẩn bị fresh testing")
+    # Run the dual collection architecture analysis
+    success = tester.test_dual_collection_architecture_analysis()
     
-    # Run the database cleanup test
-    result = tester.run_database_cleanup_testing()
-    
-    print(f"\n🏁 DATABASE CLEANUP COMPLETE")
-    print(f"Result: {'✅ SUCCESS' if result else '❌ NEEDS ATTENTION'}")
-    print(f"Total tests run: {tester.tests_run}")
-    print(f"Tests passed: {tester.tests_passed}")
-    print(f"Success rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
+    print(f"\n🏁 FINAL RESULT: {'✅ SUCCESS' if success else '❌ FAILED'}")
     
     # Close MongoDB connection
     if tester.mongo_connected:
         tester.mongo_client.close()
     
-    sys.exit(0 if result else 1)
+    sys.exit(0 if success else 1)
