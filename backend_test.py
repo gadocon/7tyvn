@@ -3857,12 +3857,6 @@ class FPTBillManagerAPITester:
             print(f"   - Re-run validation after fixes")
         
         return production_ready
-            print(f"   ⚠️ Credit cards list endpoint issues")
-        
-        # Test bills endpoints
-        print(f"\n📋 Testing Bills API Endpoints...")
-        
-        bills_success, bills_response = self.run_test(
             "GET /bills - List endpoint",
             "GET",
             "bills?limit=5",
