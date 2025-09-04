@@ -406,6 +406,23 @@ async def get_customers(skip: int = 0, limit: int = 100):
         logger.error(f"Error fetching customers: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/customers/stats")
+async def get_customers_stats():
+    """Customer stats for dashboard"""
+    try:
+        total_customers = await db.customers.count_documents({})
+        active_customers = await db.customers.count_documents({"is_active": True})
+        
+        return {
+            "total": total_customers,
+            "active": active_customers,
+            "inactive": total_customers - active_customers,
+            "this_month": 0  # Placeholder
+        }
+    except Exception as e:
+        logger.error(f"Error fetching customer stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/customers/{customer_id}", response_model=Customer)
 async def get_customer(customer_id: str):
     """Get customer by UUID only - NO ObjectId fallback"""
