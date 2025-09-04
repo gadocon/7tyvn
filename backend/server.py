@@ -1113,7 +1113,7 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                 "customer_code": customer_code,
                 "amount": bill.get("amount", 0),
                 "billing_cycle": bill.get("billing_cycle", "N/A"),
-                "status": bill.get("status", "UNKNOWN"),
+                "bill_status": bill.get("status", "UNKNOWN"),
                 "bill": bill_clean
             }
         else:
