@@ -1788,7 +1788,7 @@ async def update_bill(bill_id: str, bill_data: dict):
         
         # Update bill in database
         result = await db.bills.update_one(
-            {"id": bill_id},
+            {"id": actual_bill_id},
             {"$set": update_data}
         )
         
@@ -1798,7 +1798,7 @@ async def update_bill(bill_id: str, bill_data: dict):
             raise HTTPException(status_code=404, detail="Không tìm thấy bill để cập nhật")
         
         # Get updated bill
-        updated_bill = await db.bills.find_one({"id": bill_id})
+        updated_bill = await db.bills.find_one({"id": actual_bill_id})
         print(f"Retrieved updated bill successfully")
         
         return {
