@@ -5,8 +5,7 @@ Eliminates all ObjectId handling and dual lookup complexity
 
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
-from bson import ObjectId
+from typing import Dict, Any, List
 
 def generate_uuid() -> str:
     """Generate clean UUID string for all entities"""
