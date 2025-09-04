@@ -3777,15 +3777,15 @@ class FPTBillManagerAPITester:
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    print("🎯 STARTING DEBUG DATA INCONSISTENCY INVESTIGATION")
+    print("🎯 STARTING COMPREHENSIVE TRANSACTIONS UNSAFE FIELD ACCESS FIX VERIFICATION")
     print("=" * 80)
-    print("Focus: Inventory vs ĐÁO Modal Consistency - Finding Phantom Bills Source")
+    print("Focus: Verify systematic fix resolved ALL unsafe field access patterns")
     
-    # Run the debug investigation
-    result = tester.debug_data_inconsistency_inventory_vs_dao_modal()
+    # Run the comprehensive transactions test
+    result = tester.test_transactions_unsafe_field_access_fix()
     
-    print(f"\n🏁 INVESTIGATION COMPLETE")
-    print(f"Result: {'✅ SUCCESS' if result else '❌ NEEDS MORE INVESTIGATION'}")
+    print(f"\n🏁 COMPREHENSIVE VERIFICATION COMPLETE")
+    print(f"Result: {'✅ SUCCESS' if result else '❌ NEEDS MORE WORK'}")
     print(f"Total tests run: {tester.tests_run}")
     print(f"Tests passed: {tester.tests_passed}")
     print(f"Success rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
