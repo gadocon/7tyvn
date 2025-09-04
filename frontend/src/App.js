@@ -5473,7 +5473,8 @@ const DaoCardModal = ({ show, card, onClose, onSuccess }) => {
   const fetchAvailableBills = async () => {
     setBillsLoading(true);
     try {
-      const response = await axios.get(`${API}/bills?status=AVAILABLE&limit=100`);
+      // Use inventory API to ensure consistency with inventory tab
+      const response = await axios.get(`${API}/inventory?status=AVAILABLE&limit=100`);
       setAvailableBills(response.data || []);
     } catch (error) {
       console.error("Error fetching available bills:", error);
