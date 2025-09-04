@@ -4779,12 +4779,12 @@ async def get_customer_transactions_summary(customer_id: str, limit: int = 50):
             
             dao_type = "CREDIT_DAO_POS" if dao.get("payment_method", "POS") == "POS" else "CREDIT_DAO_BILL"
             transactions.append({
-                "id": dao["id"],
+                "id": dao.get("id"),
                 "type": dao_type,
                 "type_display": f"Đáo Thẻ {dao.get('payment_method', 'POS')}",
                 "amount": dao.get("total_amount", 0),
                 "profit": dao.get("profit_value", 0),
-                "created_at": dao["created_at"],
+                "created_at": dao.get("created_at"),
                 "description": f"{card_info.get('bank_name', 'Unknown')} {card_number}",
                 "card_number": card_number,
                 "method": dao.get("payment_method"),
