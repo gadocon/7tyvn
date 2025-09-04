@@ -3672,9 +3672,9 @@ async def get_unified_transactions(
                     customer_id=sale["customer_id"],
                     customer_name=customer.get("name", "N/A"),
                     customer_phone=customer.get("phone"),
-                    total_amount=sale["total"],
-                    profit_amount=sale["profit_value"],
-                    profit_percentage=sale["profit_pct"],
+                    total_amount=sale.get("total", 0),
+                    profit_amount=sale.get("profit_value", 0),
+                    profit_percentage=sale.get("profit_pct", 0),
                     payback=sale.get("payback"),
                     items=[{
                         "id": bill["id"],
