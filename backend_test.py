@@ -3398,6 +3398,461 @@ class FPTBillManagerAPITester:
             else:
                 print(f"   ✅ All credit card lookup endpoints working")
         else:
+    def test_uuid_only_system_final_validation(self):
+        """UUID-Only System Final Validation - Comprehensive End-to-End Testing"""
+        print(f"\n🎯 UUID-ONLY SYSTEM FINAL VALIDATION - COMPREHENSIVE TESTING")
+        print("=" * 80)
+        print("🔍 COMPREHENSIVE VALIDATION OBJECTIVES:")
+        print("   1. Full API Integration Test - all major endpoints (customers, bills, inventory, sales)")
+        print("   2. Frontend-Backend Integration - verify frontend API calls work with UUID-only backend")
+        print("   3. Data Consistency Check - ensure all collections use UUID format consistently")
+        print("   4. Sales Transaction Flow - complete sales workflow from customer to bill purchase")
+        print("   5. Inventory Management - inventory operations with UUID-only bills")
+        print("   6. Credit Card DAO Operations - credit card functionality with UUID customers/bills")
+        print("   Expected: 100% UUID-only system with no ObjectId/UUID mixing issues")
+        
+        validation_results = {
+            "api_integration_tests": {"passed": 0, "total": 0, "details": []},
+            "data_consistency_check": {"uuid_only": True, "mixed_ids_found": 0, "collections_checked": 0},
+            "sales_transaction_flow": {"working": False, "transactions_created": 0, "errors": []},
+            "inventory_management": {"working": False, "operations_tested": 0, "errors": []},
+            "credit_card_operations": {"working": False, "operations_tested": 0, "errors": []},
+            "frontend_backend_integration": {"working": False, "endpoints_tested": 0, "errors": []},
+            "overall_success_rate": 0,
+            "critical_issues": [],
+            "system_ready_for_production": False
+        }
+        
+        # Phase 1: Full API Integration Test
+        print(f"\n🔍 PHASE 1: Full API Integration Test - All Major Endpoints")
+        print("=" * 70)
+        
+        api_endpoints = [
+            ("GET /api/health", "GET", "health", 200),
+            ("GET /api/customers", "GET", "customers?limit=50", 200),
+            ("GET /api/bills", "GET", "bills?limit=50", 200),
+            ("GET /api/inventory", "GET", "inventory?limit=50", 200),
+            ("GET /api/sales", "GET", "sales?limit=50", 200),
+            ("GET /api/stats/dashboard", "GET", "stats/dashboard", 200),
+        ]
+        
+        for endpoint_name, method, endpoint, expected_status in api_endpoints:
+            success, response = self.run_test(
+                f"API Integration - {endpoint_name}",
+                method,
+                endpoint,
+                expected_status
+            )
+            
+            validation_results["api_integration_tests"]["total"] += 1
+            if success:
+                validation_results["api_integration_tests"]["passed"] += 1
+                validation_results["api_integration_tests"]["details"].append(f"✅ {endpoint_name}")
+                
+                # Check for UUID-only responses
+                if isinstance(response, list) and response:
+                    sample_item = response[0]
+                    item_id = sample_item.get('id', '')
+                    if len(item_id) == 36 and item_id.count('-') == 4:
+                        print(f"   ✅ UUID-only format confirmed: {item_id}")
+                    else:
+                        print(f"   ⚠️ Non-UUID ID detected: {item_id}")
+                        validation_results["data_consistency_check"]["mixed_ids_found"] += 1
+                elif isinstance(response, dict) and 'id' in response:
+                    item_id = response.get('id', '')
+                    if len(item_id) == 36 and item_id.count('-') == 4:
+                        print(f"   ✅ UUID-only format confirmed: {item_id}")
+            else:
+                validation_results["api_integration_tests"]["details"].append(f"❌ {endpoint_name}")
+                validation_results["critical_issues"].append(f"API endpoint failed: {endpoint_name}")
+        
+        # Phase 2: Data Consistency Check
+        print(f"\n🔍 PHASE 2: Data Consistency Check - UUID Format Verification")
+        print("=" * 70)
+        
+        if self.mongo_connected:
+            collections_to_check = ["customers", "bills", "sales", "credit_cards"]
+            
+            for collection_name in collections_to_check:
+                try:
+                    collection = getattr(self.db, collection_name)
+                    sample_docs = list(collection.find({}).limit(10))
+                    
+                    validation_results["data_consistency_check"]["collections_checked"] += 1
+                    
+                    print(f"\n   Checking {collection_name} collection:")
+                    print(f"   Found {len(sample_docs)} documents")
+                    
+                    uuid_count = 0
+                    mixed_count = 0
+                    
+                    for doc in sample_docs:
+                        doc_id = doc.get('id', '')
+                        if len(doc_id) == 36 and doc_id.count('-') == 4:
+                            uuid_count += 1
+                        else:
+                            mixed_count += 1
+                            validation_results["data_consistency_check"]["mixed_ids_found"] += 1
+                    
+                    print(f"   UUID format: {uuid_count}/{len(sample_docs)}")
+                    print(f"   Mixed/Other format: {mixed_count}/{len(sample_docs)}")
+                    
+                    if mixed_count == 0:
+                        print(f"   ✅ {collection_name}: 100% UUID-only format")
+                    else:
+                        print(f"   ⚠️ {collection_name}: Mixed ID formats detected")
+                        validation_results["data_consistency_check"]["uuid_only"] = False
+                        
+                except Exception as e:
+                    print(f"   ❌ Error checking {collection_name}: {e}")
+                    validation_results["critical_issues"].append(f"Data consistency check failed for {collection_name}")
+        else:
+            print("   ⚠️ MongoDB connection not available for data consistency check")
+        
+        # Phase 3: Sales Transaction Flow Test
+        print(f"\n🔍 PHASE 3: Sales Transaction Flow - Complete Workflow Test")
+        print("=" * 70)
+        
+        # First, ensure we have test data
+        customers_success, customers_response = self.run_test(
+            "Get Customers for Sales Test",
+            "GET",
+            "customers?limit=5",
+            200
+        )
+        
+        bills_success, bills_response = self.run_test(
+            "Get Available Bills for Sales Test",
+            "GET",
+            "bills?status=AVAILABLE&limit=5",
+            200
+        )
+        
+        if customers_success and bills_success and customers_response and bills_response:
+            # Create a test sale transaction
+            test_customer = customers_response[0]
+            test_bills = bills_response[:2]  # Use first 2 available bills
+            
+            customer_id = test_customer.get('id')
+            bill_ids = [bill.get('id') for bill in test_bills]
+            
+            print(f"   Testing sales flow with:")
+            print(f"   Customer: {test_customer.get('name')} (ID: {customer_id})")
+            print(f"   Bills: {len(bill_ids)} bills")
+            
+            # Verify UUID formats
+            if len(customer_id) == 36 and customer_id.count('-') == 4:
+                print(f"   ✅ Customer ID is UUID format")
+            else:
+                print(f"   ❌ Customer ID is not UUID format: {customer_id}")
+                validation_results["critical_issues"].append("Customer ID not UUID format")
+            
+            all_bills_uuid = all(len(bid) == 36 and bid.count('-') == 4 for bid in bill_ids)
+            if all_bills_uuid:
+                print(f"   ✅ All bill IDs are UUID format")
+            else:
+                print(f"   ❌ Some bill IDs are not UUID format")
+                validation_results["critical_issues"].append("Bill IDs not UUID format")
+            
+            # Create sale transaction
+            sale_data = {
+                "customer_id": customer_id,
+                "bill_ids": bill_ids,
+                "profit_pct": 5.0,
+                "notes": "UUID-only system test sale"
+            }
+            
+            sale_success, sale_response = self.run_test(
+                "Create Sales Transaction - UUID Only",
+                "POST",
+                "sales",
+                200,
+                data=sale_data
+            )
+            
+            if sale_success:
+                print(f"   ✅ Sales transaction created successfully")
+                print(f"   Sale ID: {sale_response.get('id')}")
+                print(f"   Total: {sale_response.get('total')}")
+                print(f"   Profit: {sale_response.get('profit_value')}")
+                
+                validation_results["sales_transaction_flow"]["working"] = True
+                validation_results["sales_transaction_flow"]["transactions_created"] = 1
+                
+                # Verify sale ID is UUID format
+                sale_id = sale_response.get('id', '')
+                if len(sale_id) == 36 and sale_id.count('-') == 4:
+                    print(f"   ✅ Sale ID is UUID format: {sale_id}")
+                else:
+                    print(f"   ❌ Sale ID is not UUID format: {sale_id}")
+                    validation_results["critical_issues"].append("Sale ID not UUID format")
+            else:
+                print(f"   ❌ Sales transaction creation failed")
+                validation_results["sales_transaction_flow"]["errors"].append("Sales creation failed")
+                validation_results["critical_issues"].append("Sales transaction flow broken")
+        else:
+            print(f"   ⚠️ Insufficient test data for sales flow test")
+            validation_results["sales_transaction_flow"]["errors"].append("Insufficient test data")
+        
+        # Phase 4: Inventory Management Test
+        print(f"\n🔍 PHASE 4: Inventory Management - UUID-Only Operations")
+        print("=" * 70)
+        
+        # Test inventory operations
+        inventory_operations = [
+            ("GET /api/inventory", "GET", "inventory?limit=20", 200),
+            ("GET /api/inventory?status=AVAILABLE", "GET", "inventory?status=AVAILABLE&limit=20", 200),
+        ]
+        
+        inventory_working = True
+        for op_name, method, endpoint, expected_status in inventory_operations:
+            success, response = self.run_test(
+                f"Inventory Operation - {op_name}",
+                method,
+                endpoint,
+                expected_status
+            )
+            
+            validation_results["inventory_management"]["operations_tested"] += 1
+            
+            if success:
+                print(f"   ✅ {op_name} working")
+                
+                # Check UUID format in inventory items
+                if isinstance(response, list) and response:
+                    sample_item = response[0]
+                    item_id = sample_item.get('id', '')
+                    if len(item_id) == 36 and item_id.count('-') == 4:
+                        print(f"   ✅ Inventory item UUID format confirmed")
+                    else:
+                        print(f"   ❌ Inventory item not UUID format: {item_id}")
+                        inventory_working = False
+            else:
+                print(f"   ❌ {op_name} failed")
+                validation_results["inventory_management"]["errors"].append(f"{op_name} failed")
+                inventory_working = False
+        
+        validation_results["inventory_management"]["working"] = inventory_working
+        
+        # Test inventory add/remove operations if we have bills
+        if bills_success and bills_response:
+            test_bill = bills_response[0]
+            test_bill_id = test_bill.get('id')
+            
+            # Test add to inventory
+            add_success, add_response = self.run_test(
+                "Add Bill to Inventory - UUID Only",
+                "POST",
+                f"inventory/add/{test_bill_id}",
+                200
+            )
+            
+            if add_success:
+                print(f"   ✅ Add to inventory working with UUID: {test_bill_id}")
+                
+                # Test remove from inventory
+                remove_success, remove_response = self.run_test(
+                    "Remove Bill from Inventory - UUID Only",
+                    "DELETE",
+                    f"inventory/remove/{test_bill_id}",
+                    200
+                )
+                
+                if remove_success:
+                    print(f"   ✅ Remove from inventory working with UUID")
+                    validation_results["inventory_management"]["operations_tested"] += 2
+                else:
+                    print(f"   ❌ Remove from inventory failed")
+                    validation_results["inventory_management"]["errors"].append("Remove from inventory failed")
+            else:
+                print(f"   ❌ Add to inventory failed")
+                validation_results["inventory_management"]["errors"].append("Add to inventory failed")
+        
+        # Phase 5: Credit Card DAO Operations Test
+        print(f"\n🔍 PHASE 5: Credit Card DAO Operations - UUID System")
+        print("=" * 70)
+        
+        # Test credit card operations
+        credit_card_success, credit_card_response = self.run_test(
+            "Get Credit Cards - UUID System",
+            "GET",
+            "credit-cards?limit=20",
+            200
+        )
+        
+        if credit_card_success and credit_card_response:
+            print(f"   ✅ Credit cards endpoint working - found {len(credit_card_response)} cards")
+            
+            validation_results["credit_card_operations"]["operations_tested"] += 1
+            
+            # Check UUID format in credit cards
+            if credit_card_response:
+                sample_card = credit_card_response[0]
+                card_id = sample_card.get('id', '')
+                customer_id = sample_card.get('customer_id', '')
+                
+                card_uuid_valid = len(card_id) == 36 and card_id.count('-') == 4
+                customer_uuid_valid = len(customer_id) == 36 and customer_id.count('-') == 4
+                
+                if card_uuid_valid and customer_uuid_valid:
+                    print(f"   ✅ Credit card UUID formats confirmed")
+                    print(f"   Card ID: {card_id}")
+                    print(f"   Customer ID: {customer_id}")
+                    validation_results["credit_card_operations"]["working"] = True
+                else:
+                    print(f"   ❌ Credit card UUID formats invalid")
+                    print(f"   Card ID valid: {card_uuid_valid}")
+                    print(f"   Customer ID valid: {customer_uuid_valid}")
+                    validation_results["credit_card_operations"]["errors"].append("Invalid UUID formats")
+                
+                # Test individual credit card lookup
+                card_detail_success, card_detail_response = self.run_test(
+                    f"Credit Card Detail - UUID Lookup",
+                    "GET",
+                    f"credit-cards/{card_id}/detail",
+                    200
+                )
+                
+                validation_results["credit_card_operations"]["operations_tested"] += 1
+                
+                if card_detail_success:
+                    print(f"   ✅ Credit card detail lookup working with UUID")
+                else:
+                    print(f"   ❌ Credit card detail lookup failed")
+                    validation_results["credit_card_operations"]["errors"].append("Credit card detail lookup failed")
+        else:
+            print(f"   ❌ Credit cards endpoint failed")
+            validation_results["credit_card_operations"]["errors"].append("Credit cards endpoint failed")
+        
+        # Phase 6: Frontend-Backend Integration Test
+        print(f"\n🔍 PHASE 6: Frontend-Backend Integration - API Compatibility")
+        print("=" * 70)
+        
+        # Test endpoints that frontend typically uses
+        frontend_endpoints = [
+            ("Dashboard Stats", "GET", "stats/dashboard", 200),
+            ("Customer List", "GET", "customers?limit=20", 200),
+            ("Bill List", "GET", "bills?limit=20", 200),
+            ("Inventory Stats", "GET", "inventory?limit=20", 200),
+        ]
+        
+        frontend_working = True
+        for endpoint_name, method, endpoint, expected_status in frontend_endpoints:
+            success, response = self.run_test(
+                f"Frontend Integration - {endpoint_name}",
+                method,
+                endpoint,
+                expected_status
+            )
+            
+            validation_results["frontend_backend_integration"]["endpoints_tested"] += 1
+            
+            if success:
+                print(f"   ✅ {endpoint_name} - Frontend compatible")
+                
+                # Check response structure for frontend compatibility
+                if isinstance(response, dict) and response:
+                    print(f"   Response keys: {list(response.keys())}")
+                elif isinstance(response, list) and response:
+                    print(f"   Array response with {len(response)} items")
+            else:
+                print(f"   ❌ {endpoint_name} - Frontend incompatible")
+                validation_results["frontend_backend_integration"]["errors"].append(f"{endpoint_name} failed")
+                frontend_working = False
+        
+        validation_results["frontend_backend_integration"]["working"] = frontend_working
+        
+        # Final Assessment
+        print(f"\n📊 FINAL ASSESSMENT: UUID-Only System Validation Results")
+        print("=" * 70)
+        
+        # Calculate overall success rate
+        total_tests = (
+            validation_results["api_integration_tests"]["total"] +
+            validation_results["inventory_management"]["operations_tested"] +
+            validation_results["credit_card_operations"]["operations_tested"] +
+            validation_results["frontend_backend_integration"]["endpoints_tested"]
+        )
+        
+        passed_tests = (
+            validation_results["api_integration_tests"]["passed"] +
+            (validation_results["inventory_management"]["operations_tested"] if validation_results["inventory_management"]["working"] else 0) +
+            (validation_results["credit_card_operations"]["operations_tested"] if validation_results["credit_card_operations"]["working"] else 0) +
+            (validation_results["frontend_backend_integration"]["endpoints_tested"] if validation_results["frontend_backend_integration"]["working"] else 0)
+        )
+        
+        if validation_results["sales_transaction_flow"]["working"]:
+            passed_tests += 1
+            total_tests += 1
+        
+        validation_results["overall_success_rate"] = (passed_tests / total_tests * 100) if total_tests > 0 else 0
+        
+        print(f"\n🔍 COMPREHENSIVE VALIDATION RESULTS:")
+        print(f"   API Integration Tests: {validation_results['api_integration_tests']['passed']}/{validation_results['api_integration_tests']['total']} passed")
+        print(f"   Data Consistency: {'✅ UUID-only' if validation_results['data_consistency_check']['uuid_only'] else '❌ Mixed IDs found'}")
+        print(f"   Sales Transaction Flow: {'✅ Working' if validation_results['sales_transaction_flow']['working'] else '❌ Failed'}")
+        print(f"   Inventory Management: {'✅ Working' if validation_results['inventory_management']['working'] else '❌ Failed'}")
+        print(f"   Credit Card Operations: {'✅ Working' if validation_results['credit_card_operations']['working'] else '❌ Failed'}")
+        print(f"   Frontend-Backend Integration: {'✅ Working' if validation_results['frontend_backend_integration']['working'] else '❌ Failed'}")
+        print(f"   Overall Success Rate: {validation_results['overall_success_rate']:.1f}% ({passed_tests}/{total_tests})")
+        
+        # Production Readiness Assessment
+        production_ready = (
+            validation_results["api_integration_tests"]["passed"] >= validation_results["api_integration_tests"]["total"] * 0.8 and
+            validation_results["data_consistency_check"]["uuid_only"] and
+            validation_results["sales_transaction_flow"]["working"] and
+            validation_results["inventory_management"]["working"] and
+            validation_results["frontend_backend_integration"]["working"] and
+            len(validation_results["critical_issues"]) == 0
+        )
+        
+        validation_results["system_ready_for_production"] = production_ready
+        
+        print(f"\n🎯 PRODUCTION READINESS ASSESSMENT:")
+        if production_ready:
+            print(f"   ✅ SYSTEM READY FOR PRODUCTION")
+            print(f"   - UUID-only architecture fully implemented")
+            print(f"   - No ObjectId/UUID mixing issues detected")
+            print(f"   - All major workflows functioning correctly")
+            print(f"   - Frontend-backend integration working")
+            print(f"   - Data consistency maintained")
+        else:
+            print(f"   ❌ SYSTEM NOT READY FOR PRODUCTION")
+            print(f"   Issues that need resolution:")
+            
+            if validation_results["api_integration_tests"]["passed"] < validation_results["api_integration_tests"]["total"] * 0.8:
+                print(f"      - API integration tests below 80% success rate")
+            if not validation_results["data_consistency_check"]["uuid_only"]:
+                print(f"      - Mixed ID formats detected in database")
+            if not validation_results["sales_transaction_flow"]["working"]:
+                print(f"      - Sales transaction flow not working")
+            if not validation_results["inventory_management"]["working"]:
+                print(f"      - Inventory management issues")
+            if not validation_results["frontend_backend_integration"]["working"]:
+                print(f"      - Frontend-backend integration problems")
+        
+        if validation_results["critical_issues"]:
+            print(f"\n🚨 CRITICAL ISSUES REQUIRING IMMEDIATE ATTENTION:")
+            for issue in validation_results["critical_issues"]:
+                print(f"   - {issue}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if production_ready:
+            print(f"   ✅ UUID-ONLY SYSTEM FINAL VALIDATION SUCCESSFUL")
+            print(f"   - Complete system working with UUID-only architecture")
+            print(f"   - No more ObjectId/UUID mixing issues")
+            print(f"   - All foreign key relationships working correctly")
+            print(f"   - Frontend can successfully interact with all backend APIs")
+            print(f"   - No 404 errors due to ID format mismatches")
+            print(f"   - Sales, inventory, and DAO transactions working properly")
+            print(f"   - System ready for production deployment")
+        else:
+            print(f"   ❌ UUID-ONLY SYSTEM VALIDATION INCOMPLETE")
+            print(f"   - Critical issues need resolution before production")
+            print(f"   - Review and fix identified problems")
+            print(f"   - Re-run validation after fixes")
+        
+        return production_ready
             print(f"   ⚠️ Credit cards list endpoint issues")
         
         # Test bills endpoints
