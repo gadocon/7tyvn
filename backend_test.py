@@ -3398,6 +3398,10 @@ class FPTBillManagerAPITester:
             else:
                 print(f"   ✅ All credit card lookup endpoints working")
         else:
+            print(f"   ⚠️ No credit cards available for individual lookup testing")
+        
+        return True
+
     def test_uuid_only_system_final_validation(self):
         """UUID-Only System Final Validation - Comprehensive End-to-End Testing"""
         print(f"\n🎯 UUID-ONLY SYSTEM FINAL VALIDATION - COMPREHENSIVE TESTING")
