@@ -1223,22 +1223,71 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                         else:
                             data = response_data
                         
-                        # Check if webhook returned error
+                        # Check if webhook returned error and classify properly
                         if "error" in data:
                             error_msg = data["error"].get("message", "Unknown webhook error")
-                            return {
-                                "success": True,
-                                "status": "ERROR",
-                                "message": f"Webhook error: {error_msg[:100]}...",
-                                "customer_code": customer_code,
-                                "customer_name": "N/A",
-                                "customer_address": "N/A",
-                                "amount": 0,
-                                "billing_cycle": "N/A",
-                                "bill_status": "ERROR",
-                                "provider_region": provider_region,
-                                "bill": None
-                            }
+                            
+                            # Classify error types based on FPT business logic
+                            if "reCAPTCHA required" in error_msg or "Too many requests" in error_msg:
+                                # System rate limiting - real error
+                                return {
+                                    "success": True,
+                                    "status": "ERROR",
+                                    "message": "Quá nhiều requests - cần chờ một lúc",
+                                    "customer_code": customer_code,
+                                    "full_name": "N/A",
+                                    "address": "N/A",
+                                    "amount": 0,
+                                    "billing_cycle": "N/A",
+                                    "bill_status": "ERROR",
+                                    "provider_region": provider_region,
+                                    "bill": None
+                                }
+                            elif "Mã Khách hàng nhập vào không tồn tại" in error_msg or "Đầu vào không hợp lệ" in error_msg:
+                                # Invalid customer code or wrong region - normal business case
+                                return {
+                                    "success": True,
+                                    "status": "NOT_FOUND",
+                                    "message": "Không tìm thấy mã khách hàng hoặc sai miền",
+                                    "customer_code": customer_code,
+                                    "full_name": "N/A",
+                                    "address": "N/A",
+                                    "amount": 0,
+                                    "billing_cycle": "N/A",
+                                    "bill_status": "NOT_FOUND",
+                                    "provider_region": provider_region,
+                                    "bill": None
+                                }
+                            elif "không nợ cước" in error_msg or "đã thanh toán" in error_msg.lower():
+                                # Bill already paid - normal business case
+                                return {
+                                    "success": True,
+                                    "status": "NOT_FOUND", 
+                                    "message": "Bill đã được thanh toán",
+                                    "customer_code": customer_code,
+                                    "full_name": "N/A",
+                                    "address": "N/A",
+                                    "amount": 0,
+                                    "billing_cycle": "N/A",
+                                    "bill_status": "PAID",
+                                    "provider_region": provider_region,
+                                    "bill": None
+                                }
+                            else:
+                                # Other unknown errors
+                                return {
+                                    "success": True,
+                                    "status": "ERROR",
+                                    "message": f"Lỗi hệ thống: {error_msg[:50]}...",
+                                    "customer_code": customer_code,
+                                    "full_name": "N/A",
+                                    "address": "N/A",
+                                    "amount": 0,
+                                    "billing_cycle": "N/A",
+                                    "bill_status": "ERROR",
+                                    "provider_region": provider_region,
+                                    "bill": None
+                                }
                         
                         # Process successful N8N response format
                         if data.get("status") == 200 and data.get("message") == "success":
