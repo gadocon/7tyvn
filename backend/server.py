@@ -3737,9 +3737,9 @@ async def get_unified_transactions(
                 tx_type = TransactionType.CREDIT_DAO_POS if dao.get("payment_method") == "POS" else TransactionType.CREDIT_DAO_BILL
                 
                 transaction = UnifiedTransaction(
-                    id=dao["id"],
+                    id=dao.get("id"),
                     type=tx_type,
-                    customer_id=dao["customer_id"],
+                    customer_id=dao.get("customer_id"),
                     customer_name=customer.get("name", "N/A"),
                     customer_phone=customer.get("phone"),
                     total_amount=dao.get("total_amount", 0),
