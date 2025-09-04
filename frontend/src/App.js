@@ -3355,7 +3355,7 @@ const SellBillModal = ({ show, billItem, onClose, onComplete }) => {
     try {
       const saleData = {
         customer_id: selectedCustomerId,
-        bill_ids: [billItem.bill_id],
+        bill_ids: [billItem.id], // UUID only system
         profit_pct: profitPct,
         method: paymentMethod,
         notes: notes || `Bán bill ${billItem.customer_code} - ${new Date().toLocaleDateString('vi-VN')}`
