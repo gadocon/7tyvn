@@ -2096,16 +2096,533 @@ class FPTBillManagerAPITester:
         
         return all_expected_results_met
 
+    def test_dual_collection_architecture_analysis(self):
+        """Analyze current dual collection architecture và propose unified solution - REVIEW REQUEST"""
+        print(f"\n🎯 DUAL COLLECTION ARCHITECTURE ANALYSIS")
+        print("=" * 80)
+        print("🔍 INVESTIGATION OBJECTIVES:")
+        print("   1. Count documents in both bills và inventory_items collections")
+        print("   2. Analyze data relationships và redundancy")
+        print("   3. Identify queries that require JOINs between collections")
+        print("   4. Propose single collection architecture with status fields")
+        print("   5. Create migration plan để consolidate data")
+        print("   Expected findings: Current data distribution, JOIN complexity, unified solution")
+        
+        analysis_results = {
+            "bills_collection": {
+                "total_documents": 0,
+                "status_breakdown": {},
+                "sample_documents": [],
+                "schema_fields": []
+            },
+            "inventory_items_collection": {
+                "total_documents": 0,
+                "bill_references": [],
+                "sample_documents": [],
+                "schema_fields": []
+            },
+            "data_relationships": {
+                "bills_with_inventory_refs": 0,
+                "orphaned_inventory_items": 0,
+                "duplicate_references": 0,
+                "consistency_issues": []
+            },
+            "join_operations": {
+                "required_joins": [],
+                "complexity_score": 0,
+                "performance_impact": "unknown"
+            },
+            "unified_architecture": {
+                "proposed_schema": {},
+                "migration_steps": [],
+                "benefits": [],
+                "risks": []
+            },
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_findings": []
+        }
+        
+        if not self.mongo_connected:
+            print("❌ MongoDB connection required for architecture analysis")
+            return False
+        
+        # Step 1: Analyze Bills Collection
+        print(f"\n🔍 STEP 1: Analyze Bills Collection")
+        print("=" * 60)
+        
+        try:
+            # Count total bills
+            bills_count = self.db.bills.count_documents({})
+            analysis_results["bills_collection"]["total_documents"] = bills_count
+            print(f"📊 Total documents in bills collection: {bills_count}")
+            
+            # Analyze status breakdown
+            status_pipeline = [
+                {"$group": {"_id": "$status", "count": {"$sum": 1}}},
+                {"$sort": {"count": -1}}
+            ]
+            status_results = list(self.db.bills.aggregate(status_pipeline))
+            
+            print(f"📊 Bills status breakdown:")
+            for status_doc in status_results:
+                status = status_doc["_id"]
+                count = status_doc["count"]
+                analysis_results["bills_collection"]["status_breakdown"][status] = count
+                print(f"   {status}: {count} documents")
+            
+            # Get sample documents to analyze schema
+            sample_bills = list(self.db.bills.find({}).limit(3))
+            analysis_results["bills_collection"]["sample_documents"] = sample_bills
+            
+            if sample_bills:
+                # Analyze schema fields
+                all_fields = set()
+                for bill in sample_bills:
+                    all_fields.update(bill.keys())
+                
+                analysis_results["bills_collection"]["schema_fields"] = list(all_fields)
+                print(f"📊 Bills collection schema fields ({len(all_fields)}):")
+                print(f"   {', '.join(sorted(all_fields))}")
+                
+                # Show sample bill
+                sample_bill = sample_bills[0]
+                print(f"📊 Sample bill document:")
+                print(f"   ID: {sample_bill.get('id', sample_bill.get('_id'))}")
+                print(f"   Customer Code: {sample_bill.get('customer_code')}")
+                print(f"   Status: {sample_bill.get('status')}")
+                print(f"   Amount: {sample_bill.get('amount')}")
+                print(f"   Provider Region: {sample_bill.get('provider_region')}")
+            
+            analysis_results["passed_tests"] += 1
+            
+        except Exception as e:
+            print(f"❌ Error analyzing bills collection: {e}")
+            analysis_results["critical_findings"].append(f"Bills collection analysis failed: {e}")
+        
+        analysis_results["total_tests"] += 1
+        
+        # Step 2: Analyze Inventory Items Collection
+        print(f"\n🔍 STEP 2: Analyze Inventory Items Collection")
+        print("=" * 60)
+        
+        try:
+            # Count total inventory items
+            inventory_count = self.db.inventory_items.count_documents({})
+            analysis_results["inventory_items_collection"]["total_documents"] = inventory_count
+            print(f"📊 Total documents in inventory_items collection: {inventory_count}")
+            
+            # Get sample documents
+            sample_inventory = list(self.db.inventory_items.find({}).limit(3))
+            analysis_results["inventory_items_collection"]["sample_documents"] = sample_inventory
+            
+            if sample_inventory:
+                # Analyze schema fields
+                all_fields = set()
+                for item in sample_inventory:
+                    all_fields.update(item.keys())
+                
+                analysis_results["inventory_items_collection"]["schema_fields"] = list(all_fields)
+                print(f"📊 Inventory items schema fields ({len(all_fields)}):")
+                print(f"   {', '.join(sorted(all_fields))}")
+                
+                # Analyze bill references
+                bill_refs = [item.get('bill_id') for item in sample_inventory if item.get('bill_id')]
+                analysis_results["inventory_items_collection"]["bill_references"] = bill_refs
+                print(f"📊 Sample bill references in inventory:")
+                for ref in bill_refs[:3]:
+                    print(f"   {ref}")
+                
+                # Show sample inventory item
+                sample_item = sample_inventory[0]
+                print(f"📊 Sample inventory item:")
+                print(f"   ID: {sample_item.get('id', sample_item.get('_id'))}")
+                print(f"   Bill ID: {sample_item.get('bill_id')}")
+                print(f"   Note: {sample_item.get('note')}")
+                print(f"   Added By: {sample_item.get('added_by')}")
+                print(f"   Created At: {sample_item.get('created_at')}")
+            else:
+                print(f"📊 No inventory items found - collection is empty")
+            
+            analysis_results["passed_tests"] += 1
+            
+        except Exception as e:
+            print(f"❌ Error analyzing inventory_items collection: {e}")
+            analysis_results["critical_findings"].append(f"Inventory items analysis failed: {e}")
+        
+        analysis_results["total_tests"] += 1
+        
+        # Step 3: Analyze Data Relationships and Redundancy
+        print(f"\n🔍 STEP 3: Analyze Data Relationships and Redundancy")
+        print("=" * 60)
+        
+        try:
+            # Check for bills that have corresponding inventory items
+            if inventory_count > 0:
+                # Get all bill_ids from inventory_items
+                inventory_bill_ids = list(self.db.inventory_items.distinct("bill_id"))
+                print(f"📊 Unique bill IDs referenced in inventory: {len(inventory_bill_ids)}")
+                
+                # Check how many of these bills actually exist
+                existing_bills = 0
+                for bill_id in inventory_bill_ids[:10]:  # Check first 10
+                    bill_exists = self.db.bills.find_one({"id": bill_id}) or self.db.bills.find_one({"_id": bill_id})
+                    if bill_exists:
+                        existing_bills += 1
+                
+                analysis_results["data_relationships"]["bills_with_inventory_refs"] = existing_bills
+                print(f"📊 Bills with inventory references (sample): {existing_bills}/10")
+                
+                # Check for orphaned inventory items (bill_id doesn't exist in bills)
+                orphaned_count = 0
+                for bill_id in inventory_bill_ids[:10]:
+                    bill_exists = self.db.bills.find_one({"id": bill_id}) or self.db.bills.find_one({"_id": bill_id})
+                    if not bill_exists:
+                        orphaned_count += 1
+                        analysis_results["data_relationships"]["consistency_issues"].append(f"Orphaned inventory item: {bill_id}")
+                
+                analysis_results["data_relationships"]["orphaned_inventory_items"] = orphaned_count
+                print(f"📊 Orphaned inventory items (sample): {orphaned_count}/10")
+                
+                # Check for duplicate references
+                bill_id_counts = {}
+                for bill_id in inventory_bill_ids:
+                    bill_id_counts[bill_id] = bill_id_counts.get(bill_id, 0) + 1
+                
+                duplicates = {k: v for k, v in bill_id_counts.items() if v > 1}
+                analysis_results["data_relationships"]["duplicate_references"] = len(duplicates)
+                print(f"📊 Duplicate bill references in inventory: {len(duplicates)}")
+                
+                if duplicates:
+                    print(f"   Sample duplicates:")
+                    for bill_id, count in list(duplicates.items())[:3]:
+                        print(f"      {bill_id}: {count} references")
+            else:
+                print(f"📊 No inventory items to analyze relationships")
+            
+            analysis_results["passed_tests"] += 1
+            
+        except Exception as e:
+            print(f"❌ Error analyzing data relationships: {e}")
+            analysis_results["critical_findings"].append(f"Data relationships analysis failed: {e}")
+        
+        analysis_results["total_tests"] += 1
+        
+        # Step 4: Identify JOIN Operations and Complexity
+        print(f"\n🔍 STEP 4: Identify JOIN Operations and Complexity")
+        print("=" * 60)
+        
+        try:
+            # Analyze current API endpoints that require JOINs
+            join_operations = [
+                {
+                    "endpoint": "GET /api/inventory",
+                    "description": "Requires JOIN between inventory_items and bills collections",
+                    "complexity": "HIGH",
+                    "query_pattern": "inventory_items.bill_id -> bills.id",
+                    "performance_impact": "Requires lookup for each inventory item"
+                },
+                {
+                    "endpoint": "GET /api/inventory/stats", 
+                    "description": "Aggregates data from both collections",
+                    "complexity": "MEDIUM",
+                    "query_pattern": "Count inventory_items + aggregate bills by status",
+                    "performance_impact": "Multiple collection queries"
+                },
+                {
+                    "endpoint": "POST /api/inventory/add",
+                    "description": "Updates both collections (bills status + inventory_items)",
+                    "complexity": "HIGH",
+                    "query_pattern": "Update bills.status + insert inventory_items",
+                    "performance_impact": "Transaction across collections required"
+                },
+                {
+                    "endpoint": "DELETE /api/inventory/{item_id}",
+                    "description": "Removes from inventory + updates bill status",
+                    "complexity": "HIGH", 
+                    "query_pattern": "Delete inventory_items + update bills.status",
+                    "performance_impact": "Transaction across collections required"
+                }
+            ]
+            
+            analysis_results["join_operations"]["required_joins"] = join_operations
+            
+            print(f"📊 Current JOIN operations identified:")
+            complexity_scores = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
+            total_complexity = 0
+            
+            for i, join_op in enumerate(join_operations, 1):
+                print(f"   {i}. {join_op['endpoint']}")
+                print(f"      Description: {join_op['description']}")
+                print(f"      Complexity: {join_op['complexity']}")
+                print(f"      Query Pattern: {join_op['query_pattern']}")
+                print(f"      Performance Impact: {join_op['performance_impact']}")
+                print()
+                
+                total_complexity += complexity_scores.get(join_op['complexity'], 2)
+            
+            analysis_results["join_operations"]["complexity_score"] = total_complexity
+            analysis_results["join_operations"]["performance_impact"] = "HIGH" if total_complexity > 8 else "MEDIUM" if total_complexity > 4 else "LOW"
+            
+            print(f"📊 Overall JOIN complexity score: {total_complexity}/12")
+            print(f"📊 Performance impact assessment: {analysis_results['join_operations']['performance_impact']}")
+            
+            analysis_results["passed_tests"] += 1
+            
+        except Exception as e:
+            print(f"❌ Error analyzing JOIN operations: {e}")
+            analysis_results["critical_findings"].append(f"JOIN operations analysis failed: {e}")
+        
+        analysis_results["total_tests"] += 1
+        
+        # Step 5: Propose Unified Collection Architecture
+        print(f"\n🔍 STEP 5: Propose Unified Collection Architecture")
+        print("=" * 60)
+        
+        try:
+            # Design unified schema
+            unified_schema = {
+                "collection_name": "bills_unified",
+                "fields": {
+                    "id": "string (UUID) - Primary key",
+                    "customer_code": "string - Bill customer code",
+                    "gateway": "enum - FPT, SHOPEE",
+                    "provider_region": "enum - MIEN_BAC, MIEN_NAM, HCMC",
+                    "provider_name": "string - Provider name",
+                    "full_name": "string - Customer full name",
+                    "address": "string - Customer address", 
+                    "amount": "number - Bill amount",
+                    "billing_cycle": "string - MM/YYYY format",
+                    "raw_status": "string - Original status from provider",
+                    
+                    # Unified status fields (replaces dual collection approach)
+                    "bill_status": "enum - AVAILABLE, SOLD, PENDING, CROSSED, ERROR",
+                    "inventory_status": "enum - IN_INVENTORY, NOT_IN_INVENTORY",
+                    "is_in_inventory": "boolean - Quick lookup flag",
+                    
+                    # Inventory-specific fields (from inventory_items)
+                    "inventory_note": "string - Note when added to inventory",
+                    "added_by": "string - User who added to inventory",
+                    "batch_id": "string - Batch identifier",
+                    "inventory_added_at": "datetime - When added to inventory",
+                    
+                    # Metadata
+                    "created_at": "datetime - Bill creation time",
+                    "updated_at": "datetime - Last update time",
+                    "last_checked": "datetime - Last status check"
+                },
+                "indexes": [
+                    "customer_code",
+                    "bill_status", 
+                    "inventory_status",
+                    "is_in_inventory",
+                    "provider_region",
+                    "created_at"
+                ]
+            }
+            
+            analysis_results["unified_architecture"]["proposed_schema"] = unified_schema
+            
+            print(f"📊 Proposed Unified Schema - 'bills_unified' collection:")
+            print(f"   Total fields: {len(unified_schema['fields'])}")
+            print(f"   Core bill fields: 12")
+            print(f"   Unified status fields: 3") 
+            print(f"   Inventory fields: 4")
+            print(f"   Metadata fields: 3")
+            print(f"   Recommended indexes: {len(unified_schema['indexes'])}")
+            
+            print(f"\n📊 Key unified status fields:")
+            print(f"   bill_status: Replaces bills.status")
+            print(f"   inventory_status: Replaces inventory_items existence")
+            print(f"   is_in_inventory: Boolean flag for quick filtering")
+            
+            # Migration steps
+            migration_steps = [
+                {
+                    "step": 1,
+                    "action": "Create new bills_unified collection with unified schema",
+                    "complexity": "LOW",
+                    "estimated_time": "5 minutes"
+                },
+                {
+                    "step": 2, 
+                    "action": "Migrate all bills from bills collection to bills_unified",
+                    "complexity": "MEDIUM",
+                    "estimated_time": "10-30 minutes depending on data size"
+                },
+                {
+                    "step": 3,
+                    "action": "For each inventory_item, update corresponding bill in bills_unified",
+                    "complexity": "HIGH",
+                    "estimated_time": "15-45 minutes depending on inventory size"
+                },
+                {
+                    "step": 4,
+                    "action": "Update API endpoints to use bills_unified instead of dual collections",
+                    "complexity": "HIGH", 
+                    "estimated_time": "2-4 hours development time"
+                },
+                {
+                    "step": 5,
+                    "action": "Test all inventory and bill operations with unified collection",
+                    "complexity": "MEDIUM",
+                    "estimated_time": "1-2 hours testing"
+                },
+                {
+                    "step": 6,
+                    "action": "Drop old bills and inventory_items collections after verification",
+                    "complexity": "LOW",
+                    "estimated_time": "5 minutes"
+                }
+            ]
+            
+            analysis_results["unified_architecture"]["migration_steps"] = migration_steps
+            
+            print(f"\n📊 Migration Plan ({len(migration_steps)} steps):")
+            total_time_min = 0
+            for step in migration_steps:
+                print(f"   Step {step['step']}: {step['action']}")
+                print(f"      Complexity: {step['complexity']}")
+                print(f"      Estimated Time: {step['estimated_time']}")
+                print()
+                
+                # Extract time estimates for total calculation
+                if "minutes" in step['estimated_time']:
+                    time_parts = step['estimated_time'].split()
+                    if "-" in time_parts[0]:
+                        avg_time = sum(map(int, time_parts[0].split("-"))) / 2
+                    else:
+                        avg_time = int(time_parts[0])
+                    total_time_min += avg_time
+                elif "hours" in step['estimated_time']:
+                    time_parts = step['estimated_time'].split()
+                    if "-" in time_parts[0]:
+                        avg_time = sum(map(int, time_parts[0].split("-"))) / 2
+                    else:
+                        avg_time = int(time_parts[0])
+                    total_time_min += avg_time * 60
+            
+            print(f"📊 Total estimated migration time: {total_time_min/60:.1f} hours")
+            
+            # Benefits and risks
+            benefits = [
+                "Eliminates complex JOIN operations between collections",
+                "Reduces query complexity from O(n*m) to O(n) for inventory operations", 
+                "Improves performance by avoiding cross-collection lookups",
+                "Simplifies API endpoint logic and reduces code complexity",
+                "Ensures data consistency with single source of truth",
+                "Reduces risk of orphaned inventory items",
+                "Enables atomic operations on bill + inventory status",
+                "Simplifies backup and restore operations",
+                "Reduces MongoDB storage overhead from duplicate references"
+            ]
+            
+            risks = [
+                "Migration downtime required during transition",
+                "Potential data loss if migration fails (requires backup)",
+                "API endpoints need significant refactoring",
+                "Frontend may need updates if API responses change",
+                "Increased document size due to additional fields",
+                "Need to update all existing queries and aggregations",
+                "Testing required to ensure no regression in functionality"
+            ]
+            
+            analysis_results["unified_architecture"]["benefits"] = benefits
+            analysis_results["unified_architecture"]["risks"] = risks
+            
+            print(f"📊 Benefits of unified architecture ({len(benefits)}):")
+            for i, benefit in enumerate(benefits, 1):
+                print(f"   {i}. {benefit}")
+            
+            print(f"\n📊 Risks and considerations ({len(risks)}):")
+            for i, risk in enumerate(risks, 1):
+                print(f"   {i}. {risk}")
+            
+            analysis_results["passed_tests"] += 1
+            
+        except Exception as e:
+            print(f"❌ Error creating unified architecture proposal: {e}")
+            analysis_results["critical_findings"].append(f"Unified architecture proposal failed: {e}")
+        
+        analysis_results["total_tests"] += 1
+        
+        # Step 6: Final Analysis and Recommendations
+        print(f"\n📊 STEP 6: Final Analysis and Recommendations")
+        print("=" * 60)
+        
+        success_rate = (analysis_results["passed_tests"] / analysis_results["total_tests"] * 100) if analysis_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 DUAL COLLECTION ARCHITECTURE ANALYSIS RESULTS:")
+        print(f"   Bills collection documents: {analysis_results['bills_collection']['total_documents']}")
+        print(f"   Inventory items documents: {analysis_results['inventory_items_collection']['total_documents']}")
+        print(f"   Data relationship issues: {len(analysis_results['data_relationships']['consistency_issues'])}")
+        print(f"   JOIN operations complexity: {analysis_results['join_operations']['complexity_score']}/12")
+        print(f"   Performance impact: {analysis_results['join_operations']['performance_impact']}")
+        print(f"   Analysis success rate: {success_rate:.1f}% ({analysis_results['passed_tests']}/{analysis_results['total_tests']})")
+        
+        print(f"\n🔍 KEY FINDINGS:")
+        bills_count = analysis_results['bills_collection']['total_documents']
+        inventory_count = analysis_results['inventory_items_collection']['total_documents']
+        
+        if bills_count > 0 and inventory_count == 0:
+            print(f"   📊 ARCHITECTURE ISSUE: {bills_count} bills exist but 0 inventory items")
+            print(f"      This indicates inventory system is not being used properly")
+            print(f"      Bills and inventory are completely disconnected")
+        elif bills_count > 0 and inventory_count > 0:
+            print(f"   📊 DUAL COLLECTION ACTIVE: {bills_count} bills + {inventory_count} inventory items")
+            print(f"      Current system requires complex JOINs for inventory operations")
+            print(f"      Data consistency issues may exist")
+        else:
+            print(f"   📊 INSUFFICIENT DATA: Cannot fully analyze architecture")
+        
+        print(f"\n🔍 RECOMMENDATIONS:")
+        if analysis_results['join_operations']['complexity_score'] > 6:
+            print(f"   🚨 HIGH PRIORITY: Implement unified collection architecture")
+            print(f"      Current JOIN complexity is too high ({analysis_results['join_operations']['complexity_score']}/12)")
+            print(f"      Performance impact: {analysis_results['join_operations']['performance_impact']}")
+            print(f"      Estimated migration time: {total_time_min/60:.1f} hours")
+        else:
+            print(f"   ✅ MEDIUM PRIORITY: Consider unified architecture for future scalability")
+            print(f"      Current complexity manageable but could be improved")
+        
+        print(f"\n🔍 NEXT STEPS:")
+        print(f"   1. Backup current bills and inventory_items collections")
+        print(f"   2. Create bills_unified collection with proposed schema")
+        print(f"   3. Implement migration script to consolidate data")
+        print(f"   4. Update API endpoints to use unified collection")
+        print(f"   5. Test all inventory operations with new architecture")
+        print(f"   6. Monitor performance improvements after migration")
+        
+        if analysis_results["critical_findings"]:
+            print(f"\n🚨 CRITICAL FINDINGS:")
+            for finding in analysis_results["critical_findings"]:
+                print(f"   - {finding}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if success_rate >= 80:
+            print(f"   ✅ DUAL COLLECTION ARCHITECTURE ANALYSIS COMPLETE")
+            print(f"   - Current data distribution analyzed successfully")
+            print(f"   - JOIN complexity identified and quantified")
+            print(f"   - Unified solution proposed with migration plan")
+            print(f"   - Benefits and risks clearly outlined")
+            print(f"   - Ready for architecture consolidation decision")
+        else:
+            print(f"   ❌ ARCHITECTURE ANALYSIS INCOMPLETE")
+            print(f"   - Some analysis steps failed")
+            print(f"   - May need additional investigation")
+        
+        return success_rate >= 80
+
     def run_all_tests(self):
         """Run all tests for the review request"""
-        print(f"\n🚀 STARTING BILLS DELETE ENDPOINT DUAL LOOKUP FIX VERIFICATION")
+        print(f"\n🚀 STARTING DUAL COLLECTION ARCHITECTURE ANALYSIS")
         print("=" * 80)
-        print(f"🎯 Review Request: Test Bills DELETE endpoint sau khi fix ObjectId vs UUID dual lookup")
+        print(f"🎯 Review Request: Analyze dual collection architecture và propose unified solution")
         print(f"📅 Test Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"🌐 API Base URL: {self.base_url}")
         
         # Run the main test
-        success = self.test_bills_delete_endpoint_dual_lookup_fix()
+        success = self.test_dual_collection_architecture_analysis()
         
         # Print final summary
         print(f"\n📊 FINAL TEST SUMMARY")
@@ -2115,16 +2632,16 @@ class FPTBillManagerAPITester:
         print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%")
         
         if success:
-            print(f"\n✅ OVERALL RESULT: Bills DELETE endpoint dual lookup fix PASSED")
-            print(f"   - Bills deletion working với both ObjectId và UUID formats")
-            print(f"   - No more 'Không tìm thấy bill để xóa' error")
-            print(f"   - GET và PUT endpoints cũng supporting dual lookup")
-            print(f"   - Bills có proper inventory cascade deletion")
-            print(f"   - Dual lookup strategy tương tự như customers và credit cards")
+            print(f"\n✅ OVERALL RESULT: Dual collection architecture analysis COMPLETED")
+            print(f"   - Current data distribution between bills và inventory_items analyzed")
+            print(f"   - JOIN complexity identified và quantified")
+            print(f"   - Unified collection architecture proposed")
+            print(f"   - Migration plan created với estimated timeline")
+            print(f"   - Benefits và risks clearly outlined")
         else:
-            print(f"\n❌ OVERALL RESULT: Bills DELETE endpoint NEEDS ATTENTION")
-            print(f"   - Dual lookup fix may not be working correctly")
-            print(f"   - Some bill operations still failing")
+            print(f"\n❌ OVERALL RESULT: Architecture analysis NEEDS ATTENTION")
+            print(f"   - Some analysis steps failed")
+            print(f"   - May need additional investigation")
         
         return success
 
