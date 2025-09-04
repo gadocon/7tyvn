@@ -1131,7 +1131,30 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                 
                 if response.status == 200:
                     try:
-                        data = await response.json()
+                        response_data = await response.json()
+                        
+                        # Handle array response from N8N webhook
+                        if isinstance(response_data, list) and len(response_data) > 0:
+                            data = response_data[0]  # Take first item from array
+                        else:
+                            data = response_data
+                        
+                        # Check if webhook returned error
+                        if "error" in data:
+                            error_msg = data["error"].get("message", "Unknown webhook error")
+                            return {
+                                "success": True,
+                                "status": "ERROR",
+                                "message": f"Webhook error: {error_msg[:100]}...",
+                                "customer_code": customer_code,
+                                "customer_name": "N/A",
+                                "customer_address": "N/A",
+                                "amount": 0,
+                                "billing_cycle": "N/A",
+                                "bill_status": "ERROR",
+                                "provider_region": provider_region,
+                                "bill": None
+                            }
                         
                         # Process successful response
                         if data.get("success") and data.get("status") == "OK":
