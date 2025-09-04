@@ -979,6 +979,53 @@ async def login_user(login_data: UserLogin):
         
         # Handle datetime fields
         if "created_at" in user_dict and isinstance(user_dict["created_at"], str):
+@app.get("/api/auth/me", response_model=UserResponse)
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
+    """Get current user from JWT token"""
+    try:
+        # Decode JWT token
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials"
+            )
+        
+        # Find user by UUID id
+        user = await db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
+        
+        # Prepare user response (without password)
+        user_dict = dict(user)
+        user_dict.pop("password", None)
+        user_dict.pop("_id", None)  # Remove ObjectId
+        
+        # Handle datetime fields
+        if "created_at" in user_dict and isinstance(user_dict["created_at"], str):
+            user_dict["created_at"] = datetime.fromisoformat(user_dict["created_at"].replace('Z', '+00:00'))
+        
+        return UserResponse(**user_dict)
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired"
+        )
+    except jwt.JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials"
+        )
+    except Exception as e:
+        logger.error(f"Error validating token: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
             user_dict["created_at"] = datetime.fromisoformat(user_dict["created_at"].replace('Z', '+00:00'))
         
         # Don't use uuid_processor for user response as it may have ObjectId references
