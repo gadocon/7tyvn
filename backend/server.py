@@ -1086,6 +1086,130 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
         }
     except Exception as e:
         logger.error(f"Error checking bill: {e}")
+@app.get("/api/inventory/stats")
+async def get_inventory_stats():
+    """Inventory stats for dashboard"""
+    try:
+        # Count bills in inventory
+        available_count = await db.bills.count_documents({"status": BillStatus.AVAILABLE, "is_in_inventory": True})
+        sold_count = await db.bills.count_documents({"status": BillStatus.SOLD, "is_in_inventory": False})
+        
+        return {
+            "total": available_count + sold_count,
+            "available": available_count,
+            "sold": sold_count,
+            "pending": 0
+        }
+    except Exception as e:
+        logger.error(f"Error fetching inventory stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/bills/create")
+async def create_bill_from_frontend(bill_data: dict):
+    """Create bill from frontend (redirect to main create endpoint)"""
+    try:
+        # Convert to Bill model and use existing endpoint
+        bill_create = BillCreate(**bill_data)
+        return await create_bill(bill_create)
+    except Exception as e:
+        logger.error(f"Error creating bill: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/customers/stats")
+async def get_customers_stats():
+    """Customer stats for dashboard"""
+    try:
+        total_customers = await db.customers.count_documents({})
+        active_customers = await db.customers.count_documents({"is_active": True})
+        
+        return {
+            "total": total_customers,
+            "active": active_customers,
+            "inactive": total_customers - active_customers,
+            "this_month": 0  # Placeholder
+        }
+    except Exception as e:
+        logger.error(f"Error fetching customer stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/transactions/stats")
+async def get_transactions_stats():
+    """Transaction stats for dashboard"""
+    try:
+        total_sales = await db.sales.count_documents({})
+        total_revenue = 0
+        total_profit = 0
+        
+        # Calculate revenue and profit
+        pipeline = [
+            {"$group": {
+                "_id": None,
+                "total_revenue": {"$sum": "$total"},
+                "total_profit": {"$sum": "$profit_value"}
+            }}
+        ]
+        
+        result = await db.sales.aggregate(pipeline).to_list(1)
+        if result:
+            total_revenue = result[0].get("total_revenue", 0)
+            total_profit = result[0].get("total_profit", 0)
+        
+        return {
+            "total_transactions": total_sales,
+            "total_revenue": total_revenue,
+            "total_profit": total_profit,
+            "today": 0  # Placeholder
+        }
+    except Exception as e:
+        logger.error(f"Error fetching transaction stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/customers/{customer_id}/transactions")
+async def get_customer_transactions(customer_id: str):
+    """Get transactions for specific customer"""
+    try:
+        if not is_valid_uuid(customer_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Get sales for this customer
+        sales = await db.sales.find({"customer_id": customer_id}).to_list(100)
+        
+        # Clean responses
+        cleaned_sales = [uuid_processor.clean_response(sale) for sale in sales]
+        return cleaned_sales
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching customer transactions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/customers/export")
+async def export_customers():
+    """Export customers (placeholder)"""
+    try:
+        return {"message": "Customer export not implemented yet"}
+    except Exception as e:
+        logger.error(f"Error exporting customers: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/inventory/template")
+async def get_inventory_template():
+    """Get inventory template (placeholder)"""
+    try:
+        return {"message": "Inventory template not implemented yet"}
+    except Exception as e:
+        logger.error(f"Error getting template: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/inventory/export")
+async def export_inventory():
+    """Export inventory (placeholder)"""
+    try:
+        return {"message": "Inventory export not implemented yet"}
+    except Exception as e:
+        logger.error(f"Error exporting inventory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 # ========================================
