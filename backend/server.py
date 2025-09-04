@@ -4289,7 +4289,7 @@ async def get_revenue_trend_chart(months: int = 12):
             if dao.get("created_at"):
                 try:
                     # Parse datetime string
-                    dt = datetime.fromisoformat(dao["created_at"].replace('Z', '+00:00'))
+                    dt = datetime.fromisoformat(dao.get("created_at", "").replace('Z', '+00:00')) if dao.get("created_at") else datetime.now(timezone.utc)
                     month_key = dt.strftime("%Y-%m")
                 except:
                     continue
