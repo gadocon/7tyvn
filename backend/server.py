@@ -25,7 +25,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import DuplicateKeyError
 
 # Pydantic imports
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, EmailStr
+
+# Authentication imports
+from passlib.context import CryptContext
+import jwt
+from datetime import timedelta
 
 # UUID utilities
 from uuid_utils import generate_uuid, is_valid_uuid, uuid_processor
