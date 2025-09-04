@@ -286,8 +286,8 @@ class SaleBase(BaseModel):
     @validator('bill_ids')
     def validate_bill_ids(cls, v):
         for bill_id in v:
-            if not is_valid_uuid(bill_id):
-                raise ValueError(f'bill_id must be valid UUID: {bill_id}')
+            if not is_valid_composite_bill_id(bill_id):
+                raise ValueError(f'bill_id must be valid composite format (customer_code+MMYY): {bill_id}')
         return v
 
 class SaleCreate(SaleBase):
