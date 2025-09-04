@@ -1116,21 +1116,48 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
         
         # Simulate different responses based on customer code patterns
         if "PA" in customer_code and len(customer_code) >= 10:
-            # Simulate found bill
+            # Simulate found bill with customer info
             amount = random.randint(50000, 500000)  # Random amount
             cycle = f"{random.randint(1, 12):02d}/2025"
+            
+            # Generate realistic customer info based on region
+            customer_names = [
+                "Nguyễn Văn Minh", "Trần Thị Hoa", "Lê Văn Dũng", 
+                "Phạm Thị Lan", "Hoàng Văn Nam", "Vũ Thị Mai"
+            ]
+            
+            addresses = {
+                "MIEN_BAC": [
+                    "123 Phố Huế, Hoàn Kiếm, Hà Nội",
+                    "456 Trần Phú, Ba Đình, Hà Nội", 
+                    "789 Lê Lợi, Hai Bà Trưng, Hà Nội"
+                ],
+                "MIEN_NAM": [
+                    "123 Nguyễn Huệ, Quận 1, TP.HCM",
+                    "456 Lê Lợi, Quận 3, TP.HCM",
+                    "789 Trần Hưng Đạo, Quận 5, TP.HCM"
+                ]
+            }
+            
+            customer_name = random.choice(customer_names)
+            address_list = addresses.get(provider_region, addresses["MIEN_BAC"])
+            customer_address = random.choice(address_list)
             
             return {
                 "success": True,
                 "status": "OK",
                 "message": "Bill found via FPT API",
                 "customer_code": customer_code,
+                "customer_name": customer_name,
+                "customer_address": customer_address,
                 "amount": amount,
                 "billing_cycle": cycle,
                 "bill_status": "AVAILABLE",
                 "provider_region": provider_region,
                 "bill": {
                     "customer_code": customer_code,
+                    "customer_name": customer_name,
+                    "customer_address": customer_address,
                     "amount": amount,
                     "billing_cycle": cycle,
                     "gateway": "FPT",
