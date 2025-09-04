@@ -966,11 +966,18 @@ async def login_user(login_data: UserLogin):
         user_dict = dict(user)
         user_dict.pop("password", None)
         
-        # Ensure user has UUID for id field
-        if "id" not in user_dict:
-            user_dict["id"] = user_dict.get("_id", str(user["_id"]))
+        # Convert ObjectId to string for UUID compatibility
+        if "_id" in user_dict:
+            user_dict["id"] = str(user_dict["_id"])
+            user_dict.pop("_id", None)
         
-        user_response = UserResponse(**user_dict)
+        # Ensure all datetime fields are properly handled
+        if "created_at" in user_dict and isinstance(user_dict["created_at"], str):
+            user_dict["created_at"] = datetime.fromisoformat(user_dict["created_at"].replace('Z', '+00:00'))
+        
+        # Use uuid_processor to clean response
+        cleaned_user = uuid_processor.clean_response(user_dict)
+        user_response = UserResponse(**cleaned_user)
         
         return TokenResponse(
             access_token=access_token,
