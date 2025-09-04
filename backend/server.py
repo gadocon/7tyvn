@@ -1685,7 +1685,7 @@ async def delete_bill(bill_id: str):
             )
         
         # Check if bill is referenced in any sales (double-check safety)
-        sales_using_bill = await db.sales.find_one({"bill_ids": bill_id})
+        sales_using_bill = await db.sales.find_one({"bill_ids": actual_bill_id})
         if sales_using_bill:
             raise HTTPException(
                 status_code=400,
@@ -1693,10 +1693,10 @@ async def delete_bill(bill_id: str):
             )
         
         # Safe to delete - bill is available/pending
-        result = await db.bills.delete_one({"id": bill_id})
+        result = await db.bills.delete_one({"id": actual_bill_id})
         
         # Also remove from inventory if exists
-        await db.inventory_items.delete_many({"bill_id": bill_id})
+        await db.inventory_items.delete_many({"bill_id": actual_bill_id})
         
         return {"success": True, "message": "Đã xóa bill thành công"}
         
