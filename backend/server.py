@@ -3734,7 +3734,7 @@ async def get_unified_transactions(
                 masked_card = f"****{card_number[-4:]}"
                 
                 # Determine transaction type
-                tx_type = TransactionType.CREDIT_DAO_POS if dao["payment_method"] == "POS" else TransactionType.CREDIT_DAO_BILL
+                tx_type = TransactionType.CREDIT_DAO_POS if dao.get("payment_method") == "POS" else TransactionType.CREDIT_DAO_BILL
                 
                 transaction = UnifiedTransaction(
                     id=dao["id"],
