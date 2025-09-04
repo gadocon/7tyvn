@@ -6582,7 +6582,7 @@ const Reports = () => {
       
       // Fetch all reports data in parallel
       const [statsResponse, revenueResponse, distributionResponse, customersResponse] = await Promise.all([
-        axios.get(`${API}/reports/dashboard-stats?period=${selectedPeriod}`),
+        axios.get(`${API}/stats/dashboard?period=${selectedPeriod}`),
         axios.get(`${API}/reports/charts/revenue-trend?months=6`),
         axios.get(`${API}/reports/charts/transaction-distribution`),
         axios.get(`${API}/reports/charts/top-customers?limit=10`)
