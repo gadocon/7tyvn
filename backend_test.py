@@ -3774,18 +3774,42 @@ class FPTBillManagerAPITester:
         
         return test_results["phantom_bills_identified"] and test_results["data_source_found"]
 
+    def run_database_cleanup_testing(self):
+        """Run database cleanup testing suite"""
+        print("🚀 STARTING DATABASE CLEANUP FOR FRESH TESTING")
+        print("=" * 80)
+        
+        # Test: Database Cleanup for Fresh Testing
+        print(f"\n{'='*20} DATABASE CLEANUP FOR FRESH TESTING {'='*20}")
+        cleanup_result = self.test_database_cleanup_for_fresh_testing()
+        
+        # Final Summary
+        print(f"\n{'='*20} FINAL CLEANUP SUMMARY {'='*20}")
+        print(f"Total Tests Run: {self.tests_run}")
+        print(f"Tests Passed: {self.tests_passed}")
+        print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%" if self.tests_run > 0 else "0%")
+        
+        if cleanup_result:
+            print(f"\n✅ DATABASE CLEANUP COMPLETED!")
+            print(f"🎉 Database is ready for fresh testing!")
+        else:
+            print(f"\n❌ DATABASE CLEANUP FAILED!")
+            print(f"🔧 Please review failed operations and retry cleanup.")
+        
+        return cleanup_result
+
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    print("🎯 STARTING COMPREHENSIVE TRANSACTIONS UNSAFE FIELD ACCESS FIX VERIFICATION")
+    print("🎯 STARTING DATABASE CLEANUP FOR FRESH TESTING")
     print("=" * 80)
-    print("Focus: Verify systematic fix resolved ALL unsafe field access patterns")
+    print("Focus: Clean toàn bộ database để chuẩn bị fresh testing")
     
-    # Run the comprehensive transactions test
-    result = tester.test_transactions_unsafe_field_access_fix()
+    # Run the database cleanup test
+    result = tester.run_database_cleanup_testing()
     
-    print(f"\n🏁 COMPREHENSIVE VERIFICATION COMPLETE")
-    print(f"Result: {'✅ SUCCESS' if result else '❌ NEEDS MORE WORK'}")
+    print(f"\n🏁 DATABASE CLEANUP COMPLETE")
+    print(f"Result: {'✅ SUCCESS' if result else '❌ NEEDS ATTENTION'}")
     print(f"Total tests run: {tester.tests_run}")
     print(f"Tests passed: {tester.tests_passed}")
     print(f"Success rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "0%")
