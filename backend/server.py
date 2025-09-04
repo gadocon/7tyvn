@@ -917,6 +917,7 @@ async def login_user(login_data: UserLogin):
     """Login user with username/email/phone and password"""
     try:
         # Find user by username, email, or phone
+        logger.info(f"Login attempt for: {login_data.login}")
         user = await db.users.find_one({
             "$or": [
                 {"username": login_data.login},
@@ -926,10 +927,13 @@ async def login_user(login_data: UserLogin):
         })
         
         if not user:
+            logger.warning(f"User not found: {login_data.login}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username/email/phone or password"
             )
+        
+        logger.info(f"User found: {user.get('username')}")
         
         # Verify password
         if not verify_password(login_data.password, user["password"]):
