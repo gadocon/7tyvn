@@ -909,6 +909,78 @@ async def get_dashboard_stats():
         raise HTTPException(status_code=500, detail=str(e))
 
 # ========================================
+# AUTHENTICATION ENDPOINTS - UUID ONLY
+# ========================================
+
+@app.post("/api/auth/login", response_model=TokenResponse)
+async def login_user(login_data: UserLogin):
+    """Login user with username/email/phone and password"""
+    try:
+        # Find user by username, email, or phone
+        user = await db.users.find_one({
+            "$or": [
+                {"username": login_data.login},
+                {"email": login_data.login},
+                {"phone": login_data.login}
+            ]
+        })
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username/email/phone or password"
+            )
+        
+        # Verify password
+        if not verify_password(login_data.password, user["password"]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username/email/phone or password"  
+            )
+        
+        # Check if user is active
+        if not user.get("is_active", True):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account is deactivated"
+            )
+        
+        # Update last login
+        await db.users.update_one(
+            {"username": user["username"]},
+            {"$set": {"last_login": datetime.now(timezone.utc)}}
+        )
+        
+        # Create access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.get("id", user["username"]), "role": user["role"]}, 
+            expires_delta=access_token_expires
+        )
+        
+        # Prepare user response (without password)
+        user_dict = dict(user)
+        user_dict.pop("password", None)
+        
+        # Ensure user has UUID for id field
+        if "id" not in user_dict:
+            user_dict["id"] = user_dict.get("_id", str(user["_id"]))
+        
+        user_response = UserResponse(**user_dict)
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            user=user_response
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error during login: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ========================================
 # SYSTEM HEALTH API
 # ========================================
 
