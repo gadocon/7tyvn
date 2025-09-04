@@ -944,7 +944,7 @@ const CheckBill = () => {
               </TableHeader>
               <TableBody>
                 {results.map((bill, index) => (
-                  <TableRow key={bill.customer_code} className={bill.status === "ERROR" ? "bg-red-50" : ""}>
+                  <TableRow key={`${bill.customer_code}-${index}`} className={bill.status === "ERROR" ? "bg-red-50" : ""}>
                     <TableCell>
                       {bill.status === "OK" && (
                         <input
