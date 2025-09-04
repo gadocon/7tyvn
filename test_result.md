@@ -313,6 +313,18 @@ test_plan:
   test_all: false
   test_priority: "critical_first"
 
+backend:
+  - task: "Sales API UUID-Only Refactor Completion"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Sales API appears to be already refactored to UUID-only with proper validation, UUIDs, and clean response processing. However, from test_result.md, there's still a 404 'Bill not found or not available' error when creating sales with valid bill IDs. Need to investigate if this is a database issue (no bills with AVAILABLE status) or UUID validation issue. Sales models (SaleBase, SaleCreate, Sale) are properly configured with UUID validation for customer_id and bill_ids."
   - task: "Customer ID 68b86b157a314c251c8c863b Debug Investigation"
     implemented: true
     working: true
