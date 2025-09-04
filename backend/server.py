@@ -1651,12 +1651,25 @@ async def delete_inventory_item(item_id: str):
 
 @api_router.delete("/bills/{bill_id}")
 async def delete_bill(bill_id: str):
-    """Delete bill completely - with validation for sold bills"""
+    """Delete bill completely - with validation for sold bills - supports both UUID and ObjectId lookup"""
     try:
-        # First check if bill exists and get its status
+        # Try to find bill by 'id' field first (UUID format)
         bill = await db.bills.find_one({"id": bill_id})
+        actual_bill_id = bill_id
+        
+        # If not found and bill_id looks like ObjectId, try _id field
+        if not bill and len(bill_id) == 24 and all(c in '0123456789abcdef' for c in bill_id.lower()):
+            try:
+                from bson import ObjectId
+                bill = await db.bills.find_one({"_id": ObjectId(bill_id)})
+                # If found by ObjectId, use the actual 'id' field for subsequent operations
+                if bill and bill.get('id'):
+                    actual_bill_id = bill.get('id')
+            except:
+                pass  # Invalid ObjectId format, continue with original bill_id
+        
         if not bill:
-            raise HTTPException(status_code=404, detail="Không tìm thấy bill")
+            raise HTTPException(status_code=404, detail="Không tìm thấy bill để xóa")
         
         # CRITICAL: Check if bill is already sold or crossed - prevent deletion
         if bill.get("status") == BillStatus.SOLD:
