@@ -98,12 +98,12 @@ class UserLogin(BaseModel):
 class UserResponse(BaseModel):
     id: str
     username: str
-    email: str
-    phone: Optional[str]
-    full_name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    full_name: Optional[str] = None
     role: UserRole
-    is_active: bool
-    created_at: datetime
+    is_active: bool = True
+    created_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
 
 class TokenResponse(BaseModel):
