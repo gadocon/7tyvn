@@ -2742,14 +2742,14 @@ class FPTBillManagerAPITester:
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    # Run credit cards API test after schema fix (review request)
-    print("🎯 RUNNING CREDIT CARDS API TEST AFTER SCHEMA FIX")
-    success = tester.test_credit_cards_api_after_schema_fix()
+    # Run bills data verification and creation test (review request)
+    print("🎯 RUNNING BILLS DATA VERIFICATION AND CREATION")
+    success = tester.test_bills_data_verification_and_creation()
     
     if success:
-        print("\n✅ Credit Cards API schema fix verification PASSED!")
+        print("\n✅ Bills data verification and creation PASSED!")
     else:
-        print("\n❌ Credit Cards API schema fix verification FAILED!")
+        print("\n❌ Bills data verification and creation NEEDS ATTENTION!")
     
     # Close MongoDB connection
     if tester.mongo_connected:
