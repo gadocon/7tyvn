@@ -6580,18 +6580,22 @@ const Reports = () => {
     try {
       setLoading(true);
       
-      // Fetch all reports data in parallel
-      const [statsResponse, revenueResponse, distributionResponse, customersResponse] = await Promise.all([
-        axios.get(`${API}/stats/dashboard?period=${selectedPeriod}`),
-        axios.get(`${API}/reports/charts/revenue-trend?months=6`),
-        axios.get(`${API}/reports/charts/transaction-distribution`),
-        axios.get(`${API}/reports/charts/top-customers?limit=10`)
-      ]);
+      // Fetch stats data (other chart endpoints to be implemented)
+      const statsResponse = await axios.get(`${API}/stats/dashboard?period=${selectedPeriod}`);
       
       setDashboardStats(statsResponse.data);
-      setRevenueData(revenueResponse.data.data || []);
-      setDistributionData(distributionResponse.data.data || []);
-      setTopCustomersData(customersResponse.data.data || []);
+      // TODO: Implement chart endpoints after UUID refactor
+      setRevenueData([]);
+      setDistributionData([]);
+      setTopCustomersData([]);
+      
+      // TODO: Re-enable when chart endpoints are implemented
+      // const [statsResponse, revenueResponse, distributionResponse, customersResponse] = await Promise.all([
+      //   axios.get(`${API}/stats/dashboard?period=${selectedPeriod}`),
+      //   axios.get(`${API}/reports/charts/revenue-trend?months=6`),
+      //   axios.get(`${API}/reports/charts/transaction-distribution`),
+      //   axios.get(`${API}/reports/charts/top-customers?limit=10`)
+      // ]);
       
     } catch (error) {
       console.error("Error fetching reports data:", error);
