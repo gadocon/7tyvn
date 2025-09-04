@@ -5467,13 +5467,20 @@ class FPTBillManagerAPITester:
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    # Run the UUID-only system comprehensive test as primary focus
-    success = tester.test_uuid_only_system_comprehensive()
+    print("🚀 Starting Sales API UUID-Only System Investigation...")
+    print("=" * 80)
     
-    print(f"\n🏁 FINAL RESULT: {'✅ SUCCESS' if success else '❌ FAILED'}")
+    # Run the specific sales API investigation
+    sales_success = tester.test_sales_api_uuid_system_404_investigation()
     
-    # Close MongoDB connection
+    print(f"\n📊 INVESTIGATION SUMMARY")
+    print("=" * 80)
+    print(f"Tests Run: {tester.tests_run}")
+    print(f"Tests Passed: {tester.tests_passed}")
+    print(f"Success Rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "No tests run")
+    print(f"Sales API Working: {'✅ YES' if sales_success else '❌ NO'}")
+    
     if tester.mongo_connected:
         tester.mongo_client.close()
     
-    sys.exit(0 if success else 1)
+    sys.exit(0 if sales_success else 1)
