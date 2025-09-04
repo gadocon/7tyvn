@@ -252,7 +252,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Bills Data Verification and Creation"
+    - "Tất Cả Kho Tab Verification After 50 Bills Creation"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
