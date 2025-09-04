@@ -868,6 +868,168 @@ async def health_check():
             "error": str(e)
         }
 
+# ========================================
+# UNIFIED TRANSACTIONS MODELS - UUID ONLY
+# ========================================
+
+class TransactionType(str, Enum):
+    BILL_SALE = "BILL_SALE"
+    CREDIT_DAO_POS = "CREDIT_DAO_POS"
+    CREDIT_DAO_BILL = "CREDIT_DAO_BILL"
+
+class TransactionItem(BaseModel):
+    id: str
+    code: Optional[str] = None
+    amount: float = 0.0
+    type: str = "BILL"
+
+class UnifiedTransaction(BaseModel):
+    id: str
+    type: TransactionType
+    customer_id: str
+    customer_name: str
+    customer_phone: Optional[str] = None
+    total_amount: float = 0.0
+    profit_amount: float = 0.0
+    profit_percentage: float = 0.0
+    payback: Optional[float] = None
+    items: List[TransactionItem] = []
+    item_codes: List[str] = []
+    item_display: str = ""
+    payment_method: Optional[str] = None
+    status: str = "COMPLETED"
+    notes: Optional[str] = None
+    created_at: datetime
+
+# ========================================
+# UNIFIED TRANSACTIONS API - UUID ONLY
+# ========================================
+
+@app.get("/api/transactions/unified", response_model=List[UnifiedTransaction])
+async def get_unified_transactions(
+    limit: int = 50,
+    offset: int = 0,
+    transaction_type: Optional[str] = None,
+    customer_id: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    search: Optional[str] = None
+):
+    """Get unified transactions from Sales (UUID only system)"""
+    try:
+        unified_transactions = []
+        
+        # Query filters
+        match_filters = {}
+        if date_from or date_to:
+            date_filter = {}
+            if date_from:
+                date_filter["$gte"] = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+            if date_to:  
+                date_filter["$lte"] = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+            match_filters["created_at"] = date_filter
+        
+        if customer_id and is_valid_uuid(customer_id):
+            match_filters["customer_id"] = customer_id
+        
+        # Get Bill Sales (UUID only)
+        if not transaction_type or transaction_type == "BILL_SALE":
+            sales_pipeline = [
+                {"$match": match_filters},
+                {
+                    "$lookup": {
+                        "from": "customers",
+                        "localField": "customer_id", 
+                        "foreignField": "id",
+                        "as": "customer"
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "bills",
+                        "localField": "bill_ids",
+                        "foreignField": "id", 
+                        "as": "bills"
+                    }
+                },
+                {"$sort": {"created_at": -1}},
+                {"$limit": limit + offset},
+                {"$skip": offset}
+            ]
+            
+            sales_cursor = db.sales.aggregate(sales_pipeline)
+            sales_results = await sales_cursor.to_list(length=None)
+            
+            for sale in sales_results:
+                # Safe array access for customer
+                customer_data = sale.get("customer", [])
+                customer = customer_data[0] if customer_data else {}
+                
+                # Safe array access for bills
+                bills = sale.get("bills", [])
+                
+                # Create bill codes display
+                bill_codes = [bill.get("customer_code", "N/A") for bill in bills]
+                item_display = ", ".join(bill_codes[:3])
+                if len(bill_codes) > 3:
+                    item_display += f" (+{len(bill_codes)-3} khác)"
+                
+                transaction = UnifiedTransaction(
+                    id=sale["id"],
+                    type=TransactionType.BILL_SALE,
+                    customer_id=sale["customer_id"],
+                    customer_name=customer.get("name", "N/A"),
+                    customer_phone=customer.get("phone"),
+                    total_amount=sale.get("total", 0),
+                    profit_amount=sale.get("profit_value", 0),
+                    profit_percentage=sale.get("profit_pct", 0),
+                    payback=sale.get("payback"),
+                    items=[TransactionItem(
+                        id=bill["id"],
+                        code=bill.get("customer_code"),
+                        amount=bill.get("amount", 0),
+                        type="BILL"
+                    ) for bill in bills],
+                    item_codes=bill_codes,
+                    item_display=item_display,
+                    payment_method=sale.get("payment_method", "CASH"),
+                    status=sale.get("status", "COMPLETED"),
+                    notes=sale.get("notes"),
+                    created_at=sale["created_at"]
+                )
+                unified_transactions.append(transaction)
+        
+        # Sort by created_at descending
+        unified_transactions.sort(key=lambda x: x.created_at, reverse=True)
+        
+        # Apply search filter if provided
+        if search:
+            search_lower = search.lower()
+            unified_transactions = [
+                tx for tx in unified_transactions
+                if (search_lower in tx.customer_name.lower() or
+                    search_lower in (tx.customer_phone or "").lower() or
+                    any(search_lower in code.lower() for code in tx.item_codes))
+            ]
+        
+        # Apply pagination
+        start_idx = offset
+        end_idx = offset + limit
+        paginated_transactions = unified_transactions[start_idx:end_idx]
+        
+        # Clean responses for UUID-only system
+        cleaned_transactions = []
+        for tx in paginated_transactions:
+            tx_dict = tx.dict()
+            cleaned_tx = uuid_processor.clean_response(tx_dict)
+            cleaned_transactions.append(UnifiedTransaction(**cleaned_tx))
+        
+        return cleaned_transactions
+        
+    except Exception as e:
+        logger.error(f"Error fetching unified transactions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ========================================  
 # MAIN APPLICATION MOUNT
 # ========================================
