@@ -1132,23 +1132,6 @@ async def create_bill_from_frontend(bill_data: dict):
         logger.error(f"Error creating bill: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/customers/stats")
-async def get_customers_stats():
-    """Customer stats for dashboard"""
-    try:
-        total_customers = await db.customers.count_documents({})
-        active_customers = await db.customers.count_documents({"is_active": True})
-        
-        return {
-            "total": total_customers,
-            "active": active_customers,
-            "inactive": total_customers - active_customers,
-            "this_month": 0  # Placeholder
-        }
-    except Exception as e:
-        logger.error(f"Error fetching customer stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.get("/api/transactions/stats")
 async def get_transactions_stats():
     """Transaction stats for dashboard"""
