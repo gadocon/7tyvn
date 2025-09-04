@@ -1274,17 +1274,23 @@ async def check_single_bill(customer_code: str = Query(...), provider_region: st
                                 if existing_bill:
                                     return {
                                         "success": True,
-                                        "status": "ERROR",
-                                        "message": f"Bill {customer_code} for cycle {billing_cycle} already exists in database",
+                                        "status": "OK",  # Change to OK since bill data is valid
+                                        "message": f"Bill {customer_code} for cycle {billing_cycle} already exists (cached)",
                                         "id": composite_bill_id,
                                         "customer_code": customer_code,
-                                        "full_name": bill.get("customerName", "N/A"),
-                                        "address": bill.get("address", "N/A"),
-                                        "amount": bill.get("moneyAmount", 0),
-                                        "billing_cycle": billing_cycle,
-                                        "bill_status": "DUPLICATE",
+                                        "full_name": existing_bill.get("customer_name", "N/A"),
+                                        "address": existing_bill.get("address", "N/A"),
+                                        "amount": existing_bill.get("amount", 0),
+                                        "billing_cycle": existing_bill.get("billing_cycle", "N/A"),
+                                        "bill_status": "AVAILABLE",  # Use existing bill status
                                         "provider_region": provider_region,
-                                        "bill": None
+                                        "bill": {
+                                            "id": composite_bill_id,
+                                            "customerName": existing_bill.get("customer_name"),
+                                            "address": existing_bill.get("address"),
+                                            "amount": existing_bill.get("amount", 0),
+                                            "gateway": "CACHED"
+                                        }
                                     }
                                 
                                 # Insert new bill
