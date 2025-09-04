@@ -306,7 +306,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Sales Transaction Foreign Key Relationships Fix"
+    - "Sales API UUID-Only Refactor Completion"
+    - "Sales Transaction Foreign Key Relationships Fix" 
     - "UUID-Only System Final Validation"
   stuck_tasks: []
   test_all: false
