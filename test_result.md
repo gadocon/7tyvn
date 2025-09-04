@@ -240,7 +240,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Delete Operations UI Testing and Functionality Verification"
+    - "Bills Data Verification and Creation"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
