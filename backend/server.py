@@ -979,6 +979,23 @@ async def login_user(login_data: UserLogin):
         
         # Handle datetime fields
         if "created_at" in user_dict and isinstance(user_dict["created_at"], str):
+            user_dict["created_at"] = datetime.fromisoformat(user_dict["created_at"].replace('Z', '+00:00'))
+        
+        # Don't use uuid_processor for user response as it may have ObjectId references
+        user_response = UserResponse(**user_dict)
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            user=user_response
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error during login: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/auth/me", response_model=UserResponse)
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
     """Get current user from JWT token"""
