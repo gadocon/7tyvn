@@ -718,6 +718,35 @@ async def remove_from_inventory(bill_id: str):
     try:
         # Validate UUID format
         if not is_valid_uuid(bill_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Check if bill exists and is in inventory
+        bill = await db.bills.find_one({"id": bill_id})
+        if not bill:
+            raise HTTPException(status_code=404, detail="Bill not found")
+        
+        if not bill.get("is_in_inventory"):
+            raise HTTPException(status_code=400, detail="Bill not in inventory")
+        
+        # Remove from inventory
+        update_data = {
+            "is_in_inventory": False,
+            "inventory_status": InventoryStatus.NOT_IN_INVENTORY,
+            "added_to_inventory_at": None,
+            "inventory_note": None,
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        await db.bills.update_one({"id": bill_id}, {"$set": update_data})
+        
+        return {"success": True, "message": "Bill removed from inventory successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing bill {bill_id} from inventory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/inventory/add")
 async def add_bills_to_inventory(request_data: dict):
     """Add multiple bills to inventory - UUID only"""
@@ -774,34 +803,6 @@ async def add_bills_to_inventory(request_data: dict):
         
     except Exception as e:
         logger.error(f"Error adding bills to inventory: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-            raise HTTPException(status_code=400, detail="Invalid UUID format")
-        
-        # Check if bill exists and is in inventory
-        bill = await db.bills.find_one({"id": bill_id})
-        if not bill:
-            raise HTTPException(status_code=404, detail="Bill not found")
-        
-        if not bill.get("is_in_inventory"):
-            raise HTTPException(status_code=400, detail="Bill not in inventory")
-        
-        # Remove from inventory
-        update_data = {
-            "is_in_inventory": False,
-            "inventory_status": InventoryStatus.NOT_IN_INVENTORY,
-            "added_to_inventory_at": None,
-            "inventory_note": None,
-            "updated_at": datetime.now(timezone.utc)
-        }
-        
-        await db.bills.update_one({"id": bill_id}, {"$set": update_data})
-        
-        return {"success": True, "message": "Bill removed from inventory successfully"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error removing bill {bill_id} from inventory: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ========================================
