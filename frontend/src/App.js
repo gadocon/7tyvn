@@ -7247,7 +7247,7 @@ const CustomerDetailPage = () => {
                   {customer.tier} Customer
                 </span>
                 <span className="px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800">
-                  {customer.type === 'INDIVIDUAL' ? 'Cá Nhân' : 'Đại Lý'}
+                  {customer?.type === 'INDIVIDUAL' ? 'Cá Nhân' : 'Đại Lý'}
                 </span>
               </div>
             </div>
