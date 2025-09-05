@@ -2225,7 +2225,36 @@ async def get_customer_transactions(customer_id: str):
             
             sale_dict["bills"] = cleaned_bills  # Replace with cleaned bills
             sale_dict["bill_codes"] = bill_codes
+            sale_dict["transaction_type"] = "BILL_SALE"  # Mark as bill sale
             cleaned_transactions.append(sale_dict)
+        
+        # CRITICAL: Add DAO transactions for this customer
+        dao_transactions = await db.dao_transactions.find({"customer_id": customer_id}).to_list(100)
+        for dao in dao_transactions:
+            dao_dict = dict(dao)
+            dao_dict.pop("_id", None)  # Remove ObjectId
+            
+            # Add bill_codes for consistency with sales display
+            if dao_dict.get("card_number"):
+                dao_dict["bill_codes"] = [f"{dao_dict.get('bank_name', '')} {dao_dict.get('card_number')}"]
+            elif dao_dict.get("bill_code"):
+                dao_dict["bill_codes"] = [dao_dict.get("bill_code")]
+            elif dao_dict.get("pos_code"):
+                dao_dict["bill_codes"] = [f"POS: {dao_dict.get('pos_code')}"]
+            else:
+                dao_dict["bill_codes"] = ["Đáo thẻ"]
+            
+            dao_dict["transaction_type"] = "DAO"  # Mark as DAO
+            # Map DAO fields to transaction fields for consistent display
+            dao_dict["total"] = dao_dict.get("amount", 0)
+            dao_dict["profit_value"] = dao_dict.get("profit_value", 0)
+            dao_dict["payback"] = dao_dict.get("amount", 0) - dao_dict.get("profit_value", 0)
+            dao_dict["status"] = dao_dict.get("status", "COMPLETED")
+            
+            cleaned_transactions.append(dao_dict)
+        
+        # Sort all transactions by created_at descending
+        cleaned_transactions.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
         
         # TODO: Add credit card transactions when implemented
         # Get customer's credit card transactions (DAO)
