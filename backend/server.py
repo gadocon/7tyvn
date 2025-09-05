@@ -1531,17 +1531,46 @@ async def get_transactions_stats():
 
 @app.get("/api/customers/{customer_id}/transactions")
 async def get_customer_transactions(customer_id: str):
-    """Get transactions for specific customer"""
+    """Get customer detail with transactions - FORMAT FOR FRONTEND MODAL"""
     try:
         if not is_valid_uuid(customer_id):
             raise HTTPException(status_code=400, detail="Invalid UUID format")
         
+        # Get customer info
+        customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        
         # Get sales for this customer
         sales = await db.sales.find({"customer_id": customer_id}).to_list(100)
         
-        # Clean responses
-        cleaned_sales = [uuid_processor.clean_response(sale) for sale in sales]
-        return cleaned_sales
+        # Clean responses - bypass UUID processor for composite bill_ids
+        cleaned_sales = []
+        for sale in sales:
+            sale_dict = dict(sale)
+            sale_dict.pop("_id", None)  # Remove ObjectId
+            cleaned_sales.append(sale_dict)
+        
+        # Calculate summary
+        total_transactions = len(cleaned_sales)
+        total_spent = sum(sale.get("total", 0) for sale in cleaned_sales)
+        total_profit = sum(sale.get("profit_value", 0) for sale in cleaned_sales)
+        
+        # Clean customer response
+        customer_dict = dict(customer)
+        customer_dict.pop("_id", None)
+        
+        # Return format expected by frontend modal
+        return {
+            "customer": customer_dict,
+            "transactions": cleaned_sales,
+            "summary": {
+                "total_transactions": total_transactions,
+                "total_spent": total_spent,
+                "total_profit": total_profit,
+                "avg_transaction": total_spent / total_transactions if total_transactions > 0 else 0
+            }
+        }
         
     except HTTPException:
         raise
