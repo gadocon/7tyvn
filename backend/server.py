@@ -2565,7 +2565,8 @@ class TransactionItem(BaseModel):
     type: str = "BILL"
 
 class UnifiedTransaction(BaseModel):
-    id: str
+    id: str  # Technical UUID
+    transaction_id: Optional[str] = None  # Business ID: D98550509, PA220404446450825, etc.
     type: TransactionType
     customer_id: str
     customer_name: str
