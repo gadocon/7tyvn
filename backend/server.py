@@ -1595,8 +1595,10 @@ async def dao_credit_card_general(dao_data: dict):
         payment_method = dao_data.get("payment_method", "CASH")
         transaction_type = "CREDIT_DAO_POS" if payment_method == "POS" else "CREDIT_DAO_BILL"
         
-        # Get credit card info if card_id provided
+        # Get credit card info if card_id provided for transaction ID generation
         card_info = {}
+        card_number = "0000"  # Default for non-card DAO
+        
         if dao_data.get("card_id"):
             card = await db.credit_cards.find_one({"id": dao_data["card_id"]})
             if card:
@@ -1605,6 +1607,10 @@ async def dao_credit_card_general(dao_data: dict):
                     "card_number": f"****{card.get('card_number', '0000')[-4:]}",
                     "bank_name": card.get("bank_name")
                 }
+                card_number = card.get("card_number", "0000")
+        
+        # Generate business transaction ID
+        transaction_id = await generate_dao_transaction_id(card_number)
         
         # CRITICAL: Handle CREDIT_DAO_BILL - Select bills from inventory
         selected_bills = []
