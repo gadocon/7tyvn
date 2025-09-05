@@ -4688,7 +4688,7 @@ class FPTBillManagerAPITester:
                         )
                         
                         if updated_summary_success and updated_summary_response:
-                            transactions = updated_summary_response if isinstance(updated_summary_response, list) else []
+                            transactions = updated_summary_response.get("transactions", []) if isinstance(updated_summary_response, dict) else []
                             
                             sales_transactions = [tx for tx in transactions if tx.get("type") == "ELECTRIC_BILL"]
                             dao_transactions = [tx for tx in transactions if tx.get("type") in ["CREDIT_DAO_POS", "CREDIT_DAO_BILL"]]
