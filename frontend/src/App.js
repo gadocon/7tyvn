@@ -4893,7 +4893,7 @@ const AddCreditCardModal = ({ show, customers, selectedCustomerId, onClose, onSu
       
       // Reset form
       setFormData({
-        customer_id: "",
+        customer_id: selectedCustomerId || "",
         card_number: "",
         cardholder_name: "",
         bank_name: "",
