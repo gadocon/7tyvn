@@ -8241,7 +8241,10 @@ const CustomerTransactionsTab = ({ customer, formatCurrency, formatDateTime }) =
                       <div>
                         <div className="font-medium text-sm">{getTransactionTypeLabel(transaction.type)}</div>
                         <div className="text-xs text-gray-500">
-                          {transaction.description || `Giao dịch ${transaction.id}`}
+                          {transaction.transaction_id ? 
+                            `ID: ${transaction.transaction_id}` : 
+                            (transaction.description || `Giao dịch ${transaction.id}`)
+                          }
                         </div>
                         <div className="text-xs text-gray-400">{formatDateTime(transaction.created_at)}</div>
                       </div>
