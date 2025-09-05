@@ -105,6 +105,18 @@
 user_problem_statement: "Fix 404 error with customer detailed profile endpoint. User reported 404 Not Found error when accessing customer detail page via CustomerNameLink, specifically for endpoint /api/customers/{id}/detailed-profile which was missing from backend after UUID refactor."
 
 backend:
+  - task: "Credit Card Current Balance Field Removal"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Completed removal of current_balance field from CreditCard Pydantic model (line 242). Verified business logic functions calculate_card_status and update_card_after_dao no longer reference current_balance. General DAO endpoint correctly stores unmasked card_number in database. Need to test credit card CRUD operations and DAO functionality work correctly without current_balance."
+
   - task: "Customer Detailed Profile 404 Error Fix"
     implemented: true
     working: true
