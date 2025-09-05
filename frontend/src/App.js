@@ -7704,7 +7704,7 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency, handle
         <CreditCard className="h-16 w-16 mx-auto text-gray-300 mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có thẻ tín dụng</h3>
         <p className="text-gray-500 mb-4">Khách hàng này chưa có thẻ tín dụng nào</p>
-        <Button variant="outline">
+        <Button variant="outline" onClick={onAddCreditCard}>
           <Plus className="h-4 w-4 mr-2" />
           Thêm Thẻ Đầu Tiên
         </Button>
