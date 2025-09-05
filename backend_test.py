@@ -4605,7 +4605,7 @@ class FPTBillManagerAPITester:
             print(f"✅ Customer transactions summary API working")
             
             # Verify response contains both sales and DAO transactions
-            transactions = transactions_summary_response if isinstance(transactions_summary_response, list) else []
+            transactions = transactions_summary_response.get("transactions", []) if isinstance(transactions_summary_response, dict) else []
             
             dao_transactions_in_summary = [tx for tx in transactions 
                                          if tx.get("type") in ["CREDIT_DAO_POS", "CREDIT_DAO_BILL"]]
