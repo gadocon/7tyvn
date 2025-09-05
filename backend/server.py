@@ -1521,7 +1521,7 @@ async def dao_credit_card_by_id(card_id: str, dao_data: dict):
         card_dict = dict(card)
         card_dict = update_card_after_dao(card_dict, dao_data.get("amount", 0))
         
-        # Update the credit card in database with new business logic
+        # Update the credit card in database with new business logic (NO current_balance)
         await db.credit_cards.update_one(
             {"id": card_id},
             {
@@ -1532,6 +1532,9 @@ async def dao_credit_card_by_id(card_id: str, dao_data: dict):
                     "status": card_dict["status"],
                     "days_until_due": card_dict["days_until_due"],
                     "updated_at": datetime.now(timezone.utc)
+                },
+                "$unset": {
+                    "current_balance": ""  # Remove current_balance field from existing records
                 }
             }
         )
