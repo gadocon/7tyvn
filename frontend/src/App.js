@@ -2789,11 +2789,18 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
                     <TableCell>
                       <Badge variant="outline">
                         {(() => {
-                          // Determine transaction type based on bill_codes format
+                          // Use transaction_type from backend for accurate classification
+                          if (transaction.transaction_type === "DAO") {
+                            return "Đáo Thẻ";
+                          } else if (transaction.transaction_type === "BILL_SALE") {
+                            return "Bán Bill";
+                          }
+                          
+                          // Fallback: Determine transaction type based on bill_codes format (for legacy compatibility)
                           if (transaction.bill_codes && transaction.bill_codes.length > 0) {
                             const firstCode = transaction.bill_codes[0];
-                            // If bill_codes contains ****1234 format, it's credit card transaction
-                            if (firstCode.startsWith('****')) {
+                            // If bill_codes contains ****1234 format or bank name, it's credit card transaction
+                            if (firstCode.includes('****') || firstCode.includes('Techcombank') || firstCode.includes('POS:')) {
                               return "Đáo Thẻ";
                             }
                           }
