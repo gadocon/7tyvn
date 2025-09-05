@@ -2776,7 +2776,7 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
                 {transactions.map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell className="font-mono text-xs">
-                      {transaction.id.slice(-8)}
+                      {transaction.transaction_id || transaction.id?.slice(-8) || 'N/A'}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
                       {transaction.bill_codes && transaction.bill_codes.length > 0 
