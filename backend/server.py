@@ -1562,6 +1562,10 @@ async def dao_credit_card_general(dao_data: dict):
         if not customer:
             raise HTTPException(status_code=404, detail="Customer not found")
         
+        # Determine transaction type
+        payment_method = dao_data.get("payment_method", "CASH")
+        transaction_type = "CREDIT_DAO_POS" if payment_method == "POS" else "CREDIT_DAO_BILL"
+        
         # Get credit card info if card_id provided
         card_info = {}
         if dao_data.get("card_id"):
@@ -1573,18 +1577,60 @@ async def dao_credit_card_general(dao_data: dict):
                     "bank_name": card.get("bank_name")
                 }
         
-        # Create DAO transaction record with UUID and CORRECT TYPE
-        transaction_type = "CREDIT_DAO_POS" if dao_data.get("payment_method") == "POS" else "CREDIT_DAO_BILL"
+        # CRITICAL: Handle CREDIT_DAO_BILL - Select bills from inventory
+        selected_bills = []
+        total_bills_amount = 0
         
+        if transaction_type == "CREDIT_DAO_BILL":
+            bill_ids = dao_data.get("bill_ids", [])
+            if not bill_ids:
+                raise HTTPException(status_code=400, detail="bill_ids required for CREDIT_DAO_BILL")
+            
+            # Validate and get bills from inventory
+            for bill_id in bill_ids:
+                if not is_valid_composite_bill_id(bill_id):
+                    raise HTTPException(status_code=400, detail=f"Invalid bill_id format: {bill_id}")
+                
+                bill = await db.bills.find_one({"id": bill_id})
+                if not bill:
+                    raise HTTPException(status_code=404, detail=f"Bill not found: {bill_id}")
+                
+                if bill.get("status") != "AVAILABLE":
+                    raise HTTPException(status_code=400, detail=f"Bill {bill_id} not available")
+                
+                selected_bills.append(bill)
+                total_bills_amount += bill.get("amount", 0)
+            
+            # Update bills status: AVAILABLE → SOLD
+            for bill in selected_bills:
+                await db.bills.update_one(
+                    {"id": bill["id"]},
+                    {
+                        "$set": {
+                            "status": "SOLD",
+                            "sold_at": datetime.now(timezone.utc),
+                            "updated_at": datetime.now(timezone.utc)
+                        }
+                    }
+                )
+            
+            # For CREDIT_DAO_BILL, amount should match total bills amount
+            if dao_data.get("amount") and dao_data["amount"] != total_bills_amount:
+                logger.warning(f"DAO amount {dao_data['amount']} != bills total {total_bills_amount}")
+            
+            # Use bills total as DAO amount
+            dao_data["amount"] = total_bills_amount
+        
+        # Create DAO transaction record with UUID and CORRECT TYPE
         dao_transaction = {
             "id": generate_uuid(),
             "customer_id": customer_id,
             "amount": dao_data.get("amount", 0),
             "profit_value": dao_data.get("profit_value", 0),
             "fee_rate": dao_data.get("fee_rate", 3.0),
-            "payment_method": dao_data.get("payment_method", "CASH"),
-            "bill_code": dao_data.get("bill_code", ""),  # For đáo bằng bill điện
-            "pos_code": dao_data.get("pos_code", ""),    # For đáo bằng POS
+            "payment_method": payment_method,
+            "bill_ids": [bill["id"] for bill in selected_bills] if selected_bills else [],  # Store bill IDs
+            "pos_code": dao_data.get("pos_code", ""),    # For POS method
             "transaction_code": dao_data.get("transaction_code", ""),
             "notes": dao_data.get("notes", f"Đáo thẻ - {datetime.now().strftime('%d/%m/%Y')}"),
             "status": "COMPLETED",
@@ -1624,8 +1670,10 @@ async def dao_credit_card_general(dao_data: dict):
         
         return {
             "success": True,
-            "message": "Đáo thẻ thành công",
-            "dao_transaction": dao_response
+            "message": f"Đáo thẻ thành công - {len(selected_bills)} bills" if selected_bills else "Đáo thẻ POS thành công",
+            "dao_transaction": dao_response,
+            "bills_processed": len(selected_bills),
+            "total_amount": dao_data.get("amount", 0)
         }
         
     except HTTPException:
