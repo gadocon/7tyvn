@@ -2736,7 +2736,8 @@ async def get_unified_transactions(
                         transaction_type_enum = TransactionType.CREDIT_DAO_BILL
                     
                     transaction = UnifiedTransaction(
-                        id=dao["id"],
+                        id=dao["id"],  # Technical UUID
+                        transaction_id=dao.get("transaction_id", dao["id"]),  # Business ID: D98550509
                         type=transaction_type_enum,
                         customer_id=dao["customer_id"],
                         customer_name=customer.get("name", "N/A"),
@@ -2744,7 +2745,7 @@ async def get_unified_transactions(
                         total_amount=dao.get("amount", 0),
                         profit_amount=dao.get("profit_value", 0),
                         profit_percentage=dao.get("fee_rate", 3.0),
-                        payback=dao.get("amount", 0) - dao.get("profit_value", 0),  # Amount minus profit
+                        payback=dao.get("amount", 0) - dao.get("profit_value", 0),  
                         items=[TransactionItem(
                             id=dao["id"],
                             code=card_info,
