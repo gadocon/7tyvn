@@ -1233,8 +1233,20 @@ async def get_credit_card_detail(card_id: str):
         # Get customer info
         customer = await db.customers.find_one({"id": card.get("customer_id")})
         
-        # TODO: Get credit card transactions when implemented
-        transactions = []  # Placeholder for credit card transactions
+        # Get DAO transactions for this credit card - UUID only
+        dao_transactions = await db.dao_transactions.find({"credit_card_id": card_id}).to_list(100)
+        
+        # Clean DAO transactions - remove ObjectId
+        cleaned_transactions = []
+        for dao in dao_transactions:
+            dao_dict = dict(dao)
+            dao_dict.pop("_id", None)  # Remove ObjectId
+            cleaned_transactions.append(dao_dict)
+        
+        # Calculate summary
+        total_transactions = len(cleaned_transactions)
+        total_amount = sum(dao.get("amount", 0) for dao in cleaned_transactions)
+        total_profit = sum(dao.get("profit_value", 0) for dao in cleaned_transactions)
         
         # Clean card response
         card_dict = dict(card)
@@ -1248,11 +1260,11 @@ async def get_credit_card_detail(card_id: str):
             "success": True,
             "credit_card": card_dict,
             "customer": customer_dict,
-            "transactions": transactions,
+            "transactions": cleaned_transactions,  # DAO transactions
             "summary": {
-                "total_transactions": len(transactions),
-                "total_amount": 0,
-                "total_profit": 0
+                "total_transactions": total_transactions,
+                "total_amount": total_amount,
+                "total_profit": total_profit
             }
         }
         
