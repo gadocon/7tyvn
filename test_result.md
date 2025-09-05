@@ -105,6 +105,18 @@
 user_problem_statement: "Fix 404 error with customer detailed profile endpoint. User reported 404 Not Found error when accessing customer detail page via CustomerNameLink, specifically for endpoint /api/customers/{id}/detailed-profile which was missing from backend after UUID refactor."
 
 backend:
+  - task: "Customer Detailed Profile 404 Error Fix"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Implemented missing /api/customers/{id}/detailed-profile endpoint in UUID-only system. Added comprehensive customer profile endpoint with metrics, credit cards, recent activities, and performance data. Also fixed safe datetime sorting for recent activities to handle mixed timezone objects. The endpoint was missing after UUID refactor but is now restored with UUID-only architecture."
+
   - task: "UUID-Only System Comprehensive Testing"
     implemented: true
     working: true
