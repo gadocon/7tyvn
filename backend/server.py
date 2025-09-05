@@ -1706,20 +1706,52 @@ async def get_customer_transactions(customer_id: str):
         if not customer:
             raise HTTPException(status_code=404, detail="Customer not found")
         
-        # Get sales for this customer
-        sales = await db.sales.find({"customer_id": customer_id}).to_list(100)
+        # Get sales for this customer with bill details
+        sales_pipeline = [
+            {"$match": {"customer_id": customer_id}},
+            {
+                "$lookup": {
+                    "from": "bills",
+                    "localField": "bill_ids", 
+                    "foreignField": "id",
+                    "as": "bills"
+                }
+            },
+            {"$sort": {"created_at": -1}}
+        ]
+        sales_cursor = db.sales.aggregate(sales_pipeline)
+        sales = await sales_cursor.to_list(100)
         
-        # Clean responses - bypass UUID processor for composite bill_ids
-        cleaned_sales = []
+        # Process transactions to include bill codes
+        cleaned_transactions = []
         for sale in sales:
             sale_dict = dict(sale)
             sale_dict.pop("_id", None)  # Remove ObjectId
-            cleaned_sales.append(sale_dict)
+            
+            # Add bill_codes for display in frontend
+            bill_codes = []
+            bills = sale_dict.get("bills", [])
+            for bill in bills:
+                # Use customer_code as the bill code for display
+                customer_code = bill.get("customer_code", "N/A")
+                bill_codes.append(customer_code)
+            
+            sale_dict["bill_codes"] = bill_codes
+            cleaned_transactions.append(sale_dict)
+        
+        # TODO: Add credit card transactions when implemented
+        # Get customer's credit card transactions (DAO)
+        # credit_card_transactions = await db.credit_card_transactions.find({"customer_id": customer_id}).to_list(100)
+        # for cc_transaction in credit_card_transactions:
+        #     # Add card codes for display
+        #     card_codes = [f"****{card_number[-4:]}"]
+        #     cc_transaction["bill_codes"] = card_codes  # Reuse bill_codes field for consistency
+        #     cleaned_transactions.append(cc_transaction)
         
         # Calculate summary
-        total_transactions = len(cleaned_sales)
-        total_spent = sum(sale.get("total", 0) for sale in cleaned_sales)
-        total_profit = sum(sale.get("profit_value", 0) for sale in cleaned_sales)
+        total_transactions = len(cleaned_transactions)
+        total_spent = sum(transaction.get("total", 0) for transaction in cleaned_transactions)
+        total_profit = sum(transaction.get("profit_value", 0) for transaction in cleaned_transactions)
         
         # Clean customer response
         customer_dict = dict(customer)
@@ -1728,7 +1760,7 @@ async def get_customer_transactions(customer_id: str):
         # Return format expected by frontend modal
         return {
             "customer": customer_dict,
-            "transactions": cleaned_sales,
+            "transactions": cleaned_transactions,
             "summary": {
                 "total_transactions": total_transactions,
                 "total_spent": total_spent,
