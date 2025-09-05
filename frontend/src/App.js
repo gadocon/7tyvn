@@ -4766,7 +4766,7 @@ const CreditCards = () => {
 // Add Credit Card Modal Component
 const AddCreditCardModal = ({ show, customers, selectedCustomerId, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    customer_id: "",
+    customer_id: selectedCustomerId || "",
     card_number: "",
     cardholder_name: "",
     bank_name: "",
@@ -4781,6 +4781,13 @@ const AddCreditCardModal = ({ show, customers, selectedCustomerId, onClose, onSu
   });
 
   const [loading, setLoading] = useState(false);
+
+  // Update customer_id when selectedCustomerId changes
+  useEffect(() => {
+    if (selectedCustomerId) {
+      setFormData(prev => ({ ...prev, customer_id: selectedCustomerId }));
+    }
+  }, [selectedCustomerId]);
 
   // Vietnamese Banks List
   const vietnameseBanks = [
