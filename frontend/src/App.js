@@ -7751,7 +7751,13 @@ const CustomerCreditCardsTab = ({ customer, credit_cards, formatCurrency, handle
 
       {/* Credit Cards Gallery */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Thẻ Tín Dụng ({credit_cards.total_cards})</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Thẻ Tín Dụng ({credit_cards.total_cards})</h2>
+          <Button onClick={onAddCreditCard} size="sm" className="bg-green-600 hover:bg-green-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm Thẻ Mới
+          </Button>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {credit_cards.cards.map((card) => (
             <div key={card.id} className="relative group">
