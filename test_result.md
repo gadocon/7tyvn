@@ -405,7 +405,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Add Credit Card Modal on Customer Detail Page"
+    - "Customer Detail Page Transaction Tab Data Loading Issues"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
