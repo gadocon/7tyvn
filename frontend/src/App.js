@@ -7059,6 +7059,35 @@ const CustomerDetailPage = () => {
     }
   }, [customerId]);
 
+  const handlePhoneCall = (phoneNumber, customerName, customerId) => {
+    try {
+      if (!phoneNumber) {
+        toast.error("Số điện thoại không có sẵn");
+        return;
+      }
+
+      // Validate phone number (basic validation)
+      const cleanPhone = phoneNumber.replace(/\D/g, '');
+      if (cleanPhone.length < 10) {
+        toast.error("Số điện thoại không hợp lệ");
+        return;
+      }
+
+      // Create tel: protocol link
+      const telLink = `tel:${cleanPhone}`;
+      
+      // Try to open phone dialer
+      window.location.href = telLink;
+      
+      // Show success toast
+      toast.success(`Đang gọi cho ${customerName} (${phoneNumber})`);
+      
+    } catch (error) {
+      console.error("Error making phone call:", error);
+      toast.error("Không thể thực hiện cuộc gọi");
+    }
+  };
+
   const fetchCustomerDetail = async () => {
     try {
       setLoading(true);
