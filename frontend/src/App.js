@@ -7410,7 +7410,7 @@ const CustomerOverviewTab = ({ customer, metrics, credit_cards, recent_activitie
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Loại KH:</span>
-              <span className="font-medium">{customer.type === 'INDIVIDUAL' ? 'Cá Nhân' : 'Đại Lý'}</span>
+              <span className="font-medium">{customer?.type === 'INDIVIDUAL' ? 'Cá Nhân' : 'Đại Lý'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Trạng thái:</span>
