@@ -7063,6 +7063,10 @@ const CustomerDetailPage = () => {
   });
   const [daoLoading, setDaoLoading] = useState(false);
 
+  // Add Credit Card Modal states
+  const [showAddCreditCardModal, setShowAddCreditCardModal] = useState(false);
+  const [customers, setCustomers] = useState([]);
+
   useEffect(() => {
     if (customerId) {
       fetchCustomerDetail();
