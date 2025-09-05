@@ -1497,7 +1497,7 @@ async def dao_credit_card_by_id(card_id: str, dao_data: dict):
             "transaction_id": transaction_id,  # Business ID: D98550509
             "customer_id": card.get("customer_id"),
             "credit_card_id": card_id,
-            "card_number": f"****{card.get('card_number', '0000')[-4:]}",
+            "card_number": card.get("card_number"),  # Store FULL card number for business logic
             "bank_name": card.get("bank_name"),
             "amount": dao_data.get("amount", 0),
             "profit_value": dao_data.get("profit_value", 0),
