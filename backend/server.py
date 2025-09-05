@@ -2231,8 +2231,9 @@ async def get_customer_detailed_profile(customer_id: str):
         sales_cursor = db.sales.aggregate(sales_pipeline)
         sales = await sales_cursor.to_list(None)
         
-        # Get customer's DAO transactions (placeholder - not implemented in UUID system yet)
-        dao_transactions = []  # TODO: Implement when credit card transactions are added
+        # Get customer's DAO transactions (UUID only system)
+        dao_transactions_cursor = db.dao_transactions.find({"customer_id": customer_id})
+        dao_transactions = await dao_transactions_cursor.to_list(None)
         
         # Calculate customer metrics
         total_sales_value = sum(sale.get("total", 0) for sale in sales)
