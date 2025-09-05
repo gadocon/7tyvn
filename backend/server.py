@@ -396,8 +396,8 @@ def calculate_next_due_date(statement_date: int, payment_due_date: int) -> str:
     
     return due_date.isoformat()
 
-def calculate_card_status(current_balance: float, next_due_date: str, last_dao_date: datetime = None) -> CardStatus:
-    """Calculate card status based on business logic"""
+def calculate_card_status(next_due_date: str, last_dao_date: datetime = None) -> CardStatus:
+    """Calculate card status based on business logic - Simplified without current_balance"""
     today = datetime.now(timezone.utc).date()
     
     # Parse next due date
@@ -407,15 +407,13 @@ def calculate_card_status(current_balance: float, next_due_date: str, last_dao_d
     except:
         days_until_due = 0
     
-    # Business Logic for Card Status:
-    if current_balance <= 0:
-        return CardStatus.CHUA_DEN_HAN  # No balance, not due yet
-    elif days_until_due > 3:
-        return CardStatus.CAN_DAO  # More than 3 days until due, can DAO
-    elif days_until_due >= 0:
-        return CardStatus.CAN_DAO  # Due soon but not overdue, can still DAO
+    # Simplified Business Logic for Card Status:
+    if days_until_due > 7:
+        return CardStatus.CHUA_DEN_HAN  # More than 7 days until due
+    elif days_until_due > 0:
+        return CardStatus.CAN_DAO  # Due soon but can still DAO
     else:
-        return CardStatus.QUA_HAN  # Overdue, need immediate attention
+        return CardStatus.QUA_HAN  # Overdue, need attention
 
 async def generate_dao_transaction_id(card_number: str, date: datetime = None) -> str:
     """Generate DAO transaction ID: D + last 4 digits + DDMM with auto-increment"""
@@ -443,12 +441,9 @@ async def generate_dao_transaction_id(card_number: str, date: datetime = None) -
         return f"{base_id}-{existing_count + 1}"  # D98550509-2, D98550509-3, etc.
 
 def update_card_after_dao(card_dict: dict, dao_amount: float) -> dict:
-    """Update card fields after DAO transaction"""
-    # Update current balance (increase by DAO amount)
-    card_dict["current_balance"] = card_dict.get("current_balance", 0) + dao_amount
-    
-    # Update available credit
-    card_dict["available_credit"] = card_dict.get("credit_limit", 0) - card_dict["current_balance"]
+    """Update card fields after DAO transaction - Simplified without current_balance"""
+    # Update available credit (decrease by DAO amount)
+    card_dict["available_credit"] = card_dict.get("credit_limit", 0) - dao_amount
     
     # Update last DAO date
     card_dict["last_dao_date"] = datetime.now(timezone.utc)
@@ -462,7 +457,6 @@ def update_card_after_dao(card_dict: dict, dao_amount: float) -> dict:
     
     # Calculate and update status
     card_dict["status"] = calculate_card_status(
-        card_dict["current_balance"], 
         card_dict["next_due_date"],
         card_dict["last_dao_date"]
     ).value  # Get enum value
