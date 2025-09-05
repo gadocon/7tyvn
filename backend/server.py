@@ -175,14 +175,14 @@ class Customer(CustomerBase):
 # Bill Models  
 class BillBase(BaseModel):
     customer_code: str
-    customer_name: str
-    phone: str
-    address: str
-    amount: float
-    cycle: str
-    gateway: str
-    provider_region: str
-    due_date: str
+    customer_name: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    amount: Optional[float] = 0
+    cycle: Optional[str] = None
+    gateway: Optional[str] = None
+    provider_region: Optional[str] = None
+    due_date: Optional[str] = None
 
 class BillCreate(BillBase):
     pass
