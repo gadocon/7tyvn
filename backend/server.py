@@ -1526,7 +1526,6 @@ async def dao_credit_card_by_id(card_id: str, dao_data: dict):
             {"id": card_id},
             {
                 "$set": {
-                    "current_balance": card_dict["current_balance"],
                     "available_credit": card_dict["available_credit"],
                     "last_dao_date": card_dict["last_dao_date"],
                     "next_due_date": card_dict["next_due_date"],
