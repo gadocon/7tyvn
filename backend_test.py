@@ -4738,12 +4738,16 @@ class FPTBillManagerAPITester:
                     else:
                         print(f"   ⚠️ Cannot create test sale - testing DAO field consistency only")
                         # Since DAO transactions are working correctly, mark field consistency as verified
-                        if dao_transactions:
-                            dao_tx = dao_transactions[0]
-                            if "amount" in dao_tx and "profit_value" in dao_tx and "type" in dao_tx:
-                                print(f"   ✅ DAO transactions have correct field structure")
-                                test_results["field_consistency_verified"] = True
-                                test_results["passed_tests"] += 1
+                        # Get DAO transactions from the summary response we already have
+                        if transactions_summary_success and transactions_summary_response:
+                            dao_txs_from_summary = [tx for tx in transactions_summary_response.get("transactions", []) 
+                                                  if tx.get("type") in ["CREDIT_DAO_POS", "CREDIT_DAO_BILL"]]
+                            if dao_txs_from_summary:
+                                dao_tx = dao_txs_from_summary[0]
+                                if "amount" in dao_tx and "profit_value" in dao_tx and "type" in dao_tx:
+                                    print(f"   ✅ DAO transactions have correct field structure")
+                                    test_results["field_consistency_verified"] = True
+                                    test_results["passed_tests"] += 1
                 else:
                     print(f"   ⚠️ No available bills for sale creation - testing DAO only")
             except Exception as e:
