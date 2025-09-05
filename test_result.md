@@ -369,7 +369,6 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Credit Card Current Balance Field Removal"
     - "General DAO Endpoint Unmasked Card Number Storage"
   stuck_tasks: []
   test_all: false
