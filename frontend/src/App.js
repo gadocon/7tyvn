@@ -2758,7 +2758,7 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
         {/* Transaction History */}
         <div>
           <h4 className="font-medium text-gray-900 mb-3">Lịch Sử Giao Dịch</h4>
-          {transactions.length > 0 ? (
+          {transactions && transactions.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
