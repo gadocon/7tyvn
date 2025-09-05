@@ -1539,6 +1539,76 @@ async def get_dao_transactions(
         logger.error(f"Error fetching DAO transactions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/customers/{customer_id}/transactions-summary")
+async def get_customer_transactions_summary(
+    customer_id: str,
+    limit: int = Query(100, alias="limit")
+):
+    """Get customer transactions summary - UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(customer_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Get customer info
+        customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        
+        # Get bill sales for this customer (limited)
+        sales = await db.sales.find({"customer_id": customer_id}).limit(limit).to_list(limit)
+        
+        # Get DAO transactions for this customer (limited)
+        dao_transactions = await db.dao_transactions.find({"customer_id": customer_id}).limit(limit).to_list(limit)
+        
+        # Combine all transactions
+        all_transactions = []
+        
+        # Add sales as transactions
+        for sale in sales:
+            sale_dict = dict(sale)
+            sale_dict.pop("_id", None)
+            sale_dict["transaction_type"] = "BILL_SALE"
+            all_transactions.append(sale_dict)
+        
+        # Add DAO transactions
+        for dao in dao_transactions:
+            dao_dict = dict(dao)
+            dao_dict.pop("_id", None)
+            dao_dict["transaction_type"] = "DAO"
+            all_transactions.append(dao_dict)
+        
+        # Sort by created_at descending
+        all_transactions.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+        
+        # Calculate summary
+        total_transactions = len(all_transactions)
+        total_amount = sum(tx.get("total", 0) + tx.get("amount", 0) for tx in all_transactions)
+        total_profit = sum(tx.get("profit_value", 0) for tx in all_transactions)
+        
+        # Clean customer response
+        customer_dict = dict(customer)
+        customer_dict.pop("_id", None)
+        
+        return {
+            "success": True,
+            "customer": customer_dict,
+            "transactions": all_transactions[:limit],  # Apply limit
+            "summary": {
+                "total_transactions": total_transactions,
+                "total_amount": total_amount,
+                "total_profit": total_profit,
+                "bill_sales": len(sales),
+                "dao_transactions": len(dao_transactions)
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching customer transactions summary: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/activities/recent")
 async def get_recent_activities(days: int = 3, limit: int = 20):
     """Recent activities for dashboard (placeholder)"""
