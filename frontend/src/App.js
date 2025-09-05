@@ -2400,7 +2400,7 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <Badge variant="outline">
-                          {customer.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}
+                          {customer?.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{customer.phone || "-"}</TableCell>
