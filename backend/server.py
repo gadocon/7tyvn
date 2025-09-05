@@ -168,6 +168,10 @@ class Customer(CustomerBase):
     total_spent: float = 0.0
     total_profit_generated: float = 0.0
     total_cards: int = 0
+    # DAO specific stats
+    total_dao_amount: float = 0.0
+    total_dao_transactions: int = 0
+    total_dao_profit: float = 0.0
     is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
