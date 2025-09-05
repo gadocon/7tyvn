@@ -4165,19 +4165,19 @@ class FPTBillManagerAPITester:
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    print("🚀 Starting UUID-Only System Final Validation")
+    print("🚀 Starting Customer Detailed Profile 404 Error Fix Testing")
     print("=" * 80)
     
-    # Run UUID-Only System Final Validation
-    validation_success = tester.test_uuid_only_system_final_validation()
+    # Run Customer Detailed Profile 404 Fix Test
+    profile_fix_success = tester.test_customer_detailed_profile_404_fix()
     
     print(f"\n📊 FINAL RESULTS:")
     print(f"Tests Run: {tester.tests_run}")
     print(f"Tests Passed: {tester.tests_passed}")
     print(f"Success Rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "No tests run")
-    print(f"UUID-Only System Validation: {'✅ PASSED' if validation_success else '❌ FAILED'}")
+    print(f"Customer Detailed Profile Fix: {'✅ PASSED' if profile_fix_success else '❌ FAILED'}")
     
     if tester.mongo_connected:
         tester.mongo_client.close()
     
-    sys.exit(0 if validation_success else 1)
+    sys.exit(0 if profile_fix_success else 1)
