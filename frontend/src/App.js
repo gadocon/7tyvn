@@ -2726,7 +2726,7 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
           <h4 className="font-medium text-gray-900 mb-3">Thông Tin Khách Hàng</h4>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div><strong>Tên:</strong> <CustomerNameLink customer={customer} /></div>
-            <div><strong>Loại:</strong> {customer.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}</div>
+            <div><strong>Loại:</strong> {customer?.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}</div>
             <div><strong>Điện thoại:</strong> {customer.phone || "-"}</div>
             <div><strong>Email:</strong> {customer.email || "-"}</div>
             <div className="col-span-2"><strong>Địa chỉ:</strong> {customer.address || "-"}</div>
