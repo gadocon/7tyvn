@@ -2591,8 +2591,8 @@ async def get_unified_transactions(
                 )
                 unified_transactions.append(transaction)
         
-        # Get DAO Transactions (UUID only)
-        if not transaction_type or transaction_type == "DAO":
+        # Get DAO Transactions (UUID only) - Both POS and BILL types
+        if not transaction_type or transaction_type in ["CREDIT_DAO_POS", "CREDIT_DAO_BILL"]:
             dao_pipeline = [
                 {"$match": match_filters},
                 {
@@ -2620,20 +2620,35 @@ async def get_unified_transactions(
                     customer_data = dao.get("customer", [])
                     customer = customer_data[0] if customer_data else {}
                     
-                    # Create item display for DAO
+                    # Create item display for DAO based on type
                     card_info = ""
-                    if dao.get("card_number"):
-                        card_info = f"{dao.get('bank_name', '')} {dao.get('card_number')}"
-                    elif dao.get("bill_code"):
-                        card_info = dao.get("bill_code")
-                    elif dao.get("pos_code"):
-                        card_info = f"POS: {dao.get('pos_code')}"
+                    dao_type = dao.get("transaction_type", "CREDIT_DAO_POS")
+                    
+                    if dao_type == "CREDIT_DAO_POS":
+                        # POS transaction
+                        if dao.get("card_number"):
+                            card_info = f"{dao.get('bank_name', '')} {dao.get('card_number')}"
+                        elif dao.get("pos_code"):
+                            card_info = f"POS: {dao.get('pos_code')}"
+                        else:
+                            card_info = "Đáo Thẻ POS"
+                    elif dao_type == "CREDIT_DAO_BILL":
+                        # Bill transaction  
+                        if dao.get("bill_code"):
+                            card_info = dao.get("bill_code")
+                        else:
+                            card_info = "Đáo Thẻ Bill"
                     else:
-                        card_info = "Đáo thẻ"
+                        card_info = "Đáo Thẻ"
+                    
+                    # Determine correct TransactionType enum
+                    transaction_type_enum = TransactionType.CREDIT_DAO_POS
+                    if dao_type == "CREDIT_DAO_BILL":
+                        transaction_type_enum = TransactionType.CREDIT_DAO_BILL
                     
                     transaction = UnifiedTransaction(
                         id=dao["id"],
-                        type=TransactionType.DAO,
+                        type=transaction_type_enum,
                         customer_id=dao["customer_id"],
                         customer_name=customer.get("name", "N/A"),
                         customer_phone=customer.get("phone"),
@@ -2645,7 +2660,7 @@ async def get_unified_transactions(
                             id=dao["id"],
                             code=card_info,
                             amount=dao.get("amount", 0),
-                            type="DAO"
+                            type=dao_type
                         )],
                         item_codes=[card_info],
                         item_display=card_info,
