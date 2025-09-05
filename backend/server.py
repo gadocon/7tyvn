@@ -1881,16 +1881,24 @@ async def get_customer_transactions(customer_id: str):
         cleaned_transactions = []
         for sale in sales:
             sale_dict = dict(sale)
-            sale_dict.pop("_id", None)  # Remove ObjectId
+            sale_dict.pop("_id", None)  # Remove ObjectId from sale
             
-            # Add bill_codes for display in frontend
+            # Clean bills data and add bill_codes for display in frontend
             bill_codes = []
             bills = sale_dict.get("bills", [])
+            cleaned_bills = []
+            
             for bill in bills:
+                # Clean ObjectId from each bill
+                bill_dict = dict(bill)
+                bill_dict.pop("_id", None)  # Remove ObjectId from bill
+                cleaned_bills.append(bill_dict)
+                
                 # Use the full composite bill_id instead of just customer_code
-                bill_id = bill.get("id", "N/A")  # This is the composite bill_id (customer_code + MMYY)
+                bill_id = bill_dict.get("id", "N/A")  # This is the composite bill_id (customer_code + MMYY)
                 bill_codes.append(bill_id)
             
+            sale_dict["bills"] = cleaned_bills  # Replace with cleaned bills
             sale_dict["bill_codes"] = bill_codes
             cleaned_transactions.append(sale_dict)
         
