@@ -1656,9 +1656,10 @@ async def dao_credit_card_general(dao_data: dict):
             # Use bills total as DAO amount
             dao_data["amount"] = total_bills_amount
         
-        # Create DAO transaction record with UUID and CORRECT TYPE
+        # Create DAO transaction record with BUSINESS ID
         dao_transaction = {
-            "id": generate_uuid(),
+            "id": generate_uuid(),  # Technical UUID for internal use
+            "transaction_id": transaction_id,  # Business ID: D98550509
             "customer_id": customer_id,
             "amount": dao_data.get("amount", 0),
             "profit_value": dao_data.get("profit_value", 0),
