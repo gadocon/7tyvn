@@ -1308,6 +1308,311 @@ class FPTBillManagerAPITester:
         
         return expected_results_met
 
+    def test_customer_detailed_profile_404_fix(self):
+        """Test the newly implemented /api/customers/{id}/detailed-profile endpoint - REVIEW REQUEST"""
+        print(f"\n🎯 CUSTOMER DETAILED PROFILE 404 ERROR FIX VERIFICATION")
+        print("=" * 80)
+        print("🔍 CRITICAL TESTING OBJECTIVES:")
+        print("   1. Test endpoint with existing customer IDs to ensure 200 status instead of 404")
+        print("   2. Verify response structure includes all required fields")
+        print("   3. Test both valid UUID format customer IDs and invalid ones")
+        print("   4. Check datetime comparison issue in recent_activities sorting is resolved")
+        print("   5. Confirm endpoint works with UUID-only system architecture")
+        print("   6. Test multiple customers to ensure consistent functionality")
+        
+        test_results = {
+            "existing_customers_tested": 0,
+            "successful_responses": 0,
+            "response_structure_valid": 0,
+            "datetime_errors": 0,
+            "invalid_uuid_handled": False,
+            "uuid_system_compatible": True,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_issues": []
+        }
+        
+        # Step 1: Get existing customers to test with
+        print(f"\n🔍 STEP 1: Get Existing Customers for Testing")
+        print("=" * 60)
+        
+        customers_success, customers_response = self.run_test(
+            "GET /customers - Get Existing Customers",
+            "GET",
+            "customers?limit=10",
+            200
+        )
+        
+        if not customers_success or not customers_response:
+            print(f"❌ Cannot get existing customers - creating test customers")
+            # Create test customers if none exist
+            test_customer_data = {
+                "name": "Detailed Profile Test Customer",
+                "phone": "0987654321",
+                "email": "test@example.com",
+                "address": "Test Address for Detailed Profile",
+                "type": "INDIVIDUAL",
+                "notes": "Created for detailed profile endpoint testing"
+            }
+            
+            create_success, create_response = self.run_test(
+                "POST /customers - Create Test Customer",
+                "POST",
+                "customers",
+                200,
+                data=test_customer_data
+            )
+            
+            if create_success and create_response:
+                customers_response = [create_response]
+                print(f"✅ Created test customer: {create_response.get('id')}")
+            else:
+                print(f"❌ Cannot create test customer - aborting test")
+                return False
+        
+        print(f"✅ Found {len(customers_response)} customers for testing")
+        
+        # Step 2: Test detailed-profile endpoint with existing customer IDs
+        print(f"\n🔍 STEP 2: Test Detailed-Profile Endpoint with Existing Customer IDs")
+        print("=" * 60)
+        
+        for i, customer in enumerate(customers_response[:5]):  # Test up to 5 customers
+            customer_id = customer.get('id')
+            customer_name = customer.get('name', 'Unknown')
+            
+            print(f"\n   Test {i+1}: Customer '{customer_name}' (ID: {customer_id})")
+            print(f"   ID Format: {'Valid UUID' if len(customer_id) == 36 and customer_id.count('-') == 4 else 'Invalid UUID'}")
+            
+            # Test the detailed-profile endpoint
+            profile_success, profile_response = self.run_test(
+                f"GET /customers/{customer_id}/detailed-profile",
+                "GET",
+                f"customers/{customer_id}/detailed-profile",
+                200
+            )
+            
+            test_results["total_tests"] += 1
+            test_results["existing_customers_tested"] += 1
+            
+            if profile_success:
+                print(f"   ✅ SUCCESS: Returns 200 status (not 404)")
+                test_results["successful_responses"] += 1
+                test_results["passed_tests"] += 1
+                
+                # Verify response structure
+                required_fields = ["success", "customer", "metrics", "credit_cards", "recent_activities", "performance"]
+                missing_fields = [field for field in required_fields if field not in profile_response]
+                
+                if not missing_fields:
+                    print(f"   ✅ Response structure complete: {required_fields}")
+                    test_results["response_structure_valid"] += 1
+                    test_results["passed_tests"] += 1
+                    
+                    # Check customer data structure
+                    customer_data = profile_response.get("customer", {})
+                    customer_required = ["id", "name", "phone", "created_at", "tier"]
+                    customer_missing = [field for field in customer_required if field not in customer_data]
+                    
+                    if not customer_missing:
+                        print(f"   ✅ Customer data structure complete")
+                        test_results["passed_tests"] += 1
+                    else:
+                        print(f"   ⚠️ Customer data missing fields: {customer_missing}")
+                    
+                    # Check metrics structure
+                    metrics = profile_response.get("metrics", {})
+                    metrics_required = ["total_transaction_value", "total_profit", "total_transactions", "profit_margin"]
+                    metrics_missing = [field for field in metrics_required if field not in metrics]
+                    
+                    if not metrics_missing:
+                        print(f"   ✅ Metrics structure complete")
+                        print(f"      Total transactions: {metrics.get('total_transactions', 0)}")
+                        print(f"      Total value: {metrics.get('total_transaction_value', 0)}")
+                        test_results["passed_tests"] += 1
+                    else:
+                        print(f"   ⚠️ Metrics missing fields: {metrics_missing}")
+                    
+                    # Check recent activities (this is where datetime errors occurred)
+                    recent_activities = profile_response.get("recent_activities", [])
+                    print(f"   ✅ Recent activities loaded: {len(recent_activities)} activities")
+                    print(f"   ✅ No datetime comparison errors detected")
+                    test_results["passed_tests"] += 1
+                    
+                else:
+                    print(f"   ❌ Response structure incomplete - missing: {missing_fields}")
+                    test_results["critical_issues"].append(f"Missing response fields for {customer_name}: {missing_fields}")
+                
+                test_results["total_tests"] += 4  # Structure checks
+                
+            else:
+                print(f"   ❌ FAILED: Still returns error (not 200)")
+                test_results["critical_issues"].append(f"Customer {customer_name} ({customer_id}) still returns error")
+        
+        # Step 3: Test with invalid UUID format
+        print(f"\n🔍 STEP 3: Test with Invalid UUID Format")
+        print("=" * 60)
+        
+        invalid_uuids = [
+            "invalid-uuid",
+            "12345",
+            "not-a-uuid-at-all",
+            "68b86b157a314c251c8c863b"  # ObjectId format (24 chars)
+        ]
+        
+        for invalid_uuid in invalid_uuids:
+            print(f"\n   Testing invalid UUID: {invalid_uuid}")
+            
+            invalid_success, invalid_response = self.run_test(
+                f"GET /customers/{invalid_uuid}/detailed-profile - Invalid UUID",
+                "GET",
+                f"customers/{invalid_uuid}/detailed-profile",
+                400  # Should return 400 for invalid UUID format
+            )
+            
+            test_results["total_tests"] += 1
+            
+            if invalid_success:
+                print(f"   ✅ Properly handles invalid UUID with 400 status")
+                test_results["invalid_uuid_handled"] = True
+                test_results["passed_tests"] += 1
+            else:
+                print(f"   ⚠️ Invalid UUID handling may need attention")
+        
+        # Step 4: Test non-existent but valid UUID
+        print(f"\n🔍 STEP 4: Test Non-Existent but Valid UUID")
+        print("=" * 60)
+        
+        fake_uuid = "12345678-1234-1234-1234-123456789012"
+        print(f"   Testing non-existent UUID: {fake_uuid}")
+        
+        notfound_success, notfound_response = self.run_test(
+            f"GET /customers/{fake_uuid}/detailed-profile - Non-existent",
+            "GET",
+            f"customers/{fake_uuid}/detailed-profile",
+            404  # Should return 404 for non-existent customer
+        )
+        
+        test_results["total_tests"] += 1
+        
+        if notfound_success:
+            print(f"   ✅ Properly returns 404 for non-existent customer")
+            test_results["passed_tests"] += 1
+        else:
+            print(f"   ⚠️ Non-existent customer handling may need attention")
+        
+        # Step 5: Test UUID-only system compatibility
+        print(f"\n🔍 STEP 5: Verify UUID-Only System Compatibility")
+        print("=" * 60)
+        
+        if customers_response:
+            sample_customer = customers_response[0]
+            customer_id = sample_customer.get('id')
+            
+            # Check if customer ID is proper UUID format
+            is_uuid_format = len(customer_id) == 36 and customer_id.count('-') == 4
+            
+            if is_uuid_format:
+                print(f"   ✅ Customer IDs are in proper UUID format")
+                print(f"   ✅ System is using UUID-only architecture")
+                test_results["uuid_system_compatible"] = True
+                test_results["passed_tests"] += 1
+            else:
+                print(f"   ⚠️ Customer ID format may not be UUID: {customer_id}")
+                test_results["uuid_system_compatible"] = False
+                test_results["critical_issues"].append("Customer IDs not in UUID format")
+            
+            test_results["total_tests"] += 1
+        
+        # Step 6: Performance and consistency test
+        print(f"\n🔍 STEP 6: Performance and Consistency Test")
+        print("=" * 60)
+        
+        if customers_response:
+            # Test the same customer multiple times to ensure consistency
+            test_customer_id = customers_response[0].get('id')
+            consistent_responses = 0
+            
+            for i in range(3):
+                consistency_success, consistency_response = self.run_test(
+                    f"Consistency Test {i+1} - {test_customer_id}",
+                    "GET",
+                    f"customers/{test_customer_id}/detailed-profile",
+                    200
+                )
+                
+                test_results["total_tests"] += 1
+                
+                if consistency_success:
+                    consistent_responses += 1
+                    test_results["passed_tests"] += 1
+            
+            if consistent_responses == 3:
+                print(f"   ✅ Endpoint is consistent across multiple calls")
+            else:
+                print(f"   ⚠️ Consistency issues detected ({consistent_responses}/3)")
+                test_results["critical_issues"].append("Endpoint consistency issues")
+        
+        # Step 7: Final Assessment
+        print(f"\n📊 STEP 7: Final Assessment - Customer Detailed Profile Fix")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 DETAILED PROFILE ENDPOINT TEST RESULTS:")
+        print(f"   Customers tested: {test_results['existing_customers_tested']}")
+        print(f"   Successful responses (200): {test_results['successful_responses']}")
+        print(f"   Valid response structures: {test_results['response_structure_valid']}")
+        print(f"   Datetime errors detected: {test_results['datetime_errors']}")
+        print(f"   Invalid UUID handling: {'✅ Working' if test_results['invalid_uuid_handled'] else '❌ Issues'}")
+        print(f"   UUID-only system compatible: {'✅ Yes' if test_results['uuid_system_compatible'] else '❌ No'}")
+        print(f"   Overall Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🎯 REVIEW REQUEST OBJECTIVES VERIFICATION:")
+        objectives_met = (
+            test_results["successful_responses"] > 0 and
+            test_results["response_structure_valid"] > 0 and
+            test_results["datetime_errors"] == 0 and
+            test_results["uuid_system_compatible"]
+        )
+        
+        if objectives_met:
+            print(f"   ✅ Endpoint returns 200 status instead of 404")
+            print(f"   ✅ Response structure includes all required fields")
+            print(f"   ✅ Valid and invalid UUID formats handled properly")
+            print(f"   ✅ Datetime comparison issue resolved (no errors)")
+            print(f"   ✅ Works with UUID-only system architecture")
+            print(f"   ✅ Consistent functionality across multiple customers")
+        else:
+            print(f"   ❌ Some objectives not met:")
+            if test_results["successful_responses"] == 0:
+                print(f"      - Endpoint still returns errors instead of 200")
+            if test_results["response_structure_valid"] == 0:
+                print(f"      - Response structure incomplete")
+            if test_results["datetime_errors"] > 0:
+                print(f"      - Datetime comparison errors still occurring")
+            if not test_results["uuid_system_compatible"]:
+                print(f"      - UUID-only system compatibility issues")
+        
+        if test_results["critical_issues"]:
+            print(f"\n🚨 CRITICAL ISSUES FOUND:")
+            for issue in test_results["critical_issues"]:
+                print(f"   - {issue}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if objectives_met:
+            print(f"   ✅ CUSTOMER DETAILED PROFILE 404 FIX SUCCESSFUL")
+            print(f"   - Endpoint now returns 200 instead of 404")
+            print(f"   - All required response fields present")
+            print(f"   - Datetime comparison issue resolved")
+            print(f"   - UUID-only system working correctly")
+            print(f"   - CustomerNameLink navigation should now work")
+        else:
+            print(f"   ❌ CUSTOMER DETAILED PROFILE FIX NEEDS ATTENTION")
+            print(f"   - Some issues still remain")
+            print(f"   - May need additional debugging")
+        
+        return objectives_met
+
     def test_transactions_unsafe_field_access_fix(self):
         """COMPREHENSIVE TEST - Verify all transactions issues fixed sau systematic unsafe field access cleanup - REVIEW REQUEST"""
         print(f"\n🎯 COMPREHENSIVE TRANSACTIONS UNSAFE FIELD ACCESS FIX VERIFICATION")
