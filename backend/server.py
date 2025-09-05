@@ -2277,6 +2277,19 @@ async def get_customer_detailed_profile(customer_id: str):
                 "bills_count": len(sale.get("bills", []))
             })
         
+        # Add recent DAO transactions
+        for dao in dao_transactions[:5]:
+            recent_activities.append({
+                "id": dao["id"],
+                "type": dao.get("transaction_type", "CREDIT_DAO_POS"),
+                "amount": dao.get("amount", 0),
+                "profit": dao.get("profit_value", 0),
+                "created_at": dao["created_at"],
+                "description": f"Đáo thẻ - {dao.get('transaction_id', '')}",
+                "transaction_id": dao.get("transaction_id", ""),
+                "card_number": dao.get("card_number", "")
+            })
+        
         # Sort recent activities by date - handle mixed timezone datetime objects safely
         def safe_activity_sort_key(activity):
             created_at = activity.get("created_at")
