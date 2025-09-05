@@ -8098,9 +8098,12 @@ const CustomerTransactionsTab = ({ customer, formatCurrency, formatDateTime }) =
     currentPage * itemsPerPage
   );
 
-  // Calculate totals
-  const totalRevenue = filteredTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
-  const totalProfit = filteredTransactions.reduce((sum, t) => sum + (t.profit || 0), 0);
+  // Calculate totals - handle both 'amount' and 'total' fields
+  const getTotalAmount = (t) => t.amount || t.total || 0;
+  const getProfitValue = (t) => t.profit_value || t.profit || 0;
+  
+  const totalRevenue = filteredTransactions.reduce((sum, t) => sum + getTotalAmount(t), 0);
+  const totalProfit = filteredTransactions.reduce((sum, t) => sum + getProfitValue(t), 0);
   const avgTransactionValue = filteredTransactions.length > 0 ? totalRevenue / filteredTransactions.length : 0;
 
   if (loading) {
