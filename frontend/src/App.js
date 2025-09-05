@@ -8113,7 +8113,7 @@ const CustomerTransactionsTab = ({ customer, formatCurrency, formatDateTime }) =
                 <option value="all">Tất cả</option>
                 <option value="BILL_SALE">Bán Bill</option>
                 <option value="CREDIT_DAO_POS">Đáo Thẻ POS</option>
-                <option value="CREDIT_DAO_BILL">Đáo Thẻ BILL</option>
+                <option value="CREDIT_DAO_BILL">Đáo Thẻ Bill</option>
               </select>
             </div>
             <div>
