@@ -1887,9 +1887,9 @@ async def get_customer_transactions(customer_id: str):
             bill_codes = []
             bills = sale_dict.get("bills", [])
             for bill in bills:
-                # Use customer_code as the bill code for display
-                customer_code = bill.get("customer_code", "N/A")
-                bill_codes.append(customer_code)
+                # Use the full composite bill_id instead of just customer_code
+                bill_id = bill.get("id", "N/A")  # This is the composite bill_id (customer_code + MMYY)
+                bill_codes.append(bill_id)
             
             sale_dict["bill_codes"] = bill_codes
             cleaned_transactions.append(sale_dict)
