@@ -105,6 +105,18 @@
 user_problem_statement: "Fix 404 error with customer detailed profile endpoint. User reported 404 Not Found error when accessing customer detail page via CustomerNameLink, specifically for endpoint /api/customers/{id}/detailed-profile which was missing from backend after UUID refactor."
 
 backend:
+  - task: "Add Credit Card Modal on Customer Detail Page"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Phase 2 Complete: Implemented Add Credit Card Modal integration on Customer Detail page. Added showAddCreditCardModal state, fetchCustomers function, onClick handler for 'Thêm Thẻ' button in quick actions. Updated CustomerCreditCardsTab to accept onAddCreditCard prop and added 'Thêm Thẻ Mới' button when cards exist. Modified AddCreditCardModal to accept selectedCustomerId prop, pre-fill customer selection, and disable dropdown when opened from customer detail. Added modal to CustomerDetailPage with proper onSuccess refresh. Need frontend testing to verify modal functionality."
+
   - task: "Credit Card Current Balance Field Removal"
     implemented: true
     working: true
