@@ -2603,49 +2603,56 @@ async def get_unified_transactions(
                 {"$skip": offset}
             ]
             
-            dao_cursor = db.dao_transactions.aggregate(dao_pipeline)
-            dao_results = await dao_cursor.to_list(length=None)
-            
-            for dao in dao_results:
-                # Safe array access for customer
-                customer_data = dao.get("customer", [])
-                customer = customer_data[0] if customer_data else {}
+            try:
+                dao_cursor = db.dao_transactions.aggregate(dao_pipeline)
+                dao_results = await dao_cursor.to_list(length=None)
                 
-                # Create item display for DAO
-                card_info = ""
-                if dao.get("card_number"):
-                    card_info = f"{dao.get('bank_name', '')} {dao.get('card_number')}"
-                elif dao.get("bill_code"):
-                    card_info = dao.get("bill_code")
-                elif dao.get("pos_code"):
-                    card_info = f"POS: {dao.get('pos_code')}"
-                else:
-                    card_info = "Đáo thẻ"
-                
-                transaction = UnifiedTransaction(
-                    id=dao["id"],
-                    type=TransactionType.DAO,
-                    customer_id=dao["customer_id"],
-                    customer_name=customer.get("name", "N/A"),
-                    customer_phone=customer.get("phone"),
-                    total_amount=dao.get("amount", 0),
-                    profit_amount=dao.get("profit_value", 0),
-                    profit_percentage=dao.get("fee_rate", 3.0),
-                    payback=dao.get("amount", 0) - dao.get("profit_value", 0),  # Amount minus profit
-                    items=[TransactionItem(
+                for dao in dao_results:
+                    # Clean ObjectId from DAO
+                    dao.pop("_id", None)
+                    
+                    # Safe array access for customer
+                    customer_data = dao.get("customer", [])
+                    customer = customer_data[0] if customer_data else {}
+                    
+                    # Create item display for DAO
+                    card_info = ""
+                    if dao.get("card_number"):
+                        card_info = f"{dao.get('bank_name', '')} {dao.get('card_number')}"
+                    elif dao.get("bill_code"):
+                        card_info = dao.get("bill_code")
+                    elif dao.get("pos_code"):
+                        card_info = f"POS: {dao.get('pos_code')}"
+                    else:
+                        card_info = "Đáo thẻ"
+                    
+                    transaction = UnifiedTransaction(
                         id=dao["id"],
-                        code=card_info,
-                        amount=dao.get("amount", 0),
-                        type="DAO"
-                    )],
-                    item_codes=[card_info],
-                    item_display=card_info,
-                    payment_method=dao.get("payment_method", "CASH"),
-                    status=dao.get("status", "COMPLETED"),
-                    notes=dao.get("notes"),
-                    created_at=dao["created_at"]
-                )
-                unified_transactions.append(transaction)
+                        type=TransactionType.DAO,
+                        customer_id=dao["customer_id"],
+                        customer_name=customer.get("name", "N/A"),
+                        customer_phone=customer.get("phone"),
+                        total_amount=dao.get("amount", 0),
+                        profit_amount=dao.get("profit_value", 0),
+                        profit_percentage=dao.get("fee_rate", 3.0),
+                        payback=dao.get("amount", 0) - dao.get("profit_value", 0),  # Amount minus profit
+                        items=[TransactionItem(
+                            id=dao["id"],
+                            code=card_info,
+                            amount=dao.get("amount", 0),
+                            type="DAO"
+                        )],
+                        item_codes=[card_info],
+                        item_display=card_info,
+                        payment_method=dao.get("payment_method", "CASH"),
+                        status=dao.get("status", "COMPLETED"),
+                        notes=dao.get("notes"),
+                        created_at=dao["created_at"]
+                    )
+                    unified_transactions.append(transaction)
+            except Exception as e:
+                logger.error(f"Error processing DAO transactions: {e}")
+                # Continue processing without DAO transactions
 
         # Sort by created_at descending
         unified_transactions.sort(key=lambda x: x.created_at, reverse=True)
