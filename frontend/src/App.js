@@ -2404,9 +2404,9 @@ const Customers = ({ customerDetail, setCustomerDetail }) => {
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{customer.phone || "-"}</TableCell>
-                      <TableCell className="whitespace-nowrap">{customer.total_transactions}</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(customer.total_value)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatCurrency(customer.total_profit_generated)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{customer.total_transactions || 0}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(customer.total_spent || 0)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(customer.total_profit_generated || 0)}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         {customer.is_active ? (
                           <Badge className="bg-green-100 text-green-800">
