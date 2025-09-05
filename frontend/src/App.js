@@ -2790,8 +2790,10 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
                       <Badge variant="outline">
                         {(() => {
                           // Use transaction_type from backend for accurate classification
-                          if (transaction.transaction_type === "DAO") {
-                            return "Đáo Thẻ";
+                          if (transaction.transaction_type === "CREDIT_DAO_POS") {
+                            return "Đáo Thẻ POS";
+                          } else if (transaction.transaction_type === "CREDIT_DAO_BILL") {
+                            return "Đáo Thẻ Bill";
                           } else if (transaction.transaction_type === "BILL_SALE") {
                             return "Bán Bill";
                           }
@@ -2801,7 +2803,7 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
                             const firstCode = transaction.bill_codes[0];
                             // If bill_codes contains ****1234 format or bank name, it's credit card transaction
                             if (firstCode.includes('****') || firstCode.includes('Techcombank') || firstCode.includes('POS:')) {
-                              return "Đáo Thẻ";
+                              return "Đáo Thẻ POS";
                             }
                           }
                           // Default to regular bill sale
