@@ -5020,6 +5020,7 @@ const AddCreditCardModal = ({ show, customers, selectedCustomerId, onClose, onSu
                 <Select 
                   value={formData.customer_id} 
                   onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                  disabled={!!selectedCustomerId}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Chọn khách hàng" />
@@ -5032,6 +5033,11 @@ const AddCreditCardModal = ({ show, customers, selectedCustomerId, onClose, onSu
                     ))}
                   </SelectContent>
                 </Select>
+                {selectedCustomerId && (
+                  <p className="text-sm text-green-600 mt-1">
+                    Thẻ sẽ được thêm cho khách hàng này
+                  </p>
+                )}
               </div>
 
               {/* Card Number */}
