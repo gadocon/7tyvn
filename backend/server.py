@@ -230,7 +230,7 @@ class CardStatus(str, Enum):
 
 class CreditCardBase(BaseModel):
     customer_id: str  # UUID only
-    card_number: str
+    card_number: str  # Store full card number in database
     cardholder_name: str
     bank_name: str
     card_type: CardType = CardType.VISA
@@ -239,9 +239,8 @@ class CreditCardBase(BaseModel):
     statement_date: int  # Day of month for statement (1-31)
     payment_due_date: int  # Day of month for payment due (1-31)
     credit_limit: float
-    # CRITICAL BUSINESS LOGIC FIELDS:
+    # Removed current_balance - not used in business logic
     available_credit: Optional[float] = None  # Calculated field
-    current_balance: float = 0.0  # Current outstanding balance
     last_dao_date: Optional[datetime] = None  # Last DAO transaction date
     next_due_date: Optional[str] = None  # Next actual payment due date (YYYY-MM-DD)
     days_until_due: Optional[int] = None  # Calculated field
