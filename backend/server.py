@@ -1774,14 +1774,17 @@ async def get_customer_transactions_summary(
         for sale in sales:
             sale_dict = dict(sale)
             sale_dict.pop("_id", None)
-            sale_dict["transaction_type"] = "BILL_SALE"
+            sale_dict["type"] = "BILL_SALE"  # Use 'type' instead of 'transaction_type'
+            sale_dict["transaction_id"] = sale_dict.get("id", "")  # Use sale ID as transaction_id for consistency
             all_transactions.append(sale_dict)
         
         # Add DAO transactions
         for dao in dao_transactions:
             dao_dict = dict(dao)
             dao_dict.pop("_id", None)
-            dao_dict["transaction_type"] = "DAO"
+            # Use the specific DAO type from the DAO transaction
+            dao_dict["type"] = dao_dict.get("transaction_type", "CREDIT_DAO_POS")  # Use specific DAO type
+            # Keep the business transaction_id (D98550509)
             all_transactions.append(dao_dict)
         
         # Sort by created_at descending
