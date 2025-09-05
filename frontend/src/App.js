@@ -3420,7 +3420,7 @@ const SellBillModal = ({ show, billItem, onClose, onComplete }) => {
               <option value="">-- Chọn khách hàng --</option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
-                  {customer.name} - {customer.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}
+                  {customer.name} - {customer?.type === "INDIVIDUAL" ? "Cá nhân" : "Đại lý"}
                   {customer.phone && ` - ${customer.phone}`}
                 </option>
               ))}
