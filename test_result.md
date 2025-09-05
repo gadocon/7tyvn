@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Implement Transaction Detail Modal with edit functionality. User requested transaction detail modal that allows editing all fields including amount, profit, description, date, and status. Transaction Detail Modal should be editable and allow users to save changes back to database via API."
+user_problem_statement: "Fix 404 error with customer detailed profile endpoint. User reported 404 Not Found error when accessing customer detail page via CustomerNameLink, specifically for endpoint /api/customers/{id}/detailed-profile which was missing from backend after UUID refactor."
 
 backend:
   - task: "UUID-Only System Comprehensive Testing"
