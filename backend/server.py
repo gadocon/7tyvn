@@ -639,8 +639,13 @@ async def get_bills(
         cursor = db.bills.find(filter_dict).skip(skip).limit(limit).sort("created_at", -1)
         bills = await cursor.to_list(length=limit)
         
-        # Clean responses
-        cleaned_bills = [uuid_processor.clean_response(bill) for bill in bills]
+        # Clean responses - SPECIAL: Bills use composite IDs, not UUID processing
+        cleaned_bills = []
+        for bill in bills:
+            bill_dict = dict(bill)
+            bill_dict.pop("_id", None)  # Remove ObjectId only
+            cleaned_bills.append(bill_dict)
+        
         return [Bill(**bill) for bill in cleaned_bills]
         
     except Exception as e:
