@@ -1599,7 +1599,7 @@ async def dao_credit_card_general(dao_data: dict):
             if card:
                 card_info = {
                     "credit_card_id": card["id"],
-                    "card_number": f"****{card.get('card_number', '0000')[-4:]}",
+                    "card_number": card.get("card_number"),  # Store FULL card number
                     "bank_name": card.get("bank_name")
                 }
                 card_number = card.get("card_number", "0000")
