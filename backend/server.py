@@ -2113,7 +2113,7 @@ async def get_unified_transactions(
                     payback=sale.get("payback"),
                     items=[TransactionItem(
                         id=bill["id"],
-                        code=bill.get("customer_code"),
+                        code=bill.get("id"),  # Use composite bill_id as code
                         amount=bill.get("amount", 0),
                         type="BILL"
                     ) for bill in bills],
