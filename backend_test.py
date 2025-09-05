@@ -5150,19 +5150,19 @@ class FPTBillManagerAPITester:
 if __name__ == "__main__":
     tester = FPTBillManagerAPITester()
     
-    print("🚀 Starting Customer Detailed Profile 404 Error Fix Testing")
+    print("🚀 Starting DAO Transaction ID Generation Testing...")
     print("=" * 80)
     
-    # Run Customer Detailed Profile 404 Fix Test
-    profile_fix_success = tester.test_customer_detailed_profile_404_fix()
+    # Run DAO transaction ID generation testing
+    dao_test_success = tester.test_dao_transaction_id_generation()
     
     print(f"\n📊 FINAL RESULTS:")
     print(f"Tests Run: {tester.tests_run}")
     print(f"Tests Passed: {tester.tests_passed}")
     print(f"Success Rate: {(tester.tests_passed/tester.tests_run*100):.1f}%" if tester.tests_run > 0 else "No tests run")
-    print(f"Customer Detailed Profile Fix: {'✅ PASSED' if profile_fix_success else '❌ FAILED'}")
+    print(f"DAO Transaction ID Generation: {'✅ PASSED' if dao_test_success else '❌ FAILED'}")
     
     if tester.mongo_connected:
         tester.mongo_client.close()
     
-    sys.exit(0 if profile_fix_success else 1)
+    sys.exit(0 if dao_test_success else 1)
