@@ -2982,12 +2982,10 @@ const Transactions = () => {
     switch (type) {
       case "BILL_SALE":
         return "Bán Bill";
-      case "DAO":
-        return "Đáo Thẻ";
       case "CREDIT_DAO_POS":
         return "Đáo Thẻ POS";
       case "CREDIT_DAO_BILL":
-        return "Đáo Thẻ BILL";
+        return "Đáo Thẻ Bill";
       default:
         return "N/A";
     }
