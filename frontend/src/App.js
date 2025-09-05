@@ -3198,7 +3198,7 @@ const Transactions = () => {
         </CardHeader>
         <CardContent>
           {/* Transaction Table */}
-          {transactions.length > 0 ? (
+          {transactions && transactions.length > 0 ? (
             <div className="overflow-x-auto">
               <Table className="min-w-full">
                 <TableHeader>
