@@ -2238,8 +2238,8 @@ async def get_customer_detailed_profile(customer_id: str):
         # Calculate customer metrics
         total_sales_value = sum(sale.get("total", 0) for sale in sales)
         total_sales_profit = sum(sale.get("profit_value", 0) for sale in sales)
-        total_dao_value = 0  # TODO: sum(dao.get("total_amount", 0) for dao in dao_transactions)
-        total_dao_profit = 0  # TODO: sum(dao.get("profit_value", 0) for dao in dao_transactions)
+        total_dao_value = sum(dao.get("amount", 0) for dao in dao_transactions)
+        total_dao_profit = sum(dao.get("profit_value", 0) for dao in dao_transactions)
         
         total_transaction_value = total_sales_value + total_dao_value
         total_profit = total_sales_profit + total_dao_profit
