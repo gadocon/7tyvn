@@ -379,6 +379,80 @@ async def root():
         "architecture": "uuid_only"
     }
 
+def calculate_next_due_date(statement_date: int, payment_due_date: int) -> str:
+    """Calculate next payment due date based on statement date and payment due date"""
+    today = datetime.now(timezone.utc).date()
+    current_month = today.month
+    current_year = today.year
+    
+    # If we haven't passed this month's due date, use this month
+    if today.day <= payment_due_date:
+        due_date = date(current_year, current_month, payment_due_date)
+    else:
+        # Use next month's due date
+        if current_month == 12:
+            due_date = date(current_year + 1, 1, payment_due_date)
+        else:
+            due_date = date(current_year, current_month + 1, payment_due_date)
+    
+    return due_date.isoformat()
+
+def calculate_card_status(current_balance: float, next_due_date: str, last_dao_date: datetime = None) -> CardStatus:
+    """Calculate card status based on business logic"""
+    today = datetime.now(timezone.utc).date()
+    
+    # Parse next due date
+    try:
+        due_date = datetime.fromisoformat(next_due_date).date()
+        days_until_due = (due_date - today).days
+    except:
+        days_until_due = 0
+    
+    # Business Logic for Card Status:
+    if current_balance <= 0:
+        return CardStatus.CHUA_DEN_HAN  # No balance, not due yet
+    elif days_until_due > 3:
+        return CardStatus.CAN_DAO  # More than 3 days until due, can DAO
+    elif days_until_due >= 0:
+        return CardStatus.CAN_DAO  # Due soon but not overdue, can still DAO
+    else:
+        return CardStatus.QUA_HAN  # Overdue, need immediate attention
+
+def update_card_after_dao(card_dict: dict, dao_amount: float) -> dict:
+    """Update card fields after DAO transaction"""
+    # Update current balance (increase by DAO amount)
+    card_dict["current_balance"] = card_dict.get("current_balance", 0) + dao_amount
+    
+    # Update available credit
+    card_dict["available_credit"] = card_dict.get("credit_limit", 0) - card_dict["current_balance"]
+    
+    # Update last DAO date
+    card_dict["last_dao_date"] = datetime.now(timezone.utc)
+    
+    # Calculate next due date if not set
+    if not card_dict.get("next_due_date"):
+        card_dict["next_due_date"] = calculate_next_due_date(
+            card_dict.get("statement_date", 5), 
+            card_dict.get("payment_due_date", 15)
+        )
+    
+    # Calculate and update status
+    card_dict["status"] = calculate_card_status(
+        card_dict["current_balance"], 
+        card_dict["next_due_date"],
+        card_dict["last_dao_date"]
+    ).value  # Get enum value
+    
+    # Calculate days until due
+    try:
+        due_date = datetime.fromisoformat(card_dict["next_due_date"]).date()
+        today = datetime.now(timezone.utc).date()
+        card_dict["days_until_due"] = (due_date - today).days
+    except:
+        card_dict["days_until_due"] = 0
+    
+    return card_dict
+
 # ========================================
 # CUSTOMERS API - UUID ONLY
 # ========================================
