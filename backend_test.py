@@ -6,7 +6,7 @@ import pymongo
 from pymongo import MongoClient
 
 class FPTBillManagerAPITester:
-    def __init__(self, base_url="https://seventy-crm-fix.preview.emergentagent.com"):
+    def __init__(self, base_url="https://crm-7ty.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
