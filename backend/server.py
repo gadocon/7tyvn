@@ -2461,9 +2461,9 @@ async def health_check():
 
 class TransactionType(str, Enum):
     BILL_SALE = "BILL_SALE"
-    DAO = "DAO"  # Added for unified DAO transactions
-    CREDIT_DAO_POS = "CREDIT_DAO_POS"  # Legacy 
-    CREDIT_DAO_BILL = "CREDIT_DAO_BILL"  # Legacy
+    CREDIT_DAO_POS = "CREDIT_DAO_POS"      # Đáo thẻ bằng POS
+    CREDIT_DAO_BILL = "CREDIT_DAO_BILL"    # Đáo thẻ bằng bán bill điện
+    # Note: Removed generic "DAO" for better analytics
 
 class TransactionItem(BaseModel):
     id: str
