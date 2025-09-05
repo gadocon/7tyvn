@@ -7316,7 +7316,7 @@ const CustomerDetailPage = () => {
               <Mail className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Email</span>
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setShowAddCreditCardModal(true)}>
               <Plus className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Thêm Thẻ</span>
             </Button>
