@@ -2461,8 +2461,9 @@ async def health_check():
 
 class TransactionType(str, Enum):
     BILL_SALE = "BILL_SALE"
-    CREDIT_DAO_POS = "CREDIT_DAO_POS"
-    CREDIT_DAO_BILL = "CREDIT_DAO_BILL"
+    DAO = "DAO"  # Added for unified DAO transactions
+    CREDIT_DAO_POS = "CREDIT_DAO_POS"  # Legacy 
+    CREDIT_DAO_BILL = "CREDIT_DAO_BILL"  # Legacy
 
 class TransactionItem(BaseModel):
     id: str
