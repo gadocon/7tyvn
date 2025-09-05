@@ -2454,6 +2454,503 @@ class FPTBillManagerAPITester:
         
         return all_objectives_met
 
+    def test_dao_transaction_id_generation(self):
+        """Test DAO transaction ID generation issue - REVIEW REQUEST"""
+        print(f"\n🎯 DAO TRANSACTION ID GENERATION TESTING")
+        print("=" * 80)
+        print("🔍 CRITICAL TESTING OBJECTIVES:")
+        print("   1. Test both DAO endpoints (/api/credit-cards/{card_id}/dao and /api/credit-cards/dao)")
+        print("   2. Verify transaction IDs follow format: D+last4digits+DDMM (e.g., D98550509)")
+        print("   3. Check auto-increment works (D98550509-2, D98550509-3, etc.)")
+        print("   4. Test with actual credit cards to ensure last 4 digits are extracted correctly")
+        print("   5. Verify both UUID (id field) and business ID (transaction_id field) are present and different")
+        print("   6. Check existing DAO transactions in database for incorrect formats")
+        
+        test_results = {
+            "specific_dao_endpoint_working": False,
+            "general_dao_endpoint_working": False,
+            "transaction_id_format_correct": False,
+            "auto_increment_working": False,
+            "last_4_digits_correct": False,
+            "uuid_and_business_id_different": False,
+            "existing_dao_transactions_checked": False,
+            "credit_cards_available": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_issues": [],
+            "created_dao_transactions": []
+        }
+        
+        # Step 1: Check if credit cards exist for testing
+        print(f"\n🔍 STEP 1: Check Available Credit Cards for Testing")
+        print("=" * 60)
+        
+        cards_success, cards_response = self.run_test(
+            "GET /credit-cards - Check Available Credit Cards",
+            "GET",
+            "credit-cards?page_size=50",
+            200
+        )
+        
+        if cards_success and cards_response and len(cards_response) > 0:
+            print(f"✅ Found {len(cards_response)} credit cards for testing")
+            test_results["credit_cards_available"] = True
+            test_results["passed_tests"] += 1
+            
+            # Show sample credit cards with their card numbers
+            for i, card in enumerate(cards_response[:3]):
+                card_id = card.get('id', 'Unknown')
+                card_number = card.get('card_number', 'Unknown')
+                customer_name = card.get('customer_name', 'Unknown')
+                last_4_digits = card_number[-4:] if len(card_number) >= 4 else "0000"
+                
+                print(f"   Card {i+1}: {customer_name}")
+                print(f"      ID: {card_id}")
+                print(f"      Card Number: {card_number}")
+                print(f"      Last 4 Digits: {last_4_digits}")
+        else:
+            print(f"❌ No credit cards found - need to create test credit cards first")
+            test_results["critical_issues"].append("No credit cards available for DAO testing")
+            
+            # Create a test credit card for DAO testing
+            print(f"\n   Creating test credit card for DAO testing...")
+            
+            # First get a customer
+            customers_success, customers_response = self.run_test(
+                "GET /customers - Get Customer for Test Credit Card",
+                "GET",
+                "customers?limit=1",
+                200
+            )
+            
+            if customers_success and customers_response and len(customers_response) > 0:
+                customer_id = customers_response[0].get('id')
+                
+                test_card_data = {
+                    "customer_id": customer_id,
+                    "card_number": "4111111111119855",  # Test card with last 4 digits: 9855
+                    "cardholder_name": "Test Cardholder",
+                    "bank_name": "Test Bank",
+                    "card_type": "VISA",
+                    "expiry_date": "12/26",
+                    "ccv": "123",
+                    "statement_date": 5,
+                    "payment_due_date": 15,
+                    "credit_limit": 50000000
+                }
+                
+                create_card_success, create_card_response = self.run_test(
+                    "POST /credit-cards - Create Test Credit Card",
+                    "POST",
+                    "credit-cards",
+                    200,
+                    data=test_card_data
+                )
+                
+                if create_card_success:
+                    print(f"   ✅ Created test credit card: {create_card_response.get('id')}")
+                    cards_response = [create_card_response]
+                    test_results["credit_cards_available"] = True
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"   ❌ Failed to create test credit card")
+                    test_results["critical_issues"].append("Cannot create test credit card")
+            else:
+                print(f"   ❌ No customers available to create test credit card")
+                test_results["critical_issues"].append("No customers available for test credit card")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 2: Check existing DAO transactions in database
+        print(f"\n🔍 STEP 2: Check Existing DAO Transactions in Database")
+        print("=" * 60)
+        
+        if self.mongo_connected:
+            try:
+                existing_dao_transactions = list(self.db.dao_transactions.find({}).limit(20))
+                print(f"✅ Found {len(existing_dao_transactions)} existing DAO transactions")
+                
+                if existing_dao_transactions:
+                    print(f"\n   Analyzing existing transaction ID formats:")
+                    correct_format_count = 0
+                    incorrect_format_count = 0
+                    
+                    for i, dao in enumerate(existing_dao_transactions[:10]):
+                        transaction_id = dao.get('transaction_id', 'Unknown')
+                        card_number = dao.get('card_number', 'Unknown')
+                        created_at = dao.get('created_at', 'Unknown')
+                        
+                        print(f"   Transaction {i+1}:")
+                        print(f"      transaction_id: {transaction_id}")
+                        print(f"      card_number: {card_number}")
+                        print(f"      created_at: {created_at}")
+                        
+                        # Check if transaction_id follows D+last4digits+DDMM format
+                        if isinstance(transaction_id, str) and transaction_id.startswith('D') and len(transaction_id) >= 9:
+                            # Extract parts: D + 4 digits + 4 digits (DDMM)
+                            if len(transaction_id) == 9 or (len(transaction_id) > 9 and transaction_id[9] == '-'):
+                                correct_format_count += 1
+                                print(f"         ✅ Correct format")
+                            else:
+                                incorrect_format_count += 1
+                                print(f"         ❌ Incorrect format")
+                        else:
+                            incorrect_format_count += 1
+                            print(f"         ❌ Incorrect format")
+                    
+                    print(f"\n   Format Analysis:")
+                    print(f"      Correct format: {correct_format_count}")
+                    print(f"      Incorrect format: {incorrect_format_count}")
+                    
+                    if incorrect_format_count > 0:
+                        test_results["critical_issues"].append(f"Found {incorrect_format_count} DAO transactions with incorrect transaction_id format")
+                else:
+                    print(f"   No existing DAO transactions found")
+                
+                test_results["existing_dao_transactions_checked"] = True
+                test_results["passed_tests"] += 1
+                
+            except Exception as e:
+                print(f"❌ Error checking existing DAO transactions: {e}")
+                test_results["critical_issues"].append(f"Cannot check existing DAO transactions: {e}")
+        else:
+            print(f"⚠️ MongoDB connection not available for database analysis")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 3: Test specific DAO endpoint (/api/credit-cards/{card_id}/dao)
+        print(f"\n🔍 STEP 3: Test Specific DAO Endpoint (/api/credit-cards/{card_id}/dao)")
+        print("=" * 60)
+        
+        if test_results["credit_cards_available"] and cards_response:
+            test_card = cards_response[0]
+            card_id = test_card.get('id')
+            card_number = test_card.get('card_number', '4111111111119855')
+            expected_last_4 = card_number[-4:] if len(card_number) >= 4 else "0000"
+            
+            print(f"   Testing with card: {card_id}")
+            print(f"   Card number: {card_number}")
+            print(f"   Expected last 4 digits: {expected_last_4}")
+            
+            # Get current date for expected format
+            from datetime import datetime
+            now = datetime.now()
+            expected_ddmm = now.strftime("%d%m")
+            expected_base_format = f"D{expected_last_4}{expected_ddmm}"
+            
+            print(f"   Expected transaction ID format: {expected_base_format} or {expected_base_format}-N")
+            
+            dao_data = {
+                "amount": 5000000,  # 5M VND
+                "profit_value": 150000,  # 150k VND
+                "fee_rate": 3.0,
+                "payment_method": "POS",
+                "pos_code": "TEST001",
+                "notes": "Test DAO transaction for ID generation"
+            }
+            
+            specific_dao_success, specific_dao_response = self.run_test(
+                f"POST /credit-cards/{card_id}/dao - Specific DAO Endpoint",
+                "POST",
+                f"credit-cards/{card_id}/dao",
+                200,
+                data=dao_data
+            )
+            
+            if specific_dao_success and specific_dao_response:
+                print(f"✅ Specific DAO endpoint working")
+                test_results["specific_dao_endpoint_working"] = True
+                test_results["passed_tests"] += 1
+                
+                # Check the transaction ID format
+                dao_transaction = specific_dao_response.get('dao_transaction', {})
+                transaction_id = dao_transaction.get('transaction_id', '')
+                technical_uuid = dao_transaction.get('id', '')
+                
+                print(f"   Created DAO transaction:")
+                print(f"      Technical UUID (id): {technical_uuid}")
+                print(f"      Business ID (transaction_id): {transaction_id}")
+                
+                # Verify transaction ID format
+                if transaction_id.startswith(f"D{expected_last_4}{expected_ddmm}"):
+                    print(f"   ✅ Transaction ID format correct: {transaction_id}")
+                    test_results["transaction_id_format_correct"] = True
+                    test_results["last_4_digits_correct"] = True
+                    test_results["passed_tests"] += 2
+                else:
+                    print(f"   ❌ Transaction ID format incorrect: {transaction_id}")
+                    print(f"      Expected format: D{expected_last_4}{expected_ddmm}")
+                    test_results["critical_issues"].append(f"Incorrect transaction ID format: {transaction_id}")
+                
+                # Verify UUID and business ID are different
+                if technical_uuid and transaction_id and technical_uuid != transaction_id:
+                    print(f"   ✅ Technical UUID and business ID are different")
+                    test_results["uuid_and_business_id_different"] = True
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"   ❌ Technical UUID and business ID are not properly differentiated")
+                    test_results["critical_issues"].append("UUID and business ID not properly differentiated")
+                
+                test_results["created_dao_transactions"].append({
+                    "endpoint": "specific",
+                    "transaction_id": transaction_id,
+                    "technical_uuid": technical_uuid,
+                    "card_id": card_id,
+                    "expected_format": expected_base_format
+                })
+                
+                test_results["total_tests"] += 3
+            else:
+                print(f"❌ Specific DAO endpoint failed")
+                test_results["critical_issues"].append("Specific DAO endpoint not working")
+                test_results["total_tests"] += 1
+        else:
+            print(f"⚠️ Cannot test specific DAO endpoint - no credit cards available")
+        
+        # Step 4: Test general DAO endpoint (/api/credit-cards/dao)
+        print(f"\n🔍 STEP 4: Test General DAO Endpoint (/api/credit-cards/dao)")
+        print("=" * 60)
+        
+        if test_results["credit_cards_available"] and cards_response:
+            test_card = cards_response[0]
+            card_id = test_card.get('id')
+            customer_id = test_card.get('customer_id')
+            card_number = test_card.get('card_number', '4111111111119855')
+            expected_last_4 = card_number[-4:] if len(card_number) >= 4 else "0000"
+            
+            print(f"   Testing with customer: {customer_id}")
+            print(f"   Testing with card: {card_id}")
+            print(f"   Expected last 4 digits: {expected_last_4}")
+            
+            general_dao_data = {
+                "customer_id": customer_id,
+                "card_id": card_id,  # Include card_id for transaction ID generation
+                "amount": 3000000,  # 3M VND
+                "profit_value": 90000,  # 90k VND
+                "fee_rate": 3.0,
+                "payment_method": "POS",
+                "pos_code": "TEST002",
+                "notes": "Test general DAO transaction for ID generation"
+            }
+            
+            general_dao_success, general_dao_response = self.run_test(
+                "POST /credit-cards/dao - General DAO Endpoint",
+                "POST",
+                "credit-cards/dao",
+                200,
+                data=general_dao_data
+            )
+            
+            if general_dao_success and general_dao_response:
+                print(f"✅ General DAO endpoint working")
+                test_results["general_dao_endpoint_working"] = True
+                test_results["passed_tests"] += 1
+                
+                # Check the transaction ID format
+                dao_transaction = general_dao_response.get('dao_transaction', {})
+                transaction_id = dao_transaction.get('transaction_id', '')
+                technical_uuid = dao_transaction.get('id', '')
+                
+                print(f"   Created DAO transaction:")
+                print(f"      Technical UUID (id): {technical_uuid}")
+                print(f"      Business ID (transaction_id): {transaction_id}")
+                
+                # Verify transaction ID format
+                if transaction_id.startswith(f"D{expected_last_4}"):
+                    print(f"   ✅ Transaction ID format correct: {transaction_id}")
+                    if not test_results["transaction_id_format_correct"]:
+                        test_results["transaction_id_format_correct"] = True
+                        test_results["passed_tests"] += 1
+                    if not test_results["last_4_digits_correct"]:
+                        test_results["last_4_digits_correct"] = True
+                        test_results["passed_tests"] += 1
+                else:
+                    print(f"   ❌ Transaction ID format incorrect: {transaction_id}")
+                    test_results["critical_issues"].append(f"General DAO incorrect transaction ID format: {transaction_id}")
+                
+                test_results["created_dao_transactions"].append({
+                    "endpoint": "general",
+                    "transaction_id": transaction_id,
+                    "technical_uuid": technical_uuid,
+                    "customer_id": customer_id,
+                    "card_id": card_id
+                })
+                
+                test_results["total_tests"] += 2
+            else:
+                print(f"❌ General DAO endpoint failed")
+                test_results["critical_issues"].append("General DAO endpoint not working")
+                test_results["total_tests"] += 1
+        else:
+            print(f"⚠️ Cannot test general DAO endpoint - no credit cards available")
+        
+        # Step 5: Test auto-increment functionality
+        print(f"\n🔍 STEP 5: Test Auto-Increment Functionality")
+        print("=" * 60)
+        
+        if test_results["specific_dao_endpoint_working"] and cards_response:
+            test_card = cards_response[0]
+            card_id = test_card.get('id')
+            
+            print(f"   Creating second DAO transaction with same card to test auto-increment...")
+            
+            dao_data_2 = {
+                "amount": 2000000,  # 2M VND
+                "profit_value": 60000,  # 60k VND
+                "fee_rate": 3.0,
+                "payment_method": "POS",
+                "pos_code": "TEST003",
+                "notes": "Test DAO transaction for auto-increment"
+            }
+            
+            second_dao_success, second_dao_response = self.run_test(
+                f"POST /credit-cards/{card_id}/dao - Second DAO for Auto-Increment",
+                "POST",
+                f"credit-cards/{card_id}/dao",
+                200,
+                data=dao_data_2
+            )
+            
+            if second_dao_success and second_dao_response:
+                dao_transaction_2 = second_dao_response.get('dao_transaction', {})
+                transaction_id_2 = dao_transaction_2.get('transaction_id', '')
+                
+                print(f"   Second transaction ID: {transaction_id_2}")
+                
+                # Check if it has auto-increment suffix
+                if '-' in transaction_id_2 and transaction_id_2.endswith('-2'):
+                    print(f"   ✅ Auto-increment working: {transaction_id_2}")
+                    test_results["auto_increment_working"] = True
+                    test_results["passed_tests"] += 1
+                elif transaction_id_2 != test_results["created_dao_transactions"][0]["transaction_id"]:
+                    print(f"   ✅ Auto-increment working (different format): {transaction_id_2}")
+                    test_results["auto_increment_working"] = True
+                    test_results["passed_tests"] += 1
+                else:
+                    print(f"   ❌ Auto-increment not working - same transaction ID")
+                    test_results["critical_issues"].append("Auto-increment not working for duplicate transaction IDs")
+                
+                test_results["created_dao_transactions"].append({
+                    "endpoint": "specific_second",
+                    "transaction_id": transaction_id_2,
+                    "card_id": card_id,
+                    "test": "auto_increment"
+                })
+            else:
+                print(f"   ❌ Second DAO transaction failed")
+            
+            test_results["total_tests"] += 1
+        else:
+            print(f"   ⚠️ Cannot test auto-increment - specific DAO endpoint not working")
+        
+        # Step 6: Verify database storage
+        print(f"\n🔍 STEP 6: Verify Database Storage of DAO Transactions")
+        print("=" * 60)
+        
+        if self.mongo_connected and test_results["created_dao_transactions"]:
+            try:
+                print(f"   Checking database for created DAO transactions...")
+                
+                for dao_info in test_results["created_dao_transactions"]:
+                    transaction_id = dao_info.get('transaction_id')
+                    technical_uuid = dao_info.get('technical_uuid')
+                    
+                    if transaction_id:
+                        # Find transaction by business ID
+                        db_transaction = self.db.dao_transactions.find_one({"transaction_id": transaction_id})
+                        
+                        if db_transaction:
+                            print(f"   ✅ Found in database: {transaction_id}")
+                            print(f"      Technical UUID: {db_transaction.get('id')}")
+                            print(f"      Business ID: {db_transaction.get('transaction_id')}")
+                            print(f"      Card Number: {db_transaction.get('card_number', 'Not stored')}")
+                            print(f"      Amount: {db_transaction.get('amount')}")
+                            test_results["passed_tests"] += 1
+                        else:
+                            print(f"   ❌ Not found in database: {transaction_id}")
+                            test_results["critical_issues"].append(f"DAO transaction not stored in database: {transaction_id}")
+                        
+                        test_results["total_tests"] += 1
+                
+            except Exception as e:
+                print(f"   ❌ Error checking database: {e}")
+                test_results["critical_issues"].append(f"Cannot verify database storage: {e}")
+        else:
+            print(f"   ⚠️ Cannot verify database storage - no MongoDB connection or no transactions created")
+        
+        # Step 7: Final Assessment
+        print(f"\n📊 STEP 7: Final Assessment - DAO Transaction ID Generation")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 DAO TRANSACTION ID GENERATION RESULTS:")
+        print(f"   Specific DAO endpoint (/api/credit-cards/{{card_id}}/dao): {'✅ WORKING' if test_results['specific_dao_endpoint_working'] else '❌ FAILED'}")
+        print(f"   General DAO endpoint (/api/credit-cards/dao): {'✅ WORKING' if test_results['general_dao_endpoint_working'] else '❌ FAILED'}")
+        print(f"   Transaction ID format (D+last4digits+DDMM): {'✅ CORRECT' if test_results['transaction_id_format_correct'] else '❌ INCORRECT'}")
+        print(f"   Last 4 digits extraction: {'✅ CORRECT' if test_results['last_4_digits_correct'] else '❌ INCORRECT'}")
+        print(f"   Auto-increment functionality: {'✅ WORKING' if test_results['auto_increment_working'] else '❌ NOT WORKING'}")
+        print(f"   UUID vs Business ID differentiation: {'✅ CORRECT' if test_results['uuid_and_business_id_different'] else '❌ INCORRECT'}")
+        print(f"   Existing DAO transactions checked: {'✅ CHECKED' if test_results['existing_dao_transactions_checked'] else '❌ NOT CHECKED'}")
+        print(f"   Overall Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🎯 BUSINESS REQUIREMENTS VERIFICATION:")
+        all_requirements_met = (
+            test_results["specific_dao_endpoint_working"] and
+            test_results["general_dao_endpoint_working"] and
+            test_results["transaction_id_format_correct"] and
+            test_results["last_4_digits_correct"] and
+            test_results["uuid_and_business_id_different"]
+        )
+        
+        if all_requirements_met:
+            print(f"   ✅ Both DAO endpoints generate correct business IDs")
+            print(f"   ✅ Transaction IDs follow D+last4digits+DDMM format")
+            print(f"   ✅ Last 4 digits extracted correctly from card numbers")
+            print(f"   ✅ Technical UUID and business ID are properly differentiated")
+            if test_results["auto_increment_working"]:
+                print(f"   ✅ Auto-increment works for duplicate transaction IDs")
+            else:
+                print(f"   ⚠️ Auto-increment functionality needs verification")
+        else:
+            print(f"   ❌ Some business requirements not met:")
+            if not test_results["specific_dao_endpoint_working"]:
+                print(f"      - Specific DAO endpoint not working")
+            if not test_results["general_dao_endpoint_working"]:
+                print(f"      - General DAO endpoint not working")
+            if not test_results["transaction_id_format_correct"]:
+                print(f"      - Transaction ID format incorrect")
+            if not test_results["last_4_digits_correct"]:
+                print(f"      - Last 4 digits extraction incorrect")
+            if not test_results["uuid_and_business_id_different"]:
+                print(f"      - UUID and business ID not properly differentiated")
+        
+        if test_results["created_dao_transactions"]:
+            print(f"\n📋 CREATED DAO TRANSACTIONS SUMMARY:")
+            for i, dao_info in enumerate(test_results["created_dao_transactions"]):
+                print(f"   Transaction {i+1} ({dao_info.get('endpoint', 'unknown')}):")
+                print(f"      Business ID: {dao_info.get('transaction_id', 'Unknown')}")
+                print(f"      Technical UUID: {dao_info.get('technical_uuid', 'Unknown')}")
+        
+        if test_results["critical_issues"]:
+            print(f"\n🚨 CRITICAL ISSUES FOUND:")
+            for issue in test_results["critical_issues"]:
+                print(f"   - {issue}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if all_requirements_met:
+            print(f"   ✅ DAO TRANSACTION ID GENERATION WORKING CORRECTLY")
+            print(f"   - Both DAO endpoints generate proper business IDs")
+            print(f"   - Transaction ID format follows business requirements")
+            print(f"   - Last 4 digits extraction working correctly")
+            print(f"   - Technical and business IDs properly separated")
+        else:
+            print(f"   ❌ DAO TRANSACTION ID GENERATION HAS ISSUES")
+            print(f"   - Business ID format not following requirements")
+            print(f"   - Need to fix transaction ID generation logic")
+        
+        return all_requirements_met
+
     def test_bills_delete_endpoint_dual_lookup_fix(self):
         """Test Bills DELETE endpoint sau khi fix ObjectId vs UUID dual lookup - REVIEW REQUEST"""
         print(f"\n🎯 BILLS DELETE ENDPOINT DUAL LOOKUP FIX VERIFICATION")
