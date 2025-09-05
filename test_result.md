@@ -351,10 +351,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "New Feature Implementation Phase"
+    - "Customer Detailed Profile 404 Error Fix"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "Fixed critical 404 error by implementing missing /api/customers/{id}/detailed-profile endpoint in backend server.py. The endpoint was accidentally removed during UUID refactor but is now restored with full UUID-only compatibility. Ready for backend testing to verify the fix works correctly."
 
 backend:
   - task: "Sales API UUID-Only Refactor Completion"
