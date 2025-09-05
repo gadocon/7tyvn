@@ -1138,15 +1138,170 @@ async def get_dashboard_stats_redirect():
 async def get_credit_cards_stats():
     """Credit cards stats for dashboard (placeholder)"""
     try:
-        # For now, return empty stats - to be implemented
+        total_cards = await db.credit_cards.count_documents({})
+        active_cards = await db.credit_cards.count_documents({"status": {"$ne": "Hết hạn"}})
+        
         return {
-            "total": 0,
-            "active": 0,
-            "expired": 0,
+            "total": total_cards,
+            "active": active_cards,
+            "expired": total_cards - active_cards,
             "this_month": 0
         }
     except Exception as e:
         logger.error(f"Error fetching credit card stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/credit-cards", response_model=List[CreditCard])
+async def get_credit_cards(
+    skip: int = 0, 
+    limit: int = 100,
+    page_size: int = Query(100, alias="page_size")
+):
+    """Get all credit cards - UUID only responses"""
+    try:
+        # Use page_size if provided, otherwise use limit
+        actual_limit = page_size if page_size != 100 or limit == 100 else limit
+        
+        cursor = db.credit_cards.find({}).skip(skip).limit(actual_limit).sort("created_at", -1)
+        credit_cards = await cursor.to_list(length=actual_limit)
+        
+        # Clean responses - UUID only system
+        cleaned_cards = []
+        for card in credit_cards:
+            card_dict = dict(card)
+            card_dict.pop("_id", None)  # Remove ObjectId
+            cleaned_cards.append(card_dict)
+        
+        return [CreditCard(**card) for card in cleaned_cards]
+        
+    except Exception as e:
+        logger.error(f"Error fetching credit cards: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/credit-cards", response_model=CreditCard)
+async def create_credit_card(card_data: CreditCardCreate):
+    """Create credit card with UUID only"""
+    try:
+        # Validate customer exists
+        customer = await db.customers.find_one({"id": card_data.customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        
+        # Prepare document with UUID
+        card_dict = card_data.dict()
+        card_dict = uuid_processor.prepare_document(card_dict)
+        
+        # Add customer name for denormalization
+        card_dict["customer_name"] = customer.get("name")
+        
+        # Insert to database
+        result = await db.credit_cards.insert_one(card_dict)
+        if not result.inserted_id:
+            raise HTTPException(status_code=500, detail="Failed to create credit card")
+        
+        # Update customer total cards count
+        await db.customers.update_one(
+            {"id": card_data.customer_id},
+            {"$inc": {"total_cards": 1}}
+        )
+        
+        # Return clean response
+        created_card = await db.credit_cards.find_one({"id": card_dict["id"]})
+        card_response = dict(created_card)
+        card_response.pop("_id", None)
+        return CreditCard(**card_response)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating credit card: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/credit-cards/{card_id}", response_model=CreditCard)
+async def get_credit_card(card_id: str):
+    """Get credit card by UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(card_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Single lookup - no dual strategy
+        card = await db.credit_cards.find_one({"id": card_id})
+        if not card:
+            raise HTTPException(status_code=404, detail="Credit card not found")
+        
+        card_dict = dict(card)
+        card_dict.pop("_id", None)
+        return CreditCard(**card_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching credit card {card_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/credit-cards/{card_id}", response_model=CreditCard)
+async def update_credit_card(card_id: str, card_data: CreditCardUpdate):
+    """Update credit card by UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(card_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Check if card exists
+        existing_card = await db.credit_cards.find_one({"id": card_id})
+        if not existing_card:
+            raise HTTPException(status_code=404, detail="Credit card not found")
+        
+        # Prepare update data
+        update_data = card_data.dict(exclude_unset=True)
+        if update_data:
+            update_data["updated_at"] = datetime.now(timezone.utc)
+            await db.credit_cards.update_one({"id": card_id}, {"$set": update_data})
+        
+        # Return updated card
+        updated_card = await db.credit_cards.find_one({"id": card_id})
+        card_dict = dict(updated_card)
+        card_dict.pop("_id", None)
+        return CreditCard(**card_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating credit card {card_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/credit-cards/{card_id}")
+async def delete_credit_card(card_id: str):
+    """Delete credit card by UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(card_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Check if card exists
+        card = await db.credit_cards.find_one({"id": card_id})
+        if not card:
+            raise HTTPException(status_code=404, detail="Credit card not found")
+        
+        # Delete card
+        result = await db.credit_cards.delete_one({"id": card_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=500, detail="Failed to delete credit card")
+        
+        # Update customer total cards count
+        await db.customers.update_one(
+            {"id": card.get("customer_id")},
+            {"$inc": {"total_cards": -1}}
+        )
+        
+        return {"success": True, "message": "Credit card deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting credit card {card_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/activities/recent")
