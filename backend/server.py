@@ -1217,6 +1217,51 @@ async def create_credit_card(card_data: CreditCardCreate):
         logger.error(f"Error creating credit card: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/credit-cards/{card_id}/detail")
+async def get_credit_card_detail(card_id: str):
+    """Get credit card detail with transactions - UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(card_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Get credit card
+        card = await db.credit_cards.find_one({"id": card_id})
+        if not card:
+            raise HTTPException(status_code=404, detail="Credit card not found")
+        
+        # Get customer info
+        customer = await db.customers.find_one({"id": card.get("customer_id")})
+        
+        # TODO: Get credit card transactions when implemented
+        transactions = []  # Placeholder for credit card transactions
+        
+        # Clean card response
+        card_dict = dict(card)
+        card_dict.pop("_id", None)
+        
+        # Clean customer response
+        customer_dict = dict(customer) if customer else {}
+        customer_dict.pop("_id", None)
+        
+        return {
+            "success": True,
+            "credit_card": card_dict,
+            "customer": customer_dict,
+            "transactions": transactions,
+            "summary": {
+                "total_transactions": len(transactions),
+                "total_amount": 0,
+                "total_profit": 0
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching credit card detail {card_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/credit-cards/{card_id}", response_model=CreditCard)
 async def get_credit_card(card_id: str):
     """Get credit card by UUID only"""
