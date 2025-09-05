@@ -7411,6 +7411,18 @@ const CustomerDetailPage = () => {
         onSubmit={handleDaoSubmit}
         loading={daoLoading}
       />
+
+      {/* Add Credit Card Modal */}
+      <AddCreditCardModal 
+        show={showAddCreditCardModal}
+        customers={customers}
+        selectedCustomerId={customerId}
+        onClose={() => setShowAddCreditCardModal(false)}
+        onSuccess={() => {
+          setShowAddCreditCardModal(false);
+          fetchCustomerDetail(); // Refresh customer data to show new card
+        }}
+      />
     </div>
   );
 };
