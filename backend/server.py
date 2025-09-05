@@ -2096,7 +2096,7 @@ async def get_unified_transactions(
                 bills = sale.get("bills", [])
                 
                 # Create bill codes display
-                bill_codes = [bill.get("customer_code", "N/A") for bill in bills]
+                bill_codes = [bill.get("id", "N/A") for bill in bills]  # Use composite bill_id
                 item_display = ", ".join(bill_codes[:3])
                 if len(bill_codes) > 3:
                     item_display += f" (+{len(bill_codes)-3} khác)"
