@@ -1529,6 +1529,171 @@ async def get_transactions_stats():
         logger.error(f"Error fetching transaction stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/customers/{customer_id}/detailed-profile")
+async def get_customer_detailed_profile(customer_id: str):
+    """Get comprehensive customer profile with all related data - UUID only system"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(customer_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Get customer info
+        customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Không tìm thấy khách hàng")
+        
+        # Get customer's credit cards (UUID only system)
+        cards_cursor = db.credit_cards.find({"customer_id": customer_id})
+        cards = await cards_cursor.to_list(None)
+        
+        # Get customer's bill sales (UUID only)
+        sales_pipeline = [
+            {"$match": {"customer_id": customer_id}},
+            {
+                "$lookup": {
+                    "from": "bills",
+                    "localField": "bill_ids", 
+                    "foreignField": "id",
+                    "as": "bills"
+                }
+            },
+            {"$sort": {"created_at": -1}}
+        ]
+        sales_cursor = db.sales.aggregate(sales_pipeline)
+        sales = await sales_cursor.to_list(None)
+        
+        # Get customer's DAO transactions (placeholder - not implemented in UUID system yet)
+        dao_transactions = []  # TODO: Implement when credit card transactions are added
+        
+        # Calculate customer metrics
+        total_sales_value = sum(sale.get("total", 0) for sale in sales)
+        total_sales_profit = sum(sale.get("profit_value", 0) for sale in sales)
+        total_dao_value = 0  # TODO: sum(dao.get("total_amount", 0) for dao in dao_transactions)
+        total_dao_profit = 0  # TODO: sum(dao.get("profit_value", 0) for dao in dao_transactions)
+        
+        total_transaction_value = total_sales_value + total_dao_value
+        total_profit = total_sales_profit + total_dao_profit
+        total_transactions = len(sales) + len(dao_transactions)
+        
+        avg_transaction_value = total_transaction_value / total_transactions if total_transactions > 0 else 0
+        profit_margin = (total_profit / total_transaction_value * 100) if total_transaction_value > 0 else 0
+        
+        # Customer tier calculation
+        if total_transaction_value >= 50000000:  # 50M VND
+            tier = "VIP"
+        elif total_transaction_value >= 20000000:  # 20M VND  
+            tier = "Premium"
+        elif total_transaction_value >= 5000000:   # 5M VND
+            tier = "Regular"
+        else:
+            tier = "New"
+        
+        # Calculate credit cards metrics
+        total_credit_limit = sum(card.get("credit_limit", 0) for card in cards)
+        active_cards = [card for card in cards if card.get("status") != "Hết hạn"]
+        
+        # Recent activity (last 10 transactions) - with proper datetime handling
+        recent_activities = []
+        
+        # Add recent sales
+        for sale in sales[:5]:
+            recent_activities.append({
+                "id": sale["id"],
+                "type": "BILL_SALE",
+                "amount": sale.get("total", 0),
+                "profit": sale.get("profit_value", 0),
+                "created_at": sale["created_at"],
+                "description": f"Bán {len(sale.get('bills', []))} bills",
+                "bills_count": len(sale.get("bills", []))
+            })
+        
+        # Sort recent activities by date - handle mixed timezone datetime objects safely
+        def safe_activity_sort_key(activity):
+            created_at = activity.get("created_at")
+            # Convert all datetime objects to timezone-aware UTC for consistent comparison
+            if isinstance(created_at, datetime):
+                if created_at.tzinfo is None:
+                    # Timezone-naive datetime - assume UTC
+                    created_at = created_at.replace(tzinfo=timezone.utc)
+                else:
+                    # Already timezone-aware - convert to UTC
+                    created_at = created_at.astimezone(timezone.utc)
+            elif isinstance(created_at, str):
+                # String datetime - parse and make timezone-aware
+                try:
+                    created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    if created_at.tzinfo is None:
+                        created_at = created_at.replace(tzinfo=timezone.utc)
+                except:
+                    # Fallback to current time if parsing fails
+                    created_at = datetime.now(timezone.utc)
+            else:
+                # Fallback to current time for unknown types
+                created_at = datetime.now(timezone.utc)
+            
+            return created_at
+        
+        recent_activities.sort(key=safe_activity_sort_key, reverse=True)
+        recent_activities = recent_activities[:10]
+        
+        # Clean customer response
+        customer_dict = dict(customer)
+        customer_dict.pop("_id", None)
+        
+        return {
+            "success": True,
+            "customer": {
+                "id": customer_dict["id"],
+                "name": customer_dict["name"],
+                "phone": customer_dict.get("phone"),
+                "email": customer_dict.get("email"),
+                "address": customer_dict.get("address"),
+                "type": customer_dict.get("type", "INDIVIDUAL"),
+                "is_active": customer_dict.get("is_active", True),
+                "created_at": customer_dict["created_at"],
+                "tier": tier,
+                "notes": customer_dict.get("notes", "")
+            },
+            "metrics": {
+                "total_transaction_value": total_transaction_value,
+                "total_profit": total_profit,
+                "total_transactions": total_transactions,
+                "avg_transaction_value": avg_transaction_value,
+                "profit_margin": round(profit_margin, 1),
+                "sales_transactions": len(sales),
+                "dao_transactions": len(dao_transactions),
+                "sales_value": total_sales_value,
+                "dao_value": total_dao_value
+            },
+            "credit_cards": {
+                "total_cards": len(cards),
+                "active_cards": len(active_cards),
+                "total_credit_limit": total_credit_limit,
+                "cards": [{
+                    "id": card["id"],
+                    "card_number": f"****{card.get('card_number', '0000')[-4:]}",
+                    "bank_name": card.get("bank_name"),
+                    "card_type": card.get("card_type"),
+                    "credit_limit": card.get("credit_limit", 0),
+                    "status": card.get("status"),
+                    "expiry_date": card.get("expiry_date")
+                } for card in cards]
+            },
+            "recent_activities": recent_activities,
+            "performance": {
+                "best_month_revenue": 0,  # TODO: Calculate from monthly data
+                "growth_rate": 0,         # TODO: Calculate YoY growth
+                "success_rate": 100,      # TODO: Calculate based on transaction success
+                "avg_days_between_transactions": 0  # TODO: Calculate
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting customer detailed profile: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/customers/{customer_id}/transactions")
 async def get_customer_transactions(customer_id: str):
     """Get customer detail with transactions - FORMAT FOR FRONTEND MODAL"""
