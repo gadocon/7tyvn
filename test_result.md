@@ -381,7 +381,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "General DAO Endpoint Unmasked Card Number Storage"
+    - "Add Credit Card Modal on Customer Detail Page"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
