@@ -1349,6 +1349,184 @@ async def delete_credit_card(card_id: str):
         logger.error(f"Error deleting credit card {card_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/credit-cards/{card_id}/dao")
+async def dao_credit_card_by_id(card_id: str, dao_data: dict):
+    """DAO (Credit Card Advance) transaction by specific card ID - UUID only"""
+    try:
+        # Validate UUID format
+        if not is_valid_uuid(card_id):
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+        # Get credit card info
+        card = await db.credit_cards.find_one({"id": card_id})
+        if not card:
+            raise HTTPException(status_code=404, detail="Credit card not found")
+        
+        # Get customer info
+        customer = await db.customers.find_one({"id": card.get("customer_id")})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        
+        # Create DAO transaction record with UUID
+        dao_transaction = {
+            "id": generate_uuid(),
+            "customer_id": card.get("customer_id"),
+            "credit_card_id": card_id,
+            "card_number": f"****{card.get('card_number', '0000')[-4:]}",
+            "bank_name": card.get("bank_name"),
+            "amount": dao_data.get("amount", 0),
+            "profit_value": dao_data.get("profit_value", 0),
+            "fee_rate": dao_data.get("fee_rate", 3.0),  # Default 3% fee
+            "payment_method": dao_data.get("payment_method", "POS"),
+            "pos_code": dao_data.get("pos_code", ""),
+            "transaction_code": dao_data.get("transaction_code", ""),
+            "notes": dao_data.get("notes", f"Đáo thẻ {card.get('bank_name')} - {datetime.now().strftime('%d/%m/%Y')}"),
+            "status": "COMPLETED",
+            "transaction_type": "DAO",
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        # Insert DAO transaction
+        result = await db.dao_transactions.insert_one(dao_transaction)
+        if not result.inserted_id:
+            raise HTTPException(status_code=500, detail="Failed to create DAO transaction")
+        
+        # Update customer stats
+        await db.customers.update_one(
+            {"id": card.get("customer_id")},
+            {
+                "$inc": {
+                    "total_dao_amount": dao_data.get("amount", 0),
+                    "total_dao_transactions": 1
+                }
+            }
+        )
+        
+        # Clean response
+        dao_response = dict(dao_transaction)
+        dao_response.pop("_id", None)
+        
+        return {
+            "success": True,
+            "message": "Đáo thẻ thành công",
+            "dao_transaction": dao_response
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing DAO for card {card_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/credit-cards/dao")
+async def dao_credit_card_general(dao_data: dict):
+    """DAO (Credit Card Advance) transaction - General endpoint - UUID only"""
+    try:
+        # Validate required fields
+        customer_id = dao_data.get("customer_id")
+        if not customer_id or not is_valid_uuid(customer_id):
+            raise HTTPException(status_code=400, detail="Valid customer_id (UUID) is required")
+        
+        # Get customer info
+        customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        
+        # Get credit card info if card_id provided
+        card_info = {}
+        if dao_data.get("card_id"):
+            card = await db.credit_cards.find_one({"id": dao_data["card_id"]})
+            if card:
+                card_info = {
+                    "credit_card_id": card["id"],
+                    "card_number": f"****{card.get('card_number', '0000')[-4:]}",
+                    "bank_name": card.get("bank_name")
+                }
+        
+        # Create DAO transaction record with UUID
+        dao_transaction = {
+            "id": generate_uuid(),
+            "customer_id": customer_id,
+            "amount": dao_data.get("amount", 0),
+            "profit_value": dao_data.get("profit_value", 0),
+            "fee_rate": dao_data.get("fee_rate", 3.0),
+            "payment_method": dao_data.get("payment_method", "CASH"),
+            "bill_code": dao_data.get("bill_code", ""),  # For đáo bằng bill điện
+            "pos_code": dao_data.get("pos_code", ""),    # For đáo bằng POS
+            "transaction_code": dao_data.get("transaction_code", ""),
+            "notes": dao_data.get("notes", f"Đáo thẻ - {datetime.now().strftime('%d/%m/%Y')}"),
+            "status": "COMPLETED",
+            "transaction_type": "DAO",
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+            **card_info  # Add credit card info if available
+        }
+        
+        # Insert DAO transaction
+        result = await db.dao_transactions.insert_one(dao_transaction)
+        if not result.inserted_id:
+            raise HTTPException(status_code=500, detail="Failed to create DAO transaction")
+        
+        # Update customer stats
+        await db.customers.update_one(
+            {"id": customer_id},
+            {
+                "$inc": {
+                    "total_dao_amount": dao_data.get("amount", 0),
+                    "total_dao_transactions": 1
+                }
+            }
+        )
+        
+        # Clean response
+        dao_response = dict(dao_transaction)
+        dao_response.pop("_id", None)
+        
+        return {
+            "success": True,
+            "message": "Đáo thẻ thành công",
+            "dao_transaction": dao_response
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing general DAO: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/dao-transactions", response_model=List[dict])
+async def get_dao_transactions(
+    skip: int = 0, 
+    limit: int = 100,
+    customer_id: Optional[str] = None
+):
+    """Get DAO transactions - UUID only responses"""
+    try:
+        # Build query filter
+        filter_query = {}
+        if customer_id:
+            if not is_valid_uuid(customer_id):
+                raise HTTPException(status_code=400, detail="Invalid customer_id UUID format")
+            filter_query["customer_id"] = customer_id
+        
+        # Get DAO transactions
+        cursor = db.dao_transactions.find(filter_query).skip(skip).limit(limit).sort("created_at", -1)
+        dao_transactions = await cursor.to_list(length=limit)
+        
+        # Clean responses - UUID only system
+        cleaned_transactions = []
+        for transaction in dao_transactions:
+            transaction_dict = dict(transaction)
+            transaction_dict.pop("_id", None)  # Remove ObjectId
+            cleaned_transactions.append(transaction_dict)
+        
+        return cleaned_transactions
+        
+    except Exception as e:
+        logger.error(f"Error fetching DAO transactions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/activities/recent")
 async def get_recent_activities(days: int = 3, limit: int = 20):
     """Recent activities for dashboard (placeholder)"""
