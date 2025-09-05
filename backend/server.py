@@ -1408,13 +1408,21 @@ async def dao_credit_card_by_id(card_id: str, dao_data: dict):
         if not result.inserted_id:
             raise HTTPException(status_code=500, detail="Failed to create DAO transaction")
         
-        # Update customer stats
+        # Update customer stats - CRITICAL: Include DAO in total_spent and total_profit_generated
         await db.customers.update_one(
             {"id": card.get("customer_id")},
             {
                 "$inc": {
                     "total_dao_amount": dao_data.get("amount", 0),
-                    "total_dao_transactions": 1
+                    "total_dao_transactions": 1,
+                    "total_dao_profit": dao_data.get("profit_value", 0),
+                    # CRITICAL: Update main customer totals for customer list display
+                    "total_spent": dao_data.get("amount", 0),
+                    "total_profit_generated": dao_data.get("profit_value", 0),
+                    "total_transactions": 1
+                },
+                "$set": {
+                    "updated_at": datetime.now(timezone.utc)
                 }
             }
         )
