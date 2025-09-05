@@ -418,6 +418,31 @@ def calculate_card_status(current_balance: float, next_due_date: str, last_dao_d
     else:
         return CardStatus.QUA_HAN  # Overdue, need immediate attention
 
+async def generate_dao_transaction_id(card_number: str, date: datetime = None) -> str:
+    """Generate DAO transaction ID: D + last 4 digits + DDMM with auto-increment"""
+    if not date:
+        date = datetime.now(timezone.utc)
+    
+    # Extract last 4 digits from card number
+    last_4_digits = card_number.replace("*", "")[-4:] if card_number else "0000"
+    
+    # Format: DDMM
+    day = date.strftime("%d")
+    month = date.strftime("%m")
+    
+    # Base ID: D + last4 + DDMM
+    base_id = f"D{last_4_digits}{day}{month}"
+    
+    # Check for existing transactions with same base ID
+    existing_count = await db.dao_transactions.count_documents({
+        "transaction_id": {"$regex": f"^{base_id}"}
+    })
+    
+    if existing_count == 0:
+        return base_id  # D98550509
+    else:
+        return f"{base_id}-{existing_count + 1}"  # D98550509-2, D98550509-3, etc.
+
 def update_card_after_dao(card_dict: dict, dao_amount: float) -> dict:
     """Update card fields after DAO transaction"""
     # Update current balance (increase by DAO amount)
