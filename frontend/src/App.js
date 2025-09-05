@@ -8254,8 +8254,8 @@ const CustomerTransactionsTab = ({ customer, formatCurrency, formatDateTime }) =
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
-                        <div className="font-medium">{formatCurrency(transaction.amount || 0)}</div>
-                        <div className="text-xs text-green-600">+{formatCurrency(transaction.profit || 0)}</div>
+                        <div className="font-medium">{formatCurrency(getTotalAmount(transaction))}</div>
+                        <div className="text-xs text-green-600">+{formatCurrency(getProfitValue(transaction))}</div>
                       </div>
                       <Badge className={`${getStatusColor(transaction.status)} text-xs`}>
                         {transaction.status || 'Hoàn thành'}
