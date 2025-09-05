@@ -5198,7 +5198,8 @@ const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
 const CreditCardInfoModal = ({ show, cardDetail, onClose, onDao, onEdit, onDelete }) => {
   if (!show || !cardDetail) return null;
 
-  const { card, customer, recent_transactions, total_transactions } = cardDetail;
+  const { credit_card: card, customer, transactions: recent_transactions, summary } = cardDetail;
+  const total_transactions = summary?.total_transactions || 0;
 
   // Card Type Colors & Styling (same as parent component)
   const getCardStyle = (cardType) => {
