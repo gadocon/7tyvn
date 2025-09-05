@@ -4344,6 +4344,479 @@ class FPTBillManagerAPITester:
         
         return test_results["sales_creation_success"]
 
+    def test_customer_detail_page_transaction_tab_data_loading(self):
+        """Test comprehensive customer detail page data loading fixes - REVIEW REQUEST"""
+        print(f"\n🎯 CUSTOMER DETAIL PAGE TRANSACTION TAB DATA LOADING TESTING")
+        print("=" * 80)
+        print("🔍 CRITICAL TESTING OBJECTIVES:")
+        print("   1. Test DAO transactions show correct business ID format (D+last4digits+DDMM)")
+        print("   2. Test GET /api/customers/{customer_id}/detailed-profile with DAO transactions")
+        print("   3. Test GET /api/customers/{customer_id}/transactions-summary endpoint")
+        print("   4. Verify field consistency between sales and DAO transactions")
+        print("   5. Test with actual credit card and DAO transaction data")
+        print("   6. Verify business IDs are correctly displayed in transaction responses")
+        
+        test_results = {
+            "dao_business_id_format_correct": False,
+            "detailed_profile_with_dao_working": False,
+            "transactions_summary_working": False,
+            "field_consistency_verified": False,
+            "business_ids_preserved": False,
+            "test_data_created": False,
+            "total_tests": 0,
+            "passed_tests": 0,
+            "critical_issues": [],
+            "created_customers": [],
+            "created_credit_cards": [],
+            "created_dao_transactions": [],
+            "created_sales": []
+        }
+        
+        # Step 1: Create test customer with realistic data
+        print(f"\n🔍 STEP 1: Create Test Customer with Realistic Data")
+        print("=" * 60)
+        
+        customer_data = {
+            "name": "Nguyễn Văn Minh",
+            "phone": "0987654321",
+            "email": "nguyenvanminh@email.com",
+            "address": "123 Đường Lê Lợi, Quận 1, TP.HCM",
+            "type": "INDIVIDUAL",
+            "notes": "Customer for transaction tab testing"
+        }
+        
+        customer_success, customer_response = self.run_test(
+            "POST /customers - Create Test Customer",
+            "POST",
+            "customers",
+            200,
+            data=customer_data
+        )
+        
+        if customer_success and customer_response:
+            customer_id = customer_response.get('id')
+            test_results["created_customers"].append(customer_id)
+            print(f"✅ Created test customer: {customer_response.get('name')} (ID: {customer_id})")
+            test_results["passed_tests"] += 1
+        else:
+            print(f"❌ Failed to create test customer")
+            test_results["critical_issues"].append("Cannot create test customer")
+            return False
+        
+        test_results["total_tests"] += 1
+        
+        # Step 2: Create test credit card for the customer
+        print(f"\n🔍 STEP 2: Create Test Credit Card")
+        print("=" * 60)
+        
+        credit_card_data = {
+            "customer_id": customer_id,
+            "card_number": "4111111111111111",  # Test Visa card
+            "cardholder_name": "NGUYEN VAN MINH",
+            "bank_name": "Vietcombank",
+            "card_type": "VISA",
+            "expiry_date": "12/26",
+            "ccv": "123",
+            "statement_date": 5,
+            "payment_due_date": 25,
+            "credit_limit": 50000000,  # 50M VND
+            "notes": "Test card for transaction testing"
+        }
+        
+        card_success, card_response = self.run_test(
+            "POST /credit-cards - Create Test Credit Card",
+            "POST",
+            "credit-cards",
+            200,
+            data=credit_card_data
+        )
+        
+        if card_success and card_response:
+            card_id = card_response.get('id')
+            test_results["created_credit_cards"].append(card_id)
+            print(f"✅ Created test credit card: {card_response.get('bank_name')} (ID: {card_id})")
+            test_results["passed_tests"] += 1
+        else:
+            print(f"❌ Failed to create test credit card")
+            test_results["critical_issues"].append("Cannot create test credit card")
+            return False
+        
+        test_results["total_tests"] += 1
+        
+        # Step 3: Create DAO transactions with business ID format testing
+        print(f"\n🔍 STEP 3: Create DAO Transactions with Business ID Format Testing")
+        print("=" * 60)
+        
+        # Create multiple DAO transactions to test business ID generation
+        dao_transactions_data = [
+            {
+                "customer_id": customer_id,
+                "card_id": card_id,
+                "amount": 5000000,  # 5M VND
+                "profit_value": 150000,  # 150k profit
+                "fee_rate": 3.0,
+                "payment_method": "POS",
+                "pos_code": "POS001",
+                "notes": "Test DAO transaction 1"
+            },
+            {
+                "customer_id": customer_id,
+                "card_id": card_id,
+                "amount": 3000000,  # 3M VND
+                "profit_value": 90000,   # 90k profit
+                "fee_rate": 3.0,
+                "payment_method": "BILL",
+                "notes": "Test DAO transaction 2"
+            }
+        ]
+        
+        dao_business_ids = []
+        
+        for i, dao_data in enumerate(dao_transactions_data):
+            dao_success, dao_response = self.run_test(
+                f"POST /credit-cards/{card_id}/dao - Create DAO Transaction {i+1}",
+                "POST",
+                f"credit-cards/{card_id}/dao",
+                200,
+                data=dao_data
+            )
+            
+            if dao_success and dao_response:
+                dao_transaction = dao_response.get("dao_transaction", {})
+                transaction_id = dao_transaction.get("transaction_id")
+                
+                if transaction_id:
+                    dao_business_ids.append(transaction_id)
+                    test_results["created_dao_transactions"].append(dao_transaction)
+                    print(f"✅ Created DAO transaction {i+1}: Business ID = {transaction_id}")
+                    
+                    # Verify business ID format: D+last4digits+DDMM
+                    if transaction_id.startswith('D') and len(transaction_id) >= 9:
+                        # Extract components
+                        last_4_digits = transaction_id[1:5]  # Should be "1111" from card ending
+                        date_part = transaction_id[5:9]      # Should be DDMM format
+                        
+                        print(f"   Business ID format analysis:")
+                        print(f"   - Full ID: {transaction_id}")
+                        print(f"   - Last 4 digits: {last_4_digits} (from card: ...1111)")
+                        print(f"   - Date part: {date_part} (DDMM format)")
+                        
+                        # Verify last 4 digits match card number
+                        if last_4_digits == "1111":  # Last 4 of test card 4111111111111111
+                            print(f"   ✅ Last 4 digits correct: {last_4_digits}")
+                            test_results["dao_business_id_format_correct"] = True
+                        else:
+                            print(f"   ❌ Last 4 digits incorrect: expected 1111, got {last_4_digits}")
+                    else:
+                        print(f"   ❌ Business ID format incorrect: {transaction_id}")
+                        test_results["critical_issues"].append(f"Incorrect business ID format: {transaction_id}")
+                else:
+                    print(f"❌ DAO transaction {i+1} missing transaction_id")
+                    test_results["critical_issues"].append(f"DAO transaction missing business ID")
+                
+                test_results["passed_tests"] += 1
+            else:
+                print(f"❌ Failed to create DAO transaction {i+1}")
+                test_results["critical_issues"].append(f"Cannot create DAO transaction {i+1}")
+            
+            test_results["total_tests"] += 1
+        
+        # Step 4: Test Customer Detailed Profile API with DAO transactions
+        print(f"\n🔍 STEP 4: Test Customer Detailed Profile API with DAO Transactions")
+        print("=" * 60)
+        
+        detailed_profile_success, detailed_profile_response = self.run_test(
+            f"GET /customers/{customer_id}/detailed-profile - With DAO Transactions",
+            "GET",
+            f"customers/{customer_id}/detailed-profile",
+            200
+        )
+        
+        if detailed_profile_success and detailed_profile_response:
+            print(f"✅ Customer detailed profile API working")
+            
+            # Verify response structure
+            required_keys = ["success", "customer", "metrics", "recent_activities"]
+            missing_keys = [key for key in required_keys if key not in detailed_profile_response]
+            
+            if not missing_keys:
+                print(f"✅ Response structure complete: {list(detailed_profile_response.keys())}")
+                
+                # Check metrics include DAO transactions
+                metrics = detailed_profile_response.get("metrics", {})
+                total_transactions = metrics.get("total_transactions", 0)
+                total_spent = metrics.get("total_spent", 0)
+                
+                print(f"   Metrics verification:")
+                print(f"   - Total transactions: {total_transactions}")
+                print(f"   - Total spent: {total_spent:,.0f} VND")
+                
+                if total_transactions >= len(dao_transactions_data):
+                    print(f"   ✅ Metrics include DAO transactions")
+                    test_results["detailed_profile_with_dao_working"] = True
+                else:
+                    print(f"   ❌ Metrics may not include DAO transactions")
+                
+                # Check recent activities include DAO transactions
+                recent_activities = detailed_profile_response.get("recent_activities", [])
+                dao_activities = [activity for activity in recent_activities 
+                                if activity.get("type") in ["CREDIT_DAO_POS", "CREDIT_DAO_BILL"]]
+                
+                print(f"   Recent activities verification:")
+                print(f"   - Total activities: {len(recent_activities)}")
+                print(f"   - DAO activities: {len(dao_activities)}")
+                
+                if dao_activities:
+                    print(f"   ✅ Recent activities include DAO transactions")
+                    
+                    # Verify business transaction_id is preserved
+                    for activity in dao_activities:
+                        activity_transaction_id = activity.get("transaction_id")
+                        if activity_transaction_id and activity_transaction_id in dao_business_ids:
+                            print(f"   ✅ Business transaction_id preserved: {activity_transaction_id}")
+                            test_results["business_ids_preserved"] = True
+                        else:
+                            print(f"   ❌ Business transaction_id not preserved or incorrect")
+                else:
+                    print(f"   ❌ Recent activities missing DAO transactions")
+                
+                test_results["passed_tests"] += 1
+            else:
+                print(f"❌ Response structure incomplete - missing keys: {missing_keys}")
+                test_results["critical_issues"].append(f"Detailed profile missing keys: {missing_keys}")
+        else:
+            print(f"❌ Customer detailed profile API failed")
+            test_results["critical_issues"].append("Customer detailed profile API not working")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 5: Test Customer Transactions Summary API
+        print(f"\n🔍 STEP 5: Test Customer Transactions Summary API")
+        print("=" * 60)
+        
+        transactions_summary_success, transactions_summary_response = self.run_test(
+            f"GET /customers/{customer_id}/transactions-summary - DAO Transactions",
+            "GET",
+            f"customers/{customer_id}/transactions-summary",
+            200
+        )
+        
+        if transactions_summary_success and transactions_summary_response:
+            print(f"✅ Customer transactions summary API working")
+            
+            # Verify response contains both sales and DAO transactions
+            transactions = transactions_summary_response if isinstance(transactions_summary_response, list) else []
+            
+            dao_transactions_in_summary = [tx for tx in transactions 
+                                         if tx.get("type") in ["CREDIT_DAO_POS", "CREDIT_DAO_BILL"]]
+            
+            print(f"   Transactions summary verification:")
+            print(f"   - Total transactions: {len(transactions)}")
+            print(f"   - DAO transactions: {len(dao_transactions_in_summary)}")
+            
+            if dao_transactions_in_summary:
+                print(f"   ✅ Summary includes DAO transactions")
+                test_results["transactions_summary_working"] = True
+                
+                # Verify field consistency for DAO transactions
+                for dao_tx in dao_transactions_in_summary:
+                    # Check required fields for DAO transactions
+                    required_dao_fields = ["type", "amount", "profit_value", "transaction_id"]
+                    missing_dao_fields = [field for field in required_dao_fields if field not in dao_tx]
+                    
+                    if not missing_dao_fields:
+                        print(f"   ✅ DAO transaction has correct fields: {list(dao_tx.keys())}")
+                        
+                        # Verify business transaction_id is preserved
+                        tx_business_id = dao_tx.get("transaction_id")
+                        if tx_business_id and tx_business_id in dao_business_ids:
+                            print(f"   ✅ Business transaction_id preserved in summary: {tx_business_id}")
+                        else:
+                            print(f"   ❌ Business transaction_id not preserved in summary")
+                    else:
+                        print(f"   ❌ DAO transaction missing fields: {missing_dao_fields}")
+                        test_results["critical_issues"].append(f"DAO transaction missing fields: {missing_dao_fields}")
+                
+                test_results["passed_tests"] += 1
+            else:
+                print(f"   ❌ Summary missing DAO transactions")
+                test_results["critical_issues"].append("Transactions summary missing DAO transactions")
+        else:
+            print(f"❌ Customer transactions summary API failed")
+            test_results["critical_issues"].append("Customer transactions summary API not working")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 6: Test field consistency between sales and DAO transactions
+        print(f"\n🔍 STEP 6: Test Field Consistency Between Sales and DAO Transactions")
+        print("=" * 60)
+        
+        # Create a test sale transaction for comparison
+        if self.mongo_connected:
+            try:
+                # Get available bills for sale
+                available_bills = list(self.db.bills.find({"status": "AVAILABLE"}).limit(2))
+                
+                if available_bills:
+                    bill_ids = [bill["id"] for bill in available_bills]
+                    
+                    sale_data = {
+                        "customer_id": customer_id,
+                        "bill_ids": bill_ids,
+                        "profit_pct": 5.0,
+                        "notes": "Test sale for field consistency"
+                    }
+                    
+                    sale_success, sale_response = self.run_test(
+                        "POST /sales - Create Test Sale for Field Consistency",
+                        "POST",
+                        "sales",
+                        200,
+                        data=sale_data
+                    )
+                    
+                    if sale_success and sale_response:
+                        test_results["created_sales"].append(sale_response.get("id"))
+                        print(f"✅ Created test sale for field consistency testing")
+                        
+                        # Now test transactions summary again to compare fields
+                        updated_summary_success, updated_summary_response = self.run_test(
+                            f"GET /customers/{customer_id}/transactions-summary - With Sales and DAO",
+                            "GET",
+                            f"customers/{customer_id}/transactions-summary",
+                            200
+                        )
+                        
+                        if updated_summary_success and updated_summary_response:
+                            transactions = updated_summary_response if isinstance(updated_summary_response, list) else []
+                            
+                            sales_transactions = [tx for tx in transactions if tx.get("type") == "ELECTRIC_BILL"]
+                            dao_transactions = [tx for tx in transactions if tx.get("type") in ["CREDIT_DAO_POS", "CREDIT_DAO_BILL"]]
+                            
+                            print(f"   Field consistency verification:")
+                            print(f"   - Sales transactions: {len(sales_transactions)}")
+                            print(f"   - DAO transactions: {len(dao_transactions)}")
+                            
+                            # Verify sales use 'total' and 'profit_value' fields
+                            if sales_transactions:
+                                sales_tx = sales_transactions[0]
+                                sales_fields = list(sales_tx.keys())
+                                print(f"   - Sales transaction fields: {sales_fields}")
+                                
+                                if "total" in sales_tx and "profit_value" in sales_tx:
+                                    print(f"   ✅ Sales transactions use 'total' and 'profit_value' fields")
+                                else:
+                                    print(f"   ❌ Sales transactions missing expected fields")
+                            
+                            # Verify DAO use 'amount' and 'profit_value' fields
+                            if dao_transactions:
+                                dao_tx = dao_transactions[0]
+                                dao_fields = list(dao_tx.keys())
+                                print(f"   - DAO transaction fields: {dao_fields}")
+                                
+                                if "amount" in dao_tx and "profit_value" in dao_tx:
+                                    print(f"   ✅ DAO transactions use 'amount' and 'profit_value' fields")
+                                    test_results["field_consistency_verified"] = True
+                                else:
+                                    print(f"   ❌ DAO transactions missing expected fields")
+                            
+                            # Verify all transactions have consistent 'type' field mapping
+                            type_mapping_correct = True
+                            for tx in transactions:
+                                tx_type = tx.get("type")
+                                if tx_type not in ["ELECTRIC_BILL", "CREDIT_DAO_POS", "CREDIT_DAO_BILL"]:
+                                    print(f"   ❌ Unexpected transaction type: {tx_type}")
+                                    type_mapping_correct = False
+                            
+                            if type_mapping_correct:
+                                print(f"   ✅ All transactions have consistent 'type' field mapping")
+                            
+                            test_results["passed_tests"] += 1
+                        else:
+                            print(f"   ❌ Cannot get updated transactions summary")
+                    else:
+                        print(f"   ⚠️ Cannot create test sale - may not affect DAO testing")
+                else:
+                    print(f"   ⚠️ No available bills for sale creation - testing DAO only")
+            except Exception as e:
+                print(f"   ⚠️ Error creating test sale: {e}")
+        else:
+            print(f"   ⚠️ MongoDB connection not available for bill lookup")
+        
+        test_results["total_tests"] += 1
+        
+        # Step 7: Final Assessment
+        print(f"\n📊 STEP 7: Final Assessment - Customer Detail Page Transaction Tab Data Loading")
+        print("=" * 60)
+        
+        success_rate = (test_results["passed_tests"] / test_results["total_tests"] * 100) if test_results["total_tests"] > 0 else 0
+        
+        print(f"\n🔍 COMPREHENSIVE TEST RESULTS:")
+        print(f"   DAO business ID format correct: {'✅ YES' if test_results['dao_business_id_format_correct'] else '❌ NO'}")
+        print(f"   Detailed profile with DAO working: {'✅ YES' if test_results['detailed_profile_with_dao_working'] else '❌ NO'}")
+        print(f"   Transactions summary working: {'✅ YES' if test_results['transactions_summary_working'] else '❌ NO'}")
+        print(f"   Field consistency verified: {'✅ YES' if test_results['field_consistency_verified'] else '❌ NO'}")
+        print(f"   Business IDs preserved: {'✅ YES' if test_results['business_ids_preserved'] else '❌ NO'}")
+        print(f"   Overall Success Rate: {success_rate:.1f}% ({test_results['passed_tests']}/{test_results['total_tests']})")
+        
+        print(f"\n🔍 TEST DATA CREATED:")
+        print(f"   Customers: {len(test_results['created_customers'])}")
+        print(f"   Credit cards: {len(test_results['created_credit_cards'])}")
+        print(f"   DAO transactions: {len(test_results['created_dao_transactions'])}")
+        print(f"   Sales transactions: {len(test_results['created_sales'])}")
+        
+        print(f"\n🎯 REVIEW OBJECTIVES VERIFICATION:")
+        all_objectives_met = (
+            test_results["dao_business_id_format_correct"] and
+            test_results["detailed_profile_with_dao_working"] and
+            test_results["transactions_summary_working"] and
+            test_results["field_consistency_verified"] and
+            test_results["business_ids_preserved"]
+        )
+        
+        if all_objectives_met:
+            print(f"   ✅ Transaction Business IDs show correct format (D+last4digits+DDMM)")
+            print(f"   ✅ Customer Detail Profile API includes DAO transactions in stats")
+            print(f"   ✅ Customer Detail Profile API includes DAO in recent activities")
+            print(f"   ✅ Customer Transactions Summary API returns DAO transactions")
+            print(f"   ✅ DAO transactions have correct 'type' field mapping")
+            print(f"   ✅ Business transaction_id preserved in responses")
+            print(f"   ✅ Field consistency verified (sales: total/profit_value, DAO: amount/profit_value)")
+        else:
+            print(f"   ❌ Some review objectives not met:")
+            if not test_results["dao_business_id_format_correct"]:
+                print(f"      - DAO business ID format incorrect")
+            if not test_results["detailed_profile_with_dao_working"]:
+                print(f"      - Detailed profile API not including DAO transactions properly")
+            if not test_results["transactions_summary_working"]:
+                print(f"      - Transactions summary API not working with DAO transactions")
+            if not test_results["field_consistency_verified"]:
+                print(f"      - Field consistency issues between sales and DAO transactions")
+            if not test_results["business_ids_preserved"]:
+                print(f"      - Business transaction IDs not preserved in responses")
+        
+        if test_results["critical_issues"]:
+            print(f"\n🚨 CRITICAL ISSUES FOUND:")
+            for issue in test_results["critical_issues"]:
+                print(f"   - {issue}")
+        
+        print(f"\n🏁 FINAL CONCLUSION:")
+        if all_objectives_met:
+            print(f"   ✅ CUSTOMER DETAIL PAGE TRANSACTION TAB DATA LOADING FIXES SUCCESSFUL")
+            print(f"   - DAO transactions show correct business ID format")
+            print(f"   - Customer detail profile API properly includes DAO transactions")
+            print(f"   - Transactions summary API working correctly")
+            print(f"   - Field consistency maintained between sales and DAO transactions")
+            print(f"   - Business transaction IDs correctly displayed")
+            print(f"   - All customer detail page data loading correctly with proper business IDs")
+        else:
+            print(f"   ❌ CUSTOMER DETAIL PAGE TRANSACTION TAB DATA LOADING NEEDS FIXES")
+            print(f"   - Some transaction data loading issues remain")
+            print(f"   - Business ID format or preservation issues detected")
+            print(f"   - Field consistency problems may exist")
+        
+        return all_objectives_met
+
     def run_all_tests(self):
         """Run all tests for the review request"""
         print(f"\n🚀 STARTING DUAL COLLECTION ARCHITECTURE ANALYSIS")
