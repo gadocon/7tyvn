@@ -7162,7 +7162,7 @@ const CustomerDetailPage = () => {
       case 'CREDIT_DAO_POS':
         return 'Đáo Thẻ POS';
       case 'CREDIT_DAO_BILL':
-        return 'Đáo Thẻ BILL';
+        return 'Đáo Thẻ Bill';
       default:
         return 'Giao Dịch';
     }
