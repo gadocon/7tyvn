@@ -1493,18 +1493,22 @@ async def dao_credit_card_by_id(card_id: str, dao_data: dict):
         if not customer:
             raise HTTPException(status_code=404, detail="Customer not found")
         
-        # Create DAO transaction record with UUID and CORRECT TYPE
+        # Generate business transaction ID
+        transaction_id = await generate_dao_transaction_id(card.get("card_number", ""))
+        
+        # Create DAO transaction record with BUSINESS ID
         transaction_type = "CREDIT_DAO_POS" if dao_data.get("payment_method") == "POS" else "CREDIT_DAO_BILL"
         
         dao_transaction = {
-            "id": generate_uuid(),
+            "id": generate_uuid(),  # Technical UUID for internal use
+            "transaction_id": transaction_id,  # Business ID: D98550509
             "customer_id": card.get("customer_id"),
             "credit_card_id": card_id,
             "card_number": f"****{card.get('card_number', '0000')[-4:]}",
             "bank_name": card.get("bank_name"),
             "amount": dao_data.get("amount", 0),
             "profit_value": dao_data.get("profit_value", 0),
-            "fee_rate": dao_data.get("fee_rate", 3.0),  # Default 3% fee
+            "fee_rate": dao_data.get("fee_rate", 3.0),  
             "payment_method": dao_data.get("payment_method", "POS"),
             "pos_code": dao_data.get("pos_code", ""),
             "transaction_code": dao_data.get("transaction_code", ""),
