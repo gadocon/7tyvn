@@ -7070,8 +7070,18 @@ const CustomerDetailPage = () => {
   useEffect(() => {
     if (customerId) {
       fetchCustomerDetail();
+      fetchCustomers(); // Fetch customers for the add credit card modal
     }
   }, [customerId]);
+
+  const fetchCustomers = async () => {
+    try {
+      const response = await axios.get(`${API}/customers`);
+      setCustomers(response.data || []);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+    }
+  };
 
   const handlePhoneCall = (phoneNumber, customerName, customerId) => {
     try {
