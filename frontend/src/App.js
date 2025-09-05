@@ -2555,7 +2555,7 @@ const CustomerModal = ({ show, customer, onClose, onSave }) => {
     if (customer) {
       setFormData({
         name: customer.name || "",
-        type: customer.type || "INDIVIDUAL",
+        type: customer?.type || "INDIVIDUAL",
         phone: customer.phone || "",
         email: customer.email || "",
         address: customer.address || "",
