@@ -2743,7 +2743,7 @@ const CustomerDetailModal = ({ customerDetail, onClose }) => {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.total_value)}</div>
+              <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.total_spent)}</div>
               <p className="text-xs text-gray-500">Tổng Giá Trị</p>
             </CardContent>
           </Card>
