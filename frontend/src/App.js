@@ -4764,7 +4764,7 @@ const CreditCards = () => {
 };
 
 // Add Credit Card Modal Component
-const AddCreditCardModal = ({ show, customers, onClose, onSuccess }) => {
+const AddCreditCardModal = ({ show, customers, selectedCustomerId, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     customer_id: "",
     card_number: "",
